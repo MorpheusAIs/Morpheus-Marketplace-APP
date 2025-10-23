@@ -70,7 +70,7 @@ export default function Home() {
           </h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <button 
             onClick={handleAdmin}
             className="group relative p-6 bg-[var(--midnight)] rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_14px_28px_rgba(0,0,0,0.25)] hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-[var(--neon-mint)]/30 after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-br after:from-transparent after:via-transparent after:to-[var(--neon-mint)]/10 after:opacity-0 hover:after:opacity-100 after:transition-opacity text-left w-full"
@@ -79,16 +79,6 @@ export default function Home() {
             <h2 className="text-2xl font-semibold mb-2 text-[var(--neon-mint)]">Admin</h2>
             <p className="text-[var(--platinum)]/70">Manage your API keys and automation settings</p>
           </button>
-          <Link href="/docs" className="group relative p-6 bg-[var(--midnight)] rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_14px_28px_rgba(0,0,0,0.25)] hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-[var(--neon-mint)]/30 after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-br after:from-transparent after:via-transparent after:to-[var(--neon-mint)]/10 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--emerald)] to-[var(--neon-mint)]"></div>
-            <h2 className="text-2xl font-semibold mb-2 text-[var(--neon-mint)]">Documentation</h2>
-            <p className="text-[var(--platinum)]/70">Browse API documentation and integration guides</p>
-          </Link>
-          <Link href="/test" className="group relative p-6 bg-[var(--midnight)] rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_14px_28px_rgba(0,0,0,0.25)] hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-[var(--neon-mint)]/30 after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-br after:from-transparent after:via-transparent after:to-[var(--neon-mint)]/10 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--emerald)] to-[var(--neon-mint)]"></div>
-            <h2 className="text-2xl font-semibold mb-2 text-[var(--neon-mint)]">Testing</h2>
-            <p className="text-[var(--platinum)]/70">Test API functionality</p>
-          </Link>
           <Link href="/chat" className="group relative p-6 bg-[var(--midnight)] rounded-lg shadow-[0_10px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_14px_28px_rgba(0,0,0,0.25)] hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-[var(--neon-mint)]/30 after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-br after:from-transparent after:via-transparent after:to-[var(--neon-mint)]/10 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--emerald)] to-[var(--neon-mint)]"></div>
             <h2 className="text-2xl font-semibold mb-2 text-[var(--neon-mint)]">Chat</h2>

@@ -51,12 +51,6 @@ export default function NotFound() {
             <Link href="/chat" className="text-purple-400 hover:text-purple-300 underline">
               Chat
             </Link>
-            <Link href="/test" className="text-purple-400 hover:text-purple-300 underline">
-              Test
-            </Link>
-            <Link href="/docs" className="text-purple-400 hover:text-purple-300 underline">
-              Documentation
-            </Link>
           </div>
         </div>
       </div>
