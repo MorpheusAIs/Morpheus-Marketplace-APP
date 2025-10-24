@@ -1,106 +1,168 @@
-# Morpheus APP Documentation
+# Morpheus APP - API Gateway Interface
 
-This is a [Next.js](https://nextjs.org) project that provides documentation and management interface for the Morpheus API Gateway. The application includes user authentication, API key management, automation settings, and comprehensive documentation.
+A [Next.js](https://nextjs.org) application that provides the user interface for the Morpheus API Gateway, including user authentication via AWS Cognito, API key management, automation settings, and an interactive chat interface.
 
-## Features
+## 🚀 Features
 
-- 🔐 **User Authentication**: Secure login and registration system
-- 🔑 **API Key Management**: Create and manage API keys
-- ⚙️ **Automation Settings**: Configure automated behaviors
-- 💬 **Chat Interface**: Test API functionality (coming soon)
+- 🔐 **AWS Cognito Authentication**: Secure OAuth2/OpenID Connect authentication
+- 🔑 **API Key Management**: Create, manage, and delete API keys
+- ⚙️ **Automation Settings**: Configure automated session management
+- 💬 **Interactive Chat**: Real-time chat interface with model selection and history
+- 📊 **Analytics Integration**: Google Analytics 4 and Google Tag Manager support
+- 🎨 **Modern UI**: Beautiful, responsive design with Tailwind CSS
 
-## Environment Setup
+## 📋 Prerequisites
 
-Create a `.env` file in the root directory with the following variables:
-```env
-# Database
-DATABASE_URL="your_postgresql_connection_string"
+- **Node.js**: >= 20.0.0 (specified in package.json engines)
+- **npm**: Latest version recommended
+- **AWS Cognito**: Access to the Morpheus Cognito User Pool credentials
 
-# Google Analytics 4
-NEXT_PUBLIC_GA_ID="G-XXXXXXXXXX"
+## 🛠️ Quick Start
 
-# Google Tag Manager
-NEXT_PUBLIC_GTM_ID="GTM-XXXXXXX"
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/morpheusais/morpheus-marketplace-app.git
+cd morpheus-marketplace-app
 ```
 
-## Getting Started
-
-First, install dependencies:
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-Set up the database:
+### 3. Configure Environment Variables
+
+Copy the example environment file and configure it for your local environment:
 
 ```bash
-npm run db:setup
+cp env.example .env.local
 ```
 
-Then, run the development server:
+Edit `.env.local` with your configuration. The `env.example` file is pre-configured with dev environment values:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://api.dev.mor.org
+NEXT_PUBLIC_COGNITO_REGION=us-east-2
+NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=gllbg66ej476tsaf2ibfjc7g8
+NEXT_PUBLIC_COGNITO_DOMAIN=auth.mor.org
+NEXT_PUBLIC_GA_ID=
+NEXT_PUBLIC_GTM_ID=
+NEXT_PUBLIC_ALLOWED_MODEL_TYPES=LLM
+NEXT_PUBLIC_DEFAULT_MODEL=LMR-Hermes-3-Llama-3.1-8B
+```
+
+> 💡 **Tip**: Analytics tracking is disabled by default (GA_ID and GTM_ID are empty).
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-## Analytics Integration
+### 5. Build for Production
 
-This project includes both Google Analytics 4 and Google Tag Manager for comprehensive tracking:
+```bash
+npm run build
+npm start
+```
+
+## 📖 Documentation
+
+For detailed developer documentation, see:
+- **[Local Developer Guide](./.ai-docs/Local_Developer_Guide.md)** - Complete setup and contribution guidelines
+
+## 🏗️ Project Structure
+
+```
+morpheus-marketplace-app/
+├── src/
+│   ├── app/                    # Next.js app directory (routes)
+│   │   ├── admin/             # Admin dashboard for API key management
+│   │   ├── chat/              # Interactive chat interface
+│   │   ├── auth/              # Authentication callbacks
+│   │   └── ...
+│   ├── components/            # Reusable React components
+│   │   ├── auth/             # Authentication components
+│   │   └── providers/        # Context providers (GTM, etc.)
+│   └── lib/                  # Utility libraries
+│       ├── auth/            # Cognito authentication logic
+│       ├── api/             # API service layer
+│       └── utils/           # Helper functions
+├── public/                   # Static assets
+├── .ai-docs/                # Developer documentation
+└── amplify.yml              # AWS Amplify build configuration
+```
+
+## 🔧 Available Scripts
+
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+
+## 🌐 Deployment
+
+This application is deployed using **AWS Amplify** with automatic deployments configured for:
+
+- **Development**: `https://app.dev.mor.org` (from `dev` branch)
+- **Production**: `https://app.mor.org` (from `main` branch)
+
+### Branch Workflow
+
+- Feature branches → PR to `dev` (1 peer review required)
+- `dev` → Automatically deploys to `https://app.dev.mor.org`
+- `dev` → PR to `main` (2 peer reviews required)
+- `main` → Automatically deploys to `https://app.mor.org`
+
+## 📊 Analytics Integration
 
 ### Google Analytics 4 (GA4)
-- **Direct analytics tracking** for immediate data collection
 - **Measurement ID**: `G-MSQ0EV24TS`
-- **Real-time reporting** and detailed user analytics
+- Real-time user analytics and behavior tracking
 
 ### Google Tag Manager (GTM)
-- **Centralized tag management** for multiple marketing tools
-- **Container ID**: `GTM-MZQW3K5`
-- **Advanced tag configurations** and trigger management
+- **Container ID**: `GTM-5SNC6HZ5`
+- Centralized tag management and advanced configurations
 
-### Key Features:
-- **Multi-channel event sending**: Events are sent to both GA4 and GTM simultaneously
-- **Automatic page view tracking** when users navigate between routes
-- **Custom event tracking** for all major user interactions
-- **Type-safe event system** with predefined event types
-- **Error handling** to prevent tracking failures from affecting UX
-- **Environment variable configuration** for security
-
-### Tracked Events:
-- User authentication events (login, register, logout)
-- API key management tracking (creation, deletion)
-- Automation settings tracking (enable/disable)
-- Documentation page views
+### Tracked Events
+- User authentication (login, signup, logout)
+- API key management (create, delete, set default)
+- Automation settings changes
 - Chat message interactions
-- Custom button clicks and form submissions
+- Page views and navigation
 
-### Testing Analytics:
+## 🔐 Authentication
 
-1. **Network Tab Testing**:
-   - Open browser DevTools → Network tab
-   - Filter by "gtag" to see GA4 requests
-   - Filter by "googletagmanager" to see GTM requests
+This application uses **AWS Cognito** for authentication with:
+- Direct sign-in/sign-up flows
+- Password reset functionality
+- OAuth2/OpenID Connect tokens
+- Secure session management
 
-2. **Real-time Testing**:
-   - Use Google Analytics Real-time reports for GA4 data
-   - Use GTM Preview mode for tag debugging
+Authentication is configured through environment variables (see `env.example`).
 
-3. **Browser Extensions**:
-   - Google Analytics Debugger for GA4
-   - Google Tag Assistant for GTM
+## 🤝 Contributing
 
-To learn more about Next.js, take a look at the following resources:
+Please see the [Local Developer Guide](./.ai-docs/Local_Developer_Guide.md) for contribution guidelines and development workflow.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📝 License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is part of the Morpheus AI ecosystem.
 
-## Deploy on AWS Amplify
+## 🔗 Related Resources
 
-This application is deployed using AWS Amplify for seamless integration with AWS services.
+- [Morpheus API Documentation](https://api.mor.org/docs)
+- [AWS Amplify Documentation](https://docs.amplify.aws/)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [AWS Cognito Documentation](https://docs.aws.amazon.com/cognito/)
 
-**Important**: Remember to set both `NEXT_PUBLIC_GA_ID` and `NEXT_PUBLIC_GTM_ID` environment variables in your Amplify deployment settings for analytics to work in production.
+## 💬 Support
 
-Check out the [AWS Amplify documentation](https://docs.amplify.aws/) for more deployment details.
+For issues, questions, or contributions:
+- Open an issue on GitHub
+- Join the Morpheus community on Discord
+- Visit [mor.org](https://mor.org) for more information
