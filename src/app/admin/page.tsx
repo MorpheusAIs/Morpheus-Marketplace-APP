@@ -577,6 +577,9 @@ export default function AdminPage() {
           <Link href="/admin" className="px-3 md:px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md font-semibold text-sm md:text-base">
             Admin
           </Link>
+          <a href="https://apidocs.mor.org" target="_blank" rel="noopener noreferrer" className="px-3 md:px-4 py-2 bg-[var(--eclipse)] hover:bg-[var(--neon-mint)] text-[var(--platinum)] hover:text-[var(--matrix-green)] rounded-md transition-colors text-sm md:text-base">
+            Docs
+          </a>
           <Link href="/" className="px-3 md:px-4 py-2 bg-[var(--eclipse)] hover:bg-[var(--neon-mint)] text-[var(--platinum)] hover:text-[var(--matrix-green)] rounded-md transition-colors text-sm md:text-base">
             Home
           </Link>
