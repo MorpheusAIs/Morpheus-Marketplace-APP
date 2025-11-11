@@ -1,20 +1,11 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import { RedirectClient } from './not-found-client';
 
-// Dynamically import the client component with SSR disabled
-// This prevents build errors on Amplify SSR builds
-const RedirectClient = dynamic(
-  () => import('./not-found-client').then(mod => ({ default: mod.RedirectClient })),
-  { 
-    ssr: false,
-    loading: () => (
-      <p className="text-muted-foreground">
-        Redirecting to home page in 3 seconds...
-      </p>
-    )
-  }
-);
+// Making this a client component allows it to work on both Vercel and Amplify
+// Client components can use hooks without SSR build issues
 
 export default function NotFound() {
   return (
@@ -27,7 +18,7 @@ export default function NotFound() {
         </h1>
         
         <p className="text-muted-foreground text-lg">
-          The page you're looking for doesn't exist or has been moved.
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
         
         <div className="space-y-4">
