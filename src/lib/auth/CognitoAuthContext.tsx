@@ -259,7 +259,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string): Promise<{ requiresConfirmation: true; email: string }> => {
     try {
       setIsLoading(true);
       
@@ -273,7 +273,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       }
       
       // Return email for confirmation page
-      return { requiresConfirmation: true, email };
+      return { requiresConfirmation: true as const, email };
     } catch (err) {
       console.error('Error signing up:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create account';

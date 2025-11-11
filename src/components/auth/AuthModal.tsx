@@ -51,17 +51,15 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setError('');
 
     try {
-      const result = await CognitoDirectAuth.signIn(email, password);
+      const tokens = await CognitoDirectAuth.signIn(email, password);
+      const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
       
-      if (result.success && result.tokens && result.userInfo) {
-        onSuccess(result.tokens, result.userInfo);
-        onClose();
-        resetForm();
-      } else {
-        setError(result.error || 'Sign in failed');
-      }
+      onSuccess(tokens, userInfo);
+      onClose();
+      resetForm();
     } catch (err) {
-      setError('Network error. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Sign in failed';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -87,16 +85,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
 
     try {
-      const result = await CognitoDirectAuth.signUp(email, password);
-      
-      if (result.success) {
-        setMode('confirm');
-        setError(''); // Clear any previous errors
-      } else {
-        setError(result.error || 'Sign up failed');
-      }
+      await CognitoDirectAuth.signUp(email, password);
+      setMode('confirm');
+      setError(''); // Clear any previous errors
     } catch (err) {
-      setError('Network error. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Sign up failed';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -108,24 +102,22 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setError('');
 
     try {
-      const result = await CognitoDirectAuth.confirmSignUp(email, confirmationCode);
+      await CognitoDirectAuth.confirmSignUp(email, confirmationCode);
       
-      if (result.success) {
-        // After confirmation, automatically sign in
-        const signInResult = await CognitoDirectAuth.signIn(email, password);
-        if (signInResult.success && signInResult.tokens && signInResult.userInfo) {
-          onSuccess(signInResult.tokens, signInResult.userInfo);
-          onClose();
-          resetForm();
-        } else {
-          setMode('signin');
-          setError('Account confirmed! Please sign in.');
-        }
-      } else {
-        setError(result.error || 'Confirmation failed');
+      // After confirmation, automatically sign in
+      try {
+        const tokens = await CognitoDirectAuth.signIn(email, password);
+        const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
+        onSuccess(tokens, userInfo);
+        onClose();
+        resetForm();
+      } catch (signInErr) {
+        setMode('signin');
+        setError('Account confirmed! Please sign in.');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Confirmation failed';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -136,20 +128,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setIsLoading(true);
     setError('');
 
-    try {
-      const result = await CognitoDirectAuth.forgotPassword(email);
-      
-      if (result.success) {
-        setMode('reset');
-        setError(''); // Clear any previous errors
-      } else {
-        setError(result.error || 'Failed to send reset code');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    // Password reset functionality not yet implemented in CognitoDirectAuth
+    setError('Password reset functionality is not available. Please contact support.');
+    setIsLoading(false);
   };
 
   const handleConfirmPasswordReset = async (e: React.FormEvent) => {
@@ -171,28 +152,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       return;
     }
 
-    try {
-      const result = await CognitoDirectAuth.confirmForgotPassword(email, confirmationCode, newPassword);
-      
-      if (result.success) {
-        // After successful password reset, automatically sign in with new password
-        const signInResult = await CognitoDirectAuth.signIn(email, newPassword);
-        if (signInResult.success && signInResult.tokens && signInResult.userInfo) {
-          onSuccess(signInResult.tokens, signInResult.userInfo);
-          onClose();
-          resetForm();
-        } else {
-          setMode('signin');
-          setError('Password reset successful! Please sign in with your new password.');
-        }
-      } else {
-        setError(result.error || 'Failed to reset password');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    // Password reset functionality not yet implemented in CognitoDirectAuth
+    setError('Password reset functionality is not available. Please contact support.');
+    setIsLoading(false);
   };
 
   const resetForm = () => {
