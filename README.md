@@ -82,19 +82,37 @@ morpheus-marketplace-app/
 ├── src/
 │   ├── app/                    # Next.js app directory (routes)
 │   │   ├── admin/             # Admin dashboard for API key management
-│   │   ├── chat/              # Interactive chat interface
+│   │   ├── account/           # User account settings
+│   │   ├── api-keys/          # API key management page
 │   │   ├── auth/              # Authentication callbacks
-│   │   └── ...
+│   │   ├── chat/              # Interactive chat interface
+│   │   ├── confirm-registration/  # Email verification
+│   │   ├── login-direct/      # Direct login page
+│   │   ├── register/          # Registration page
+│   │   ├── signin/            # Sign in page
+│   │   ├── signup/            # Sign up page
+│   │   ├── test/              # Test page
+│   │   └── ...                # Root layout, globals, etc.
 │   ├── components/            # Reusable React components
+│   │   ├── ai-elements/      # AI chat components (messages, prompts, etc.)
 │   │   ├── auth/             # Authentication components
-│   │   └── providers/        # Context providers (GTM, etc.)
-│   └── lib/                  # Utility libraries
-│       ├── auth/            # Cognito authentication logic
-│       ├── api/             # API service layer
-│       └── utils/           # Helper functions
+│   │   ├── providers/        # Context providers (GTM, etc.)
+│   │   ├── ui/               # shadcn/ui components
+│   │   └── ...               # Other shared components
+│   ├── lib/                  # Utility libraries
+│   │   ├── api/             # API service layer
+│   │   ├── auth/            # Cognito authentication logic
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── types/           # TypeScript type definitions
+│   │   └── utils/           # Helper functions
+│   └── types/               # Global type definitions
+├── docs/                     # Developer documentation
 ├── public/                   # Static assets
-├── .ai-docs/                # Developer documentation
-└── amplify.yml              # AWS Amplify build configuration
+├── amplify.yml              # AWS Amplify build configuration
+├── components.json          # shadcn/ui configuration
+├── tailwind.config.js       # Tailwind CSS configuration
+├── tsconfig.json            # TypeScript configuration
+└── ...                      # Other config files
 ```
 
 ## 🔧 Available Scripts
