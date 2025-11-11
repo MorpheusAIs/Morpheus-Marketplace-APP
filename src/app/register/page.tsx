@@ -23,6 +23,10 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated, router]);
 
+  const handleSignup = () => {
+    router.push('/signup');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[var(--matrix-green)] py-12 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-end mb-8">

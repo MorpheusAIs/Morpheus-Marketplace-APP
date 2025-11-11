@@ -35,7 +35,7 @@ interface AutomationSettings {
 }
 
 export default function AdminPage() {
-  const { accessToken, isAuthenticated, apiKeys, defaultApiKey, refreshApiKeys, isLoading: authLoading } = useCognitoAuth();
+  const { accessToken, isAuthenticated, apiKeys, defaultApiKey, refreshApiKeys, logout, isLoading: authLoading } = useCognitoAuth();
   const { success, error: showError, warning } = useNotification();
   const router = useRouter();
   const { trackApiKey } = useGTM();
@@ -175,7 +175,7 @@ export default function AdminPage() {
   // Handle authentication success
   const handleAuthSuccess = (tokens: any, userInfo: any) => {
     // Store tokens and close modal
-    CognitoDirectAuth.storeTokens(tokens);
+    CognitoDirectAuth.storeTokens(tokens, userInfo?.email || '');
     localStorage.setItem('user_info', JSON.stringify(userInfo));
     setShowAuthModal(false);
     // Refresh the page to update authentication state
@@ -586,7 +586,7 @@ export default function AdminPage() {
           {isAuthenticated ? (
             <button
               onClick={() => {
-                CognitoDirectAuth.signOut();
+                logout();
                 window.location.href = '/';
               }}
               className="px-3 md:px-4 py-2 bg-red-900 hover:bg-red-800 text-white rounded-md transition-colors text-sm md:text-base"

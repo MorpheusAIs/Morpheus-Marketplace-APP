@@ -252,9 +252,13 @@ export default function ChatPage() {
       if (selectedModel && selectedModel !== 'default') {
         try {
           // Try to get context window from tokenlens
-          const contextWindow = await getContextWindow({ modelId: selectedModel });
+          const contextWindow = await getContextWindow(selectedModel);
           if (contextWindow) {
-            setMaxTokens(contextWindow);
+            // Extract the total max tokens from the context window object
+            const totalMax = contextWindow.totalMax ?? contextWindow.combinedMax ?? contextWindow.inputMax;
+            if (totalMax !== undefined) {
+              setMaxTokens(totalMax);
+            }
           }
         } catch (error) {
           console.warn('Could not get context window from tokenlens, using default:', error);
@@ -683,7 +687,7 @@ export default function ChatPage() {
                 maxTokens={maxTokens}
                 modelId={selectedModel}
                 usage={tokenUsage}
-                usedTokens={tokenUsage.totalTokens}
+                usedTokens={tokenUsage.totalTokens ?? 0}
               >
                 <ContextTrigger />
                 <ContextContent>
