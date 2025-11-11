@@ -11,10 +11,17 @@ import {
 import { cognitoConfig } from './cognito-config';
 import { CognitoTokens } from '@/lib/types/cognito';
 
-// Create Cognito client
-const cognitoClient = new CognitoIdentityProviderClient({
-  region: cognitoConfig.region,
-});
+// Lazy initialization of Cognito client to avoid build-time errors
+let cognitoClient: CognitoIdentityProviderClient | null = null;
+
+function getCognitoClient(): CognitoIdentityProviderClient {
+  if (!cognitoClient) {
+    cognitoClient = new CognitoIdentityProviderClient({
+      region: cognitoConfig.region,
+    });
+  }
+  return cognitoClient;
+}
 
 export class CognitoDirectAuth {
   /**
@@ -30,7 +37,7 @@ export class CognitoDirectAuth {
       },
     });
 
-    const response = await cognitoClient.send(command);
+    const response = await getCognitoClient().send(command);
 
     if (!response.AuthenticationResult) {
       throw new Error('Authentication failed - no tokens received');
@@ -59,7 +66,7 @@ export class CognitoDirectAuth {
       ],
     });
 
-    await cognitoClient.send(command);
+    await getCognitoClient().send(command);
   }
 
   /**
@@ -72,7 +79,7 @@ export class CognitoDirectAuth {
       ConfirmationCode: confirmationCode,
     });
 
-    await cognitoClient.send(command);
+    await getCognitoClient().send(command);
   }
 
   /**
@@ -87,7 +94,7 @@ export class CognitoDirectAuth {
       },
     });
 
-    const response = await cognitoClient.send(command);
+    const response = await getCognitoClient().send(command);
 
     if (!response.AuthenticationResult) {
       throw new Error('Token refresh failed');
