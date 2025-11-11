@@ -40,8 +40,8 @@ function AuthCallbackContent() {
         // Handle the authentication callback
         await handleAuthCallback(code, state);
         
-        // Redirect to admin page on success
-        router.push('/admin');
+        // Redirect to API Keys page on success
+        router.push('/api-keys');
         
       } catch (err) {
         console.error('Authentication callback error:', err);
@@ -86,10 +86,10 @@ function AuthCallbackContent() {
           </p>
           <div className="space-y-4">
             <button
-              onClick={() => router.push('/admin')}
+              onClick={() => router.push('/api-keys')}
               className="w-full px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md hover:bg-[var(--emerald)] transition-colors"
             >
-              Go to Admin & Try Again
+              Go to API Keys & Try Again
             </button>
             <button
               onClick={() => router.push('/')}

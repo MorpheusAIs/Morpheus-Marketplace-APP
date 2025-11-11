@@ -7,18 +7,21 @@ import Link from 'next/link';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { signup, isAuthenticated } = useCognitoAuth();
+  const { isAuthenticated } = useCognitoAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/admin');
+      router.push('/api-keys');
     }
   }, [isAuthenticated, router]);
 
-  const handleSignup = () => {
-    signup();
-  };
+  // Redirect to signup page
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/signup');
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--matrix-green)] py-12 px-4 sm:px-6 lg:px-8">

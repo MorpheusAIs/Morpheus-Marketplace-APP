@@ -1,21 +1,74 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import ReactMarkdown from 'react-markdown';
-import rehypeHighlight from 'rehype-highlight';
-import remarkGfm from 'remark-gfm';
-import 'highlight.js/styles/github-dark.css';
-import './markdown.css';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
-import { apiGet, apiPost } from '@/lib/api/apiService';
+import { useConversation } from '@/lib/ConversationContext';
+import { getConversation } from '@/lib/conversation-history';
+import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
-import { getAllowedModelTypes, filterModelsByType, getFilterOptions, getFilterDescription, selectDefaultModel } from '@/lib/model-filter-utils';
-import AuthModal from '@/components/auth/AuthModal';
-import { CognitoDirectAuth } from '@/lib/auth/cognito-direct-auth';
+import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
+import { AuthenticatedLayout } from '@/components/authenticated-layout';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { MessageSquare, CheckIcon, Settings, Trash2 } from 'lucide-react';
+import {
+  ModelSelector,
+  ModelSelectorContent,
+  ModelSelectorEmpty,
+  ModelSelectorGroup,
+  ModelSelectorInput,
+  ModelSelectorItem,
+  ModelSelectorList,
+  ModelSelectorName,
+  ModelSelectorTrigger,
+} from '@/components/ai-elements/model-selector';
+import './markdown.css';
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation';
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from '@/components/ai-elements/message';
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputTextarea,
+  PromptInputFooter,
+  PromptInputTools,
+  PromptInputButton,
+  PromptInputSubmit,
+  type PromptInputMessage,
+} from '@/components/ai-elements/prompt-input';
+import {
+  Context,
+  ContextTrigger,
+  ContextContent,
+  ContextContentHeader,
+  ContextContentBody,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextReasoningUsage,
+  ContextCacheUsage,
+} from '@/components/ai-elements/context';
+import { ChatSettingsDialog } from '@/components/chat-settings-dialog';
+import { getContextWindow } from 'tokenlens';
+import type { LanguageModelUsage } from 'ai';
 
 // Type definitions
 type Message = {
@@ -25,14 +78,6 @@ type Message = {
   sequence?: number;
 };
 
-type Chat = {
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-// Update model type definition to match actual API response
 type Model = {
   id: string;
   blockchainId?: string;
@@ -46,16 +91,32 @@ export default function ChatPage() {
   const { accessToken, isAuthenticated, apiKeys, isLoading: authLoading } = useCognitoAuth();
   const { error, warning } = useNotification();
   const router = useRouter();
+  const { 
+    currentConversationId, 
+    saveCurrentConversation, 
+    updateCurrentConversation,
+    deleteConversationById,
+    startNewConversation
+  } = useConversation();
   
   // API Key state (retrieved from sessionStorage)
   const [fullApiKey, setFullApiKey] = useState<string>('');
   const [apiKeyPrefix, setApiKeyPrefix] = useState<string>('');
   
+  // Delete confirmation dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
   // Chat state
-  const [userPrompt, setUserPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState(false);
-  const [saveChatHistory, setSaveChatHistory] = useState(true);
+  const [saveChatHistory, setSaveChatHistory] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('save_chat_history');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+  const [streamingStatus, setStreamingStatus] = useState<'ready' | 'submitted' | 'streaming' | 'error'>('ready');
   
   // Model state
   const [models, setModels] = useState<Model[]>([]);
@@ -66,26 +127,33 @@ export default function ChatPage() {
   const [filterOptions, setFilterOptions] = useState<Array<{value: string, label: string}>>([]);
   const [allowedTypes] = useState<string[]>(getAllowedModelTypes());
   
-  // Chat history state
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  // Chat history state - using localStorage now
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingChats, setLoadingChats] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [conversationTitle, setConversationTitle] = useState<string>('New Chat');
   
-  // Auth modal state
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  // Chat settings modal state
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Streaming state
+  const [streamingContent, setStreamingContent] = useState<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const currentConversationIdRef = useRef<string | null>(null);
+  
+  // Token usage state
+  const [tokenUsage, setTokenUsage] = useState<LanguageModelUsage>({
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+  });
+  const [maxTokens, setMaxTokens] = useState<number>(128_000); // Default fallback
 
-  // Scroll to bottom of messages
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Sync ref with context value
+  useEffect(() => {
+    currentConversationIdRef.current = currentConversationId;
+  }, [currentConversationId]);
 
-
-
-  // Load API key from sessionStorage
+  // Load API key from sessionStorage and redirect if not verified
   useEffect(() => {
     const storedApiKey = sessionStorage.getItem('verified_api_key');
     const storedPrefix = sessionStorage.getItem('verified_api_key_prefix');
@@ -94,44 +162,152 @@ export default function ChatPage() {
       setFullApiKey(storedApiKey);
       setApiKeyPrefix(storedPrefix);
     } else {
-      // Check if there's a selected but unverified API key
-      const selectedPrefix = localStorage.getItem('selected_api_key_prefix');
-      if (selectedPrefix) {
-        // User has a selected API key but hasn't verified it yet
-        console.log('Found selected but unverified API key, redirecting to Admin for verification');
-        // Store return URL so we can redirect back after verification
-        sessionStorage.setItem('return_to_after_verification', '/chat');
-        // Redirect immediately to admin for verification
-        window.location.href = '/admin';
-        return;
-      }
+      router.push('/api-keys');
     }
+  }, [router]);
+
+  // Update title when conversation ID changes
+  useEffect(() => {
+    if (currentConversationId) {
+      const conversation = getConversation(currentConversationId);
+      if (conversation) {
+        setConversationTitle(conversation.title);
+      } else {
+        // If conversation not found yet, wait a bit and try again (for new saves)
+        const timer = setTimeout(() => {
+          const conv = getConversation(currentConversationId);
+          if (conv) {
+            setConversationTitle(conv.title);
+          }
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      setConversationTitle('New Chat');
+    }
+  }, [currentConversationId]);
+
+  // Also listen for conversation history updates to refresh title
+  useEffect(() => {
+    const handleHistoryUpdate = () => {
+      if (currentConversationId) {
+        const conversation = getConversation(currentConversationId);
+        if (conversation) {
+          setConversationTitle(conversation.title);
+        }
+      }
+    };
+
+    window.addEventListener('conversation-history-updated', handleHistoryUpdate);
+    return () => {
+      window.removeEventListener('conversation-history-updated', handleHistoryUpdate);
+    };
+  }, [currentConversationId]);
+
+  // Listen for conversation load events from sidebar
+  useEffect(() => {
+    const handleLoadConversation = (e: CustomEvent) => {
+      const conversation = e.detail;
+      if (conversation && conversation.messages) {
+        const formattedMessages: Message[] = conversation.messages.map((msg: ConversationMessage) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          sequence: msg.sequence,
+        }));
+        setMessages(formattedMessages);
+      }
+    };
+
+    const handleNewConversation = () => {
+      setMessages([]);
+      setStreamingContent('');
+    };
+
+    window.addEventListener('load-conversation', handleLoadConversation as EventListener);
+    window.addEventListener('new-conversation-started', handleNewConversation);
+
+    return () => {
+      window.removeEventListener('load-conversation', handleLoadConversation as EventListener);
+      window.removeEventListener('new-conversation-started', handleNewConversation);
+    };
   }, []);
 
-  // Load chat history when API key is available (consistent with chat completions)
+  // Load save chat history preference
   useEffect(() => {
-    if (fullApiKey) {
-      loadChatHistory();
+    const saved = localStorage.getItem('save_chat_history');
+    if (saved !== null) {
+      setSaveChatHistory(saved === 'true');
     }
-  }, [fullApiKey]);
+  }, []);
 
   // Fetch available models on component mount
   useEffect(() => {
     fetchAvailableModels();
   }, []);
 
-  // Scroll to bottom when messages update
+  // Update max tokens when model changes
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const updateMaxTokens = async () => {
+      if (selectedModel && selectedModel !== 'default') {
+        try {
+          // Try to get context window from tokenlens
+          const contextWindow = await getContextWindow({ modelId: selectedModel });
+          if (contextWindow) {
+            setMaxTokens(contextWindow);
+          }
+        } catch (error) {
+          console.warn('Could not get context window from tokenlens, using default:', error);
+          // Keep default value
+        }
+      }
+    };
+    updateMaxTokens();
+  }, [selectedModel]);
+
+  // Estimate tokens from text (rough estimate: ~4 characters per token)
+  const estimateTokens = (text: string): number => {
+    if (!text) return 0;
+    // Rough estimation: average of 4 characters per token
+    return Math.ceil(text.length / 4);
+  };
+
+  // Update token usage when messages change
+  useEffect(() => {
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    // Count tokens for all messages
+    messages.forEach((msg) => {
+      const tokens = estimateTokens(msg.content);
+      if (msg.role === 'user') {
+        inputTokens += tokens;
+      } else if (msg.role === 'assistant') {
+        outputTokens += tokens;
+      }
+    });
+
+    // Add system message tokens
+    const systemMessage = "You are a helpful assistant. Format your responses using Markdown when appropriate. You can use features like **bold text**, *italics*, ### headings, `code blocks`, numbered and bulleted lists, and tables to make your answers more readable and structured.";
+    inputTokens += estimateTokens(systemMessage);
+
+    // Add streaming content if present
+    if (streamingContent) {
+      outputTokens += estimateTokens(streamingContent);
+    }
+
+    setTokenUsage({
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+    });
+  }, [messages, streamingContent]);
 
   // Fetch available models from the API
   const fetchAvailableModels = async () => {
     setLoadingModels(true);
     try {
-      console.log('Fetching models from API...');
-      
-      const response = await fetch(API_URLS.models(), {
+      const response = await fetch('https://api.mor.org/api/v1/models', {
         method: 'GET',
         headers: {
           'accept': 'application/json'
@@ -143,51 +319,39 @@ export default function ChatPage() {
       }
       
       const data = await response.json();
-      console.log('Models API response:', data);
       
-      // Handle the data structure we see in the console
-      if (data.data && Array.isArray(data.data)) {
-        console.log(`Retrieved ${data.data.length} models from data.data array`);
-        const formattedModels = data.data.map((model: any) => ({
-          id: model.id,
-          blockchainId: model.blockchainId,
-          created: model.created,
-          ModelType: model.ModelType || model.modelType || 'UNKNOWN'
-        }));
+      // Handle the API response format: {"object":"list","data":[...]}
+      const modelsArray = data.data || data;
+      
+      if (Array.isArray(modelsArray)) {
+        // Filter to only LLM models and format them
+        const llmModels = modelsArray
+          .filter((model: any) => (model.modelType || model.ModelType) === 'LLM')
+          .map((model: any) => ({
+            id: model.id,
+            blockchainId: model.blockchainID || model.blockchainId,
+            created: model.created,
+            ModelType: 'LLM'
+          }));
         
-        // Sort models alphabetically by ID
-        const sortedModels = formattedModels.sort((a: Model, b: Model) => a.id.localeCompare(b.id));
+        const sortedModels = llmModels.sort((a: Model, b: Model) => a.id.localeCompare(b.id));
         setModels(sortedModels);
+        setFilteredModels(sortedModels);
         
-        // Apply initial filter (LLM and UNKNOWN only)
-        applyModelTypeFilter(sortedModels, 'all');
-        
-      } else if (Array.isArray(data)) {
-        console.log(`Retrieved ${data.length} models from direct array`);
-        
-        const formattedModels = data.map((model: any) => ({
-          id: model.id,
-          blockchainId: model.blockchainId,
-          created: model.created,
-          ModelType: model.ModelType || model.modelType || 'UNKNOWN'
-        }));
-        
-        // Sort models alphabetically by ID
-        const sortedModels = formattedModels.sort((a: Model, b: Model) => a.id.localeCompare(b.id));
-        setModels(sortedModels);
-        
-        // Apply initial filter (LLM and UNKNOWN only)
-        applyModelTypeFilter(sortedModels, 'all');
+        // Set default model
+        if (sortedModels.length > 0) {
+          const defaultModelId = selectDefaultModel(sortedModels);
+          if (defaultModelId) {
+            setSelectedModel(defaultModelId);
+          }
+        }
       } else {
-        console.error('Unexpected API response format:', data);
-        // Set a fallback model
         const fallbackModels = [{ id: 'default', ModelType: 'LLM' }];
         setModels(fallbackModels);
         setFilteredModels(fallbackModels);
       }
     } catch (error) {
       console.error('Error fetching models:', error);
-      // Set a fallback model
       const fallbackModels = [{ id: 'default', ModelType: 'LLM' }];
       setModels(fallbackModels);
       setFilteredModels(fallbackModels);
@@ -201,11 +365,9 @@ export default function ChatPage() {
     const filtered = filterModelsByType(modelsToFilter, filterType, allowedTypes);
     setFilteredModels(filtered);
     
-    // Update filter options based on available models
     const options = getFilterOptions(modelsToFilter, allowedTypes);
     setFilterOptions(options);
     
-    // Set default model selection using environment configuration
     if (filtered.length > 0) {
       const defaultModelId = selectDefaultModel(filtered);
       if (defaultModelId) {
@@ -217,159 +379,30 @@ export default function ChatPage() {
   // Handle model type filter change
   const handleModelTypeFilterChange = (filterType: string) => {
     setSelectedModelType(filterType);
-    applyModelTypeFilter(models, filterType);
+    // For chat, we only show LLM models, so no filtering needed
   };
 
-  // Handle authentication success
-  const handleAuthSuccess = (tokens: any, userInfo: any) => {
-    // Store tokens and close modal
-    CognitoDirectAuth.storeTokens(tokens);
-    localStorage.setItem('user_info', JSON.stringify(userInfo));
-    setShowAuthModal(false);
-    // Refresh the page to update authentication state
-    window.location.reload();
-  };
-
-  // Load chat history from the server (uses API key for consistency with chat completions)
-  const loadChatHistory = async () => {
-    if (!fullApiKey) return;
-    
-    setLoadingChats(true);
-    try {
-      const response = await fetch(API_URLS.chatHistory(), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${fullApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Convert API response to expected format
-        const formattedChats = data.map((chat: any) => ({
-          id: chat.id,
-          title: chat.title,
-          createdAt: chat.created_at,
-          updatedAt: chat.updated_at
-        }));
-        setChats(formattedChats);
-      } else {
-        console.error('Error loading chat history:', response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-    } finally {
-      setLoadingChats(false);
+  // Handle conversation deletion
+  const handleDeleteConversation = () => {
+    if (currentConversationId) {
+      deleteConversationById(currentConversationId);
+      setMessages([]);
+      setStreamingContent('');
+      setConversationTitle('New Chat');
+      startNewConversation();
+      setShowDeleteDialog(false);
     }
   };
 
-  // Load a specific chat
-  const loadChat = async (chatId: string) => {
-    if (!fullApiKey) return;
-    
-    setIsLoading(true);
-    try {
-      const response = await fetch(API_URLS.chatDetail(chatId), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${fullApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setActiveChatId(chatId);
-        // Convert API response to expected format
-        const formattedMessages = data.messages.map((msg: any) => ({
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          sequence: msg.sequence
-        }));
-        setMessages(formattedMessages);
-      } else {
-        console.error('Error loading chat:', response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error('Error loading chat:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Delete a chat
-  const deleteChat = async (chatId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!fullApiKey || !window.confirm('Are you sure you want to delete this chat?')) return;
-    
-    try {
-      // Use DELETE method for the chat endpoint
-      const response = await fetch(API_URLS.chatDetail(chatId), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${fullApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        // Remove from local state
-        setChats(chats.filter(chat => chat.id !== chatId));
-        
-        // If this was the active chat, clear it
-        if (activeChatId === chatId) {
-          setActiveChatId(null);
-          setMessages([]);
-        }
-      }
-    } catch (error) {
-      console.error('Error deleting chat:', error);
-    }
-  };
-
-  // Start a new chat
-  const startNewChat = () => {
-    setActiveChatId(null);
-    setMessages([]);
-  };
-
-  // Get the full API key from sessionStorage
-  const getFullApiKey = () => {
-    return fullApiKey;
-  };
-
-  // Handle keyboard shortcuts for sending messages
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Regular Enter sends the message, unless Shift is pressed
-    if (e.key === 'Enter' && !e.shiftKey && !(e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      if (userPrompt.trim()) {
-        handleSubmit(e as unknown as React.FormEvent);
-      }
-    }
-    
-    // Ctrl+Enter or Shift+Enter adds a new line
-    if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      setUserPrompt(prev => prev + '\n');
-    }
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userPrompt.trim()) return;
+  // Handle form submission with streaming
+  const handleSubmit = async (message: PromptInputMessage, e: React.FormEvent) => {
+    if (!message.text?.trim()) return;
     
     setIsLoading(true);
     setAuthError(false);
+    setStreamingStatus('submitted');
     
-    // Store the prompt before clearing the input
-    const currentPrompt = userPrompt;
-    
-    // Clear input field immediately after sending
-    setUserPrompt('');
+    const currentPrompt = message.text;
     
     // Add user message to UI immediately
     const newUserMessage: Message = {
@@ -379,26 +412,37 @@ export default function ChatPage() {
     
     setMessages(prev => [...prev, newUserMessage]);
     
-    // Add a temporary loading message
-    const loadingMessageId = Date.now().toString();
-    const loadingMessage: Message = {
-      id: loadingMessageId,
+    // Add a temporary assistant message for streaming
+    const streamingMessageId = Date.now().toString();
+    const streamingMessage: Message = {
+      id: streamingMessageId,
       role: 'assistant',
-      content: '...',
+      content: '',
     };
     
-    setMessages(prev => [...prev, loadingMessage]);
+    setMessages(prev => [...prev, streamingMessage]);
+    setStreamingContent('');
+    setStreamingStatus('streaming');
+    
+    // Cancel any existing stream
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this stream
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     
     try {
-      // Create the request body for the API
+      // Create the request body for the API with streaming enabled
       const requestBody = {
-        model: selectedModel, // Use the selected model
+        model: selectedModel,
         messages: [
           {
             role: "system",
             content: "You are a helpful assistant. Format your responses using Markdown when appropriate. You can use features like **bold text**, *italics*, ### headings, `code blocks`, numbered and bulleted lists, and tables to make your answers more readable and structured."
           },
-          ...messages.filter(msg => msg.id !== loadingMessageId).map(msg => ({
+          ...messages.filter(msg => msg.id !== streamingMessageId).map(msg => ({
             role: msg.role,
             content: msg.content
           })),
@@ -407,129 +451,145 @@ export default function ChatPage() {
             content: currentPrompt
           }
         ],
-        stream: false
+        stream: true
       };
 
-      // Make the actual API call using the user-provided API key
+      // Make the streaming API call
       const res = await fetch(API_URLS.chatCompletions(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'accept': 'application/json',
-          'Authorization': `Bearer ${fullApiKey}` // Use Bearer format for API key
+          'accept': 'text/event-stream',
+          'Authorization': `Bearer ${fullApiKey}`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        signal: abortController.signal
       });
 
-      const data = await res.json();
-      
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
-      
-      // Check for auth errors
-      if (res.status === 401 || res.status === 403) {
-        setAuthError(true);
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'Authentication error: Please provide a valid API key or log in to get one.'
-        }]);
-        
-        // Show auth error notification
-        warning(
-          'Authentication Required',
-          'Please verify your API key to continue chatting.',
-          {
-            actionLabel: 'Go to Admin',
-            actionUrl: '/admin',
-            duration: 10000
-          }
-        );
-      } else if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-        const assistantResponse = data.choices[0].message.content;
-        
-        // Add assistant message to UI
-        const newAssistantMessage: Message = {
-          role: 'assistant',
-          content: assistantResponse,
-        };
-        
-        setMessages(prev => [...prev, newAssistantMessage]);
-        
-        // Save to database if saveChatHistory is enabled
-        if (saveChatHistory && fullApiKey) {
-          try {
-            if (!activeChatId) {
-              // Create new chat
-              const chatTitle = currentPrompt.substring(0, 30) + (currentPrompt.length > 30 ? '...' : '');
-              const createChatResponse = await fetch(API_URLS.chatHistory(), {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${fullApiKey}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ title: chatTitle })
-              });
-              
-              if (createChatResponse.ok) {
-                const chatData = await createChatResponse.json();
-                setActiveChatId(chatData.id);
-                
-                // Add user message
-                await fetch(API_URLS.chatMessages(chatData.id), {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${fullApiKey}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({ role: 'user', content: currentPrompt })
-                });
-                
-                // Add assistant message
-                await fetch(API_URLS.chatMessages(chatData.id), {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${fullApiKey}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({ role: 'assistant', content: assistantResponse })
-                });
-                
-                // Refresh chat list
-                loadChatHistory();
-              }
-            } else {
-              // Add messages to existing chat
-              await fetch(API_URLS.chatMessages(activeChatId), {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${fullApiKey}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ role: 'user', content: currentPrompt })
-              });
-              
-              await fetch(API_URLS.chatMessages(activeChatId), {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${fullApiKey}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ role: 'assistant', content: assistantResponse })
-              });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          setAuthError(true);
+          setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Authentication error: Please provide a valid API key or log in to get one.'
+          }]);
+          warning(
+            'Authentication Required',
+            'Please verify your API key to continue chatting.',
+            {
+              actionLabel: 'Go to Admin',
+              actionUrl: '/api-keys',
+              duration: 10000
             }
-          } catch (saveError) {
-            console.error('Error saving chat:', saveError);
+          );
+          setStreamingStatus('error');
+          return;
+        }
+        throw new Error(`API returned status ${res.status}`);
+      }
+
+      // Read the stream
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
+
+      if (!reader) {
+        throw new Error('No reader available');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              continue;
+            }
+            
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              
+              if (delta) {
+                accumulatedContent += delta;
+                setStreamingContent(accumulatedContent);
+                
+                // Update the message in real-time
+                setMessages(prev => prev.map(msg => 
+                  msg.id === streamingMessageId 
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                ));
+              }
+            } catch (e) {
+              // Ignore JSON parse errors for incomplete chunks
+            }
           }
         }
-      } else {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'No content found in the response'
-        }]);
       }
-    } catch (err) {
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
+
+      // Finalize the message
+      const finalMessage: Message = {
+        id: streamingMessageId,
+        role: 'assistant',
+        content: accumulatedContent,
+      };
+      
+      // Update messages state
+      let updatedMessages: Message[] = [];
+      setMessages(prev => {
+        updatedMessages = prev.map(msg => 
+          msg.id === streamingMessageId ? finalMessage : msg
+        );
+        return updatedMessages;
+      });
+      
+      setStreamingStatus('ready');
+      setStreamingContent('');
+
+      // Save to localStorage if saveChatHistory is enabled
+      // Use setTimeout to ensure state is updated
+      if (saveChatHistory && accumulatedContent) {
+        setTimeout(() => {
+          try {
+            // Convert all messages (including the new ones) to ConversationMessage format
+            const conversationMessages: ConversationMessage[] = updatedMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              id: msg.id,
+              sequence: msg.sequence,
+            }));
+
+            // Save conversation - use ref to get current value
+            const currentId = currentConversationIdRef.current;
+            if (!currentId) {
+              // Create new conversation
+              const newId = saveCurrentConversation(conversationMessages);
+              console.log('Saved new conversation:', newId);
+            } else {
+              // Update existing conversation
+              updateCurrentConversation(conversationMessages);
+              console.log('Updated conversation:', currentId);
+            }
+          } catch (saveError) {
+            console.error('Error saving chat to localStorage:', saveError);
+          }
+        }, 0);
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        // Stream was cancelled, don't show error
+        return;
+      }
+      
+      setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
       
       console.error('Error:', err);
       setMessages(prev => [...prev, {
@@ -537,7 +597,6 @@ export default function ChatPage() {
         content: 'An error occurred while processing your request.'
       }]);
       
-      // Show error notification
       error(
         'Message Failed',
         'Failed to send your message. Please check your connection and try again.',
@@ -545,411 +604,201 @@ export default function ChatPage() {
           duration: 8000
         }
       );
+      
+      setStreamingStatus('error');
     } finally {
       setIsLoading(false);
+      if (streamingStatus !== 'streaming') {
+        setStreamingStatus('ready');
+      }
     }
   };
-  
-  // Format timestamp
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+
+  const truncateKey = (key: string) => {
+    return `${key.substring(0, 15)}...`;
   };
 
+  if (!fullApiKey) {
+    return null;
+  }
+
   return (
-    <main className="min-h-screen flex flex-col" style={{
-      backgroundImage: "url('/images/942b261a-ecc5-420d-9d4b-4b2ae73cab6d.png')",
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundRepeat: "no-repeat",
-      backgroundAttachment: "fixed"
-    }}>
-      {/* Navigation Bar */}
-      <div className="fixed top-0 left-0 right-0 z-40 flex justify-between items-center p-4 border-b border-[var(--emerald)]/30 bg-[var(--matrix-green)]">
-        <div className="flex items-center">
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="mr-3 p-2 rounded-md hover:bg-[var(--eclipse)] text-[var(--platinum)] transition-colors flex items-center justify-center w-8 h-8"
-            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
-          >
-            <span className="text-2xl font-bold leading-none">{isSidebarOpen ? '‹' : '›'}</span>
-          </button>
-          <div className="text-xl font-bold text-[var(--neon-mint)]">
-            Morpheus API Gateway
+    <AuthenticatedLayout>
+      <div className="flex flex-col h-full bg-background text-foreground">
+        {/* Chat Header */}
+        <header className="p-4 border-b border-border flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold">
+              {conversationTitle}
+            </h2>
+            <p className="text-sm text-muted-foreground">API Key: {apiKeyPrefix}...</p>
           </div>
-        </div>
-        <div className="flex gap-2 md:gap-4 flex-wrap">
-          <Link href="/chat" className="px-3 md:px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md font-semibold text-sm md:text-base">
-            Chat
-          </Link>
-          <Link href="/admin" className="px-3 md:px-4 py-2 bg-[var(--eclipse)] hover:bg-[var(--neon-mint)] text-[var(--platinum)] hover:text-[var(--matrix-green)] rounded-md transition-colors text-sm md:text-base">
-            Admin
-          </Link>
-          <a href="https://apidocs.mor.org" target="_blank" rel="noopener noreferrer" className="px-3 md:px-4 py-2 bg-[var(--eclipse)] hover:bg-[var(--neon-mint)] text-[var(--platinum)] hover:text-[var(--matrix-green)] rounded-md transition-colors text-sm md:text-base">
-            Docs
-          </a>
-          <Link href="/" className="px-3 md:px-4 py-2 bg-[var(--eclipse)] hover:bg-[var(--neon-mint)] text-[var(--platinum)] hover:text-[var(--matrix-green)] rounded-md transition-colors text-sm md:text-base">
-            Home
-          </Link>
-          {isAuthenticated ? (
-            <button
-              onClick={() => {
-                CognitoDirectAuth.signOut();
-                window.location.href = '/';
-              }}
-              className="px-3 md:px-4 py-2 bg-red-900 hover:bg-red-800 text-white rounded-md transition-colors text-sm md:text-base"
+          {currentConversationId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
+              title="Delete conversation"
             >
-              Logout
-            </button>
-          ) : (
-            <Link href="/login-direct" className="px-3 md:px-4 py-2 bg-green-900 hover:bg-green-800 text-white rounded-md transition-colors text-sm md:text-base">
-              Login
-            </Link>
+              <Trash2 className="h-5 w-5" />
+            </Button>
           )}
-        </div>
-      </div>
-      
-      {/* Add padding to account for fixed header */}
-      <div className="flex flex-1 overflow-hidden pt-36 md:pt-16">
-        {/* Overlay for mobile when sidebar is open */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-[var(--midnight)] bg-opacity-50 z-20 md:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          ></div>
-        )}
-        
-        {/* Adjust sidebar top position to account for fixed header */}
-        <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} bg-[var(--matrix-green)] border-r border-[var(--emerald)]/30 flex-shrink-0 transition-all duration-300 overflow-hidden fixed md:static inset-y-0 left-0 z-30 top-36 md:top-16`}>
-          <div className="h-full flex flex-col">
-            <div className="p-4 border-b border-[var(--emerald)]/30 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[var(--neon-mint)]">Chats</h2>
-              <div className="flex space-x-2">
-                <button
-                  onClick={startNewChat}
-                  className="p-2 bg-[var(--eclipse)] hover:bg-[var(--neon-mint)] text-[var(--platinum)] hover:text-[var(--matrix-green)] rounded-md transition-colors"
-                  aria-label="New Chat"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </button>
-                <button 
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="p-1 text-[var(--platinum)] hover:text-[var(--neon-mint)] md:hidden"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-4 border-t border-[var(--emerald)]/30">
-              <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  id="saveChatHistory"
-                  checked={saveChatHistory}
-                  onChange={(e) => setSaveChatHistory(e.target.checked)}
-                  className="mr-2"
-                />
-                <label htmlFor="saveChatHistory" className="text-sm text-[var(--platinum)]">Save Chat History</label>
-              </div>
-              {saveChatHistory && (
-                <p className="text-xs text-[var(--platinum)]/70">
-                  Your chat history is saved in a database and can only be accessed with your API key.
-                </p>
-              )}
-            </div>
+        </header>
 
-            <div className="flex-1 overflow-y-auto p-2">
-              {loadingChats ? (
-                <div className="flex justify-center py-4">
-                  <div className="text-[var(--platinum)]">Loading chats...</div>
-                </div>
-              ) : chats.length > 0 ? (
-                <ul className="space-y-1">
-                  {chats.map((chat) => (
-                    <li
-                      key={chat.id}
-                      onClick={() => {
-                        loadChat(chat.id);
-                        if (window.innerWidth < 768) {
-                          setIsSidebarOpen(false);
-                        }
-                      }}
-                      className={`p-2 rounded-md cursor-pointer flex justify-between items-center ${
-                        activeChatId === chat.id
-                          ? 'bg-[var(--eclipse)] text-[var(--neon-mint)]'
-                          : 'text-[var(--platinum)] hover:bg-[var(--eclipse)]/50'
-                      }`}
-                    >
-                      <div className="truncate">
-                        <div className="font-medium truncate">{chat.title || 'Untitled Chat'}</div>
-                        <div className="text-xs text-[var(--platinum)]/70">{formatDate(chat.updatedAt)}</div>
-                      </div>
-                      <button
-                        onClick={(e) => deleteChat(chat.id, e)}
-                        className="ml-2 text-[var(--platinum)]/70 hover:text-red-400 transition-colors"
-                        aria-label="Delete chat"
-                      >
-                        ×
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-[var(--platinum)]/70">No chat history</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-8">
-            <div className="max-w-3xl mx-auto">
-              
-              {/* Authentication Status */}
-              {!isAuthenticated ? (
-                <div className="mb-8 p-4 bg-[var(--matrix-green)] border border-[var(--emerald)]/30 rounded-md">
-                  <div className="text-[var(--platinum)] mb-2">
-                    <h3 className="text-lg font-medium text-[var(--neon-mint)] mb-3">Authentication Required</h3>
-                    <p className="mb-2">You need to be authenticated and validate an API key to use the chat interface.</p>
-                    <p className="text-sm text-[var(--platinum)]/70">After logging in, you'll be taken to the Admin page to select your API key.</p>
-                  </div>
-                  <button 
-                    onClick={() => setShowAuthModal(true)}
-                    className="px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md hover:bg-[var(--emerald)] transition-colors"
-                  >
-                    Login to Continue
-                  </button>
-                </div>
-              ) : !fullApiKey ? (
-                <div className="mb-8 p-4 bg-[var(--matrix-green)] border border-[var(--emerald)]/30 rounded-md">
-                  <div className="text-[var(--platinum)] mb-2">
-                    {localStorage.getItem('selected_api_key_prefix') 
-                      ? 'API key selected but not verified. Please go to the Admin page to verify your API key.'
-                      : 'No API key selected. Please go to the Admin page to select an API key.'
-                    }
-                  </div>
-                  <Link 
-                    href="/admin" 
-                    className="px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md hover:bg-[var(--emerald)] transition-colors"
-                  >
-                    {localStorage.getItem('selected_api_key_prefix')
-                      ? 'Go to Admin to Verify API Key'
-                      : 'Go to Admin to Select API Key'
-                    }
-                  </Link>
-                </div>
-              ) : null}
-
-              {/* Chat Interface - Always visible */}
-              <div className="mb-6 bg-[var(--midnight)] p-4 rounded-lg shadow-md border border-[var(--emerald)]/30">
-                  <div className="flex flex-col gap-4">
-                    <div>
-                      <h3 className="text-lg font-medium text-[var(--neon-mint)]">Ready to Chat</h3>
-                      <p className="text-sm text-[var(--platinum)]/70">Using API key: {apiKeyPrefix}...</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <label htmlFor="modelTypeFilter" className="block text-xs font-medium mb-1 text-[var(--platinum)]">
-                          Model Type
-                        </label>
-                        <select
-                          id="modelTypeFilter"
-                          value={selectedModelType}
-                          onChange={(e) => handleModelTypeFilterChange(e.target.value)}
-                          className="w-full p-2 border border-[var(--neon-mint)]/30 rounded-md text-[var(--platinum)] bg-[var(--matrix-green)] focus:ring-0 focus:border-[var(--emerald)]"
-                          disabled={loadingModels}
-                          style={{color: 'var(--platinum)', caretColor: 'var(--platinum)'}}
-                        >
-                          {filterOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="text-xs text-transparent mt-1 select-none">
-                          &nbsp;
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <label htmlFor="modelSelect" className="block text-xs font-medium mb-1 text-[var(--platinum)]">
-                          Model
-                        </label>
-                        <select
-                          id="modelSelect"
-                          value={selectedModel}
-                          onChange={(e) => setSelectedModel(e.target.value)}
-                          className="w-full p-2 border border-[var(--neon-mint)]/30 rounded-md text-[var(--platinum)] bg-[var(--matrix-green)] focus:ring-0 focus:border-[var(--emerald)]"
-                          disabled={loadingModels}
-                          style={{color: 'var(--platinum)', caretColor: 'var(--platinum)'}}
-                        >
-                          {loadingModels ? (
-                            <option value="default">Loading...</option>
-                          ) : filteredModels.length === 0 ? (
-                            <option value="default">No models available</option>
-                          ) : (
-                            filteredModels.map((model) => (
-                              <option key={model.id} value={model.id}>
-                                {model.id}
-                              </option>
-                            ))
-                          )}
-                        </select>
-                        <div className="text-xs text-[var(--platinum)]/70 mt-1">
-                          {loadingModels ? 'Fetching available models...' : 
-                           filteredModels.length === 0 ? 'No models found matching filter' : 
-                           `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''} available`}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              
-              {/* Messages - Always show (uses Cognito JWT for history) */}
-              <div className="mb-6 space-y-6">
-                {messages.length === 0 ? (
-                  <div className="text-center text-[var(--platinum)] my-12">
-                    <p className="text-xl mb-2">Start a new conversation</p>
-                    <p className="text-sm">Or select a previous chat from the sidebar</p>
-                    {!fullApiKey && (
-                      <p className="text-sm text-[var(--platinum)]/60 mt-2">
-                        Set up your API key in the Admin page to send messages
-                      </p>
+        {/* Messages */}
+        <Conversation className="flex-1">
+          <ConversationContent>
+            {messages.length === 0 ? (
+              <ConversationEmptyState
+                icon={<MessageSquare className="size-12" />}
+                title="Start a conversation"
+                description="Type a message below to begin chatting"
+              />
+            ) : (
+              messages.map((message, index) => (
+                <Message key={message.id || index} from={message.role}>
+                  <MessageContent>
+                    {message.role === 'assistant' ? (
+                      <MessageResponse>
+                        {message.content || streamingContent}
+                      </MessageResponse>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{message.content}</div>
                     )}
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {messages.map((message, index) => (
-                      <div 
-                        key={index} 
-                        className={`rounded-lg ${
-                          message.role === 'user' 
-                            ? 'ml-8' 
-                            : 'mr-8'
-                        }`}
-                      >
-                        <div className="font-medium mb-1 text-[var(--neon-mint)]">
-                          {message.role === 'user' ? 'You' : 'Assistant'}
-                        </div>
-                        <div 
-                          className={`p-4 rounded-lg ${
-                            message.role === 'user' 
-                              ? 'bg-[var(--matrix-green)] border border-[var(--emerald)]/30' 
-                              : 'bg-[var(--eclipse)] shadow-md border border-[var(--emerald)]/30'
-                          }`}
-                        >
-                          {message.role === 'user' ? (
-                            <div className="whitespace-pre-wrap text-[var(--platinum)]">{message.content}</div>
-                          ) : (
-                            <div className="markdown-content text-[var(--platinum)]">
-                              <ReactMarkdown 
-                                rehypePlugins={[rehypeHighlight]}
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                  code({node, inline, className, children, ...props}: any) {
-                                    return !inline ? (
-                                      <div className="bg-[var(--midnight)] p-2 rounded-md my-2 overflow-x-auto border border-[var(--emerald)]/20">
-                                        <code className="text-[var(--platinum)]" {...props}>{children}</code>
-                                      </div>
-                                    ) : (
-                                      <code className="bg-[var(--midnight)] px-1 py-0.5 rounded text-[var(--platinum)] font-mono text-sm" {...props}>
-                                        {children}
-                                      </code>
-                                    );
-                                  },
-                                  pre({children}) {
-                                    return <div className="my-0">{children}</div>;
-                                  },
-                                  p({children}) {
-                                    return <p className="mb-3 last:mb-0">{children}</p>;
-                                  },
-                                  ul({children}) {
-                                    return <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>;
-                                  },
-                                  ol({children}) {
-                                    return <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>;
-                                  },
-                                  li({children}) {
-                                    return <li className="mb-1">{children}</li>;
-                                  },
-                                  table({children}) {
-                                    return (
-                                      <div className="overflow-x-auto mb-3">
-                                        <table className="min-w-full border border-[var(--emerald)]/30 rounded-md">{children}</table>
-                                      </div>
-                                    );
-                                  },
-                                  th({children}) {
-                                    return <th className="border border-[var(--emerald)]/30 p-2 bg-[var(--midnight)] text-left">{children}</th>;
-                                  },
-                                  td({children}) {
-                                    return <td className="border border-[var(--emerald)]/30 p-2">{children}</td>;
-                                  },
-                                  blockquote({children}) {
-                                    return <blockquote className="border-l-4 border-[var(--emerald)] pl-4 italic my-3">{children}</blockquote>;
-                                  },
-                                  a({children, href}) {
-                                    return <a href={href} className="text-[var(--platinum)] hover:text-[var(--neon-mint)] underline" target="_blank" rel="noopener noreferrer">{children}</a>;
-                                  }
-                                }}
-                              >
-                                {message.content}
-                              </ReactMarkdown>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
-              </div>
-              
-              {/* Input form - only show when API key is available */}
-              {fullApiKey && (
-                <form onSubmit={handleSubmit} className="bg-[var(--midnight)] p-3 md:p-4 rounded-lg shadow-md border border-[var(--emerald)]/30 sticky bottom-4">
-                <div className="flex flex-col">
-                  <div className="flex items-start gap-2">
-                    <textarea
-                      value={userPrompt}
-                      onChange={(e) => setUserPrompt(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      className="flex-1 p-2 md:p-3 border border-[var(--neon-mint)]/30 rounded-md text-[var(--platinum)] bg-[var(--matrix-green)] placeholder-[var(--platinum)]/70 focus:ring-0 focus:border-[var(--emerald)] text-sm md:text-base"
-                      placeholder="Type your message... (Enter to send)"
-                      rows={2}
-                      disabled={isLoading}
-                      style={{color: 'var(--platinum)', caretColor: 'var(--platinum)'}}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isLoading || !userPrompt.trim()}
-                      className="px-3 md:px-4 py-2 md:py-3 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md hover:bg-[var(--emerald)] disabled:bg-[var(--eclipse)] disabled:text-[var(--platinum)]/50 transition-colors whitespace-nowrap text-sm md:text-base font-medium"
-                    >
-                      {isLoading ? '...' : 'Send'}
-                    </button>
-                  </div>
-                  <div className="text-xs text-[var(--platinum)]/60 mt-1 ml-1">
-                    Press Shift+Enter for a new line
-                  </div>
-                </div>
-                </form>
-              )}
-            </div>
-          </div>
+                  </MessageContent>
+                </Message>
+              ))
+            )}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
+
+        {/* Input */}
+        <div className="p-4 border-t border-border">
+          <PromptInput onSubmit={handleSubmit} status={streamingStatus}>
+            <PromptInputBody>
+              <PromptInputTextarea placeholder="Ask me anything..." />
+              <Context
+                maxTokens={maxTokens}
+                modelId={selectedModel}
+                usage={tokenUsage}
+                usedTokens={tokenUsage.totalTokens}
+              >
+                <ContextTrigger />
+                <ContextContent>
+                  <ContextContentHeader />
+                  <ContextContentBody>
+                    <ContextInputUsage />
+                    <ContextOutputUsage />
+                    <ContextReasoningUsage />
+                    <ContextCacheUsage />
+                  </ContextContentBody>
+                </ContextContent>
+              </Context>
+              <PromptInputSubmit 
+                status={streamingStatus}
+                className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+                disabled={isLoading}
+              />
+            </PromptInputBody>
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputButton onClick={() => setShowSettingsDialog(true)}>
+                  <Settings className="h-4 w-4" />
+                </PromptInputButton>
+                <ModelSelector open={showModelSelector} onOpenChange={setShowModelSelector}>
+                  <ModelSelectorTrigger asChild>
+                    <PromptInputButton>
+                      <span className="text-sm">{selectedModel}</span>
+                    </PromptInputButton>
+                  </ModelSelectorTrigger>
+                  <ModelSelectorContent>
+                    <ModelSelectorInput placeholder="Search models..." />
+                    <ModelSelectorList>
+                      <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+                      {(() => {
+                        // Group LLM models by name prefix (e.g., "hermes-3-llama-3.1-405b" and "hermes-3-llama-3.1-405b:web")
+                        // Group by base name (without :web suffix)
+                        const groupedModels = filteredModels.reduce((acc, model) => {
+                          const baseName = model.id.split(':')[0];
+                          if (!acc[baseName]) {
+                            acc[baseName] = [];
+                          }
+                          acc[baseName].push(model);
+                          return acc;
+                        }, {} as Record<string, Model[]>);
+
+                        // Sort groups and models
+                        const sortedGroups = Object.keys(groupedModels).sort();
+
+                        return sortedGroups.map((baseName) => {
+                          const groupModels = groupedModels[baseName].sort((a, b) => a.id.localeCompare(b.id));
+                          return (
+                            <ModelSelectorGroup key={baseName} heading={baseName}>
+                              {groupModels.map((model) => (
+                                <ModelSelectorItem
+                                  key={model.id}
+                                  onSelect={() => {
+                                    setSelectedModel(model.id);
+                                    setShowModelSelector(false);
+                                  }}
+                                  value={model.id}
+                                >
+                                  <ModelSelectorName>{model.id}</ModelSelectorName>
+                                  {selectedModel === model.id ? (
+                                    <CheckIcon className="ml-auto size-4" />
+                                  ) : (
+                                    <div className="ml-auto size-4" />
+                                  )}
+                                </ModelSelectorItem>
+                              ))}
+                            </ModelSelectorGroup>
+                          );
+                        });
+                      })()}
+                    </ModelSelectorList>
+                  </ModelSelectorContent>
+                </ModelSelector>
+              </PromptInputTools>
+            </PromptInputFooter>
+          </PromptInput>
         </div>
+
+        {/* Chat Settings Dialog */}
+        <ChatSettingsDialog
+          open={showSettingsDialog}
+          onOpenChange={setShowSettingsDialog}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+          models={filteredModels}
+          modelTypes={[{ value: 'LLM', label: 'LLM' }]}
+          selectedModelType="LLM"
+          onModelTypeChange={handleModelTypeFilterChange}
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this conversation? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConversation}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-      />
-    </main>
+    </AuthenticatedLayout>
   );
-} 
+}

@@ -21,16 +21,16 @@ export default function NotFound() {
       <div className="max-w-md w-full text-center space-y-6">
         <div className="text-6xl font-bold text-purple-400">404</div>
         
-        <h1 className="text-3xl font-bold text-white">
+        <h1 className="text-3xl font-bold text-foreground">
           Page Not Found
         </h1>
         
-        <p className="text-gray-300 text-lg">
+        <p className="text-muted-foreground text-lg">
           The page you're looking for doesn't exist or has been moved.
         </p>
         
         <div className="space-y-4">
-          <p className="text-gray-400">
+          <p className="text-muted-foreground">
             Redirecting to home page in 3 seconds...
           </p>
           
@@ -45,8 +45,8 @@ export default function NotFound() {
         <div className="pt-8 space-y-2">
           <p className="text-sm text-gray-500">Quick Links:</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/admin" className="text-purple-400 hover:text-purple-300 underline">
-              Admin
+            <Link href="/api-keys" className="text-purple-400 hover:text-purple-300 underline">
+              API Keys
             </Link>
             <Link href="/chat" className="text-purple-400 hover:text-purple-300 underline">
               Chat
