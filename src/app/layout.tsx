@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { CognitoAuthProvider } from '@/lib/auth/CognitoAuthContext';
+import { ConversationProvider } from '@/lib/ConversationContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
 import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
@@ -29,7 +30,7 @@ export default function RootLayout({
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       {gtmId && <GoogleTagManager gtmId={gtmId} />}
       <body className={inter.className}>
         {gtmId && (
@@ -44,10 +45,12 @@ export default function RootLayout({
         )}
         <NotificationProvider>
           <CognitoAuthProvider>
-            <GTMProvider>
-              <NotificationManager />
-              {children}
-            </GTMProvider>
+            <ConversationProvider>
+              <GTMProvider>
+                <NotificationManager />
+                {children}
+              </GTMProvider>
+            </ConversationProvider>
           </CognitoAuthProvider>
         </NotificationProvider>
         {gaId && <GoogleAnalytics gaId={gaId} />}
