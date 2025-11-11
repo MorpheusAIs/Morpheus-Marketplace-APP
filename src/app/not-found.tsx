@@ -1,21 +1,8 @@
-'use client';
-
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import Link from 'next/link';
+import { RedirectClient } from './not-found-client';
 
 export default function NotFound() {
-  const router = useRouter();
-
-  // Auto-redirect to home page after 3 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push('/');
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [router]);
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
       <div className="max-w-md w-full text-center space-y-6">
@@ -30,9 +17,7 @@ export default function NotFound() {
         </p>
         
         <div className="space-y-4">
-          <p className="text-muted-foreground">
-            Redirecting to home page in 3 seconds...
-          </p>
+          <RedirectClient />
           
           <Link 
             href="/"
