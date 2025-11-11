@@ -6,6 +6,7 @@ import { NotificationProvider } from '@/lib/NotificationContext';
 import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
 import NotificationManager from '@/components/NotificationManager';
+import { BuildVersion } from '@/components/BuildVersion';
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -49,6 +50,7 @@ export default function RootLayout({
               <GTMProvider>
                 <NotificationManager />
                 {children}
+                <BuildVersion />
               </GTMProvider>
             </ConversationProvider>
           </CognitoAuthProvider>
