@@ -20,9 +20,17 @@ import {
 import { cognitoConfig } from "@/lib/auth/cognito-config";
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 
-const cognitoClient = new CognitoIdentityProviderClient({
-  region: cognitoConfig.region,
-});
+// Lazy initialization of Cognito client to avoid build-time errors
+let cognitoClient: CognitoIdentityProviderClient | null = null;
+
+function getCognitoClient(): CognitoIdentityProviderClient {
+  if (!cognitoClient) {
+    cognitoClient = new CognitoIdentityProviderClient({
+      region: cognitoConfig.region,
+    });
+  }
+  return cognitoClient;
+}
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -67,7 +75,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
         ProposedPassword: newPassword,
       });
 
-      await cognitoClient.send(command);
+      await getCognitoClient().send(command);
       
       success("Password Changed", "Your password has been changed successfully.");
       setPreviousPassword("");

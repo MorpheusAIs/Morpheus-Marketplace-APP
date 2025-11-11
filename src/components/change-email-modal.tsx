@@ -21,9 +21,17 @@ import {
 import { cognitoConfig } from "@/lib/auth/cognito-config";
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 
-const cognitoClient = new CognitoIdentityProviderClient({
-  region: cognitoConfig.region,
-});
+// Lazy initialization of Cognito client to avoid build-time errors
+let cognitoClient: CognitoIdentityProviderClient | null = null;
+
+function getCognitoClient(): CognitoIdentityProviderClient {
+  if (!cognitoClient) {
+    cognitoClient = new CognitoIdentityProviderClient({
+      region: cognitoConfig.region,
+    });
+  }
+  return cognitoClient;
+}
 
 interface ChangeEmailModalProps {
   open: boolean;
@@ -71,7 +79,7 @@ export function ChangeEmailModal({ open, onOpenChange }: ChangeEmailModalProps) 
         ],
       });
 
-      await cognitoClient.send(command);
+      await getCognitoClient().send(command);
       
       success("Email Change Initiated", "Please check your new email to confirm the change.");
       setNewEmail("");
