@@ -1,6 +1,20 @@
 import React from 'react';
 import Link from 'next/link';
-import { RedirectClient } from './not-found-client';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the client component with SSR disabled
+// This prevents build errors on Amplify SSR builds
+const RedirectClient = dynamic(
+  () => import('./not-found-client').then(mod => ({ default: mod.RedirectClient })),
+  { 
+    ssr: false,
+    loading: () => (
+      <p className="text-muted-foreground">
+        Redirecting to home page in 3 seconds...
+      </p>
+    )
+  }
+);
 
 export default function NotFound() {
   return (
