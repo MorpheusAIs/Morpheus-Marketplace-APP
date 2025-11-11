@@ -74,7 +74,7 @@ export default function TestPage() {
   const fetchAvailableModels = async () => {
     setLoadingModels(true);
     try {
-      const response = await fetch('https://api.mor.org/api/v1/models', {
+      const response = await fetch(API_URLS.models(), {
         method: 'GET',
         headers: {
           'accept': 'application/json'
