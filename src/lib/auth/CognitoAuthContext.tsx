@@ -1,18 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CognitoAuth } from './cognito-auth';
+import { CognitoDirectAuth } from './cognito-direct-auth';
 import { API_URLS } from '@/lib/api/config';
 import { apiGet } from '@/lib/api/apiService';
 import { useNotification } from '@/lib/NotificationContext';
-
-interface CognitoUser {
-  sub: string;
-  email: string;
-  name?: string;
-  given_name?: string;
-  family_name?: string;
-}
+import { CognitoUser } from '@/lib/types/cognito';
 
 interface ApiKey {
   id: number;
@@ -31,10 +24,10 @@ interface CognitoAuthContextType {
   defaultApiKey: ApiKey | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: () => void;
-  signup: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ requiresConfirmation: true; email: string }>;
+  confirmSignUp: (email: string, confirmationCode: string, password: string) => Promise<void>;
   logout: () => void;
-  handleAuthCallback: (code: string, state: string) => Promise<void>;
   refreshApiKeys: () => Promise<void>;
 }
 
@@ -61,16 +54,16 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     
     try {
       // Try to get a valid access token (will refresh if needed)
-      const validAccessToken = await CognitoAuth.getValidAccessToken();
+      const validAccessToken = await CognitoDirectAuth.getValidAccessToken();
       
       if (validAccessToken) {
-        const tokens = CognitoAuth.getStoredTokens();
+        const tokens = CognitoDirectAuth.getStoredTokens();
         if (tokens) {
           setAccessToken(validAccessToken);
           setIdToken(tokens.idToken);
           
           // Parse user info from ID token
-          const userInfo = CognitoAuth.parseIdToken(tokens.idToken);
+          const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
           setUser(userInfo);
           
           // Fetch API keys
@@ -140,7 +133,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
             'Your API key needs to be verified before you can use Chat or Test. Please go to the Admin page and click "Select" on your preferred API key.',
             {
               actionLabel: 'Go to Admin',
-              actionUrl: '/admin',
+              actionUrl: '/api-keys',
               duration: 10000,
             }
           );
@@ -235,12 +228,87 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const login = () => {
-    CognitoAuth.login();
+  const signIn = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Sign in with Cognito
+      const tokens = await CognitoDirectAuth.signIn(email, password);
+      
+      // Store tokens
+      CognitoDirectAuth.storeTokens(tokens, email);
+      
+      // Set tokens in state
+      setAccessToken(tokens.accessToken);
+      setIdToken(tokens.idToken);
+      
+      // Parse user info
+      const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
+      setUser(userInfo);
+      
+      // Fetch API keys
+      await fetchApiKeys(tokens.accessToken);
+      
+    } catch (err) {
+      console.error('Error signing in:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
+      error('Sign In Failed', errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const signup = () => {
-    CognitoAuth.signup();
+  const signUp = async (email: string, password: string): Promise<{ requiresConfirmation: true; email: string }> => {
+    try {
+      setIsLoading(true);
+      
+      // Sign up with Cognito
+      await CognitoDirectAuth.signUp(email, password);
+      
+      // Store email and password temporarily for confirmation
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('pending_signup_email', email);
+        sessionStorage.setItem('pending_signup_password', password);
+      }
+      
+      // Return email for confirmation page
+      return { requiresConfirmation: true as const, email };
+    } catch (err) {
+      console.error('Error signing up:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create account';
+      error('Sign Up Failed', errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmSignUp = async (email: string, confirmationCode: string, password: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Confirm signup with Cognito
+      await CognitoDirectAuth.confirmSignUp(email, confirmationCode);
+      
+      // Clear pending signup data
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('pending_signup_email');
+        sessionStorage.removeItem('pending_signup_password');
+      }
+      
+      // Automatically sign in after confirmation
+      await signIn(email, password);
+      
+      success('Account Confirmed', 'Your account has been confirmed and you are now signed in!');
+    } catch (err) {
+      console.error('Error confirming signup:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to confirm account';
+      error('Confirmation Failed', errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
@@ -256,38 +324,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     sessionStorage.removeItem('verified_api_key_timestamp');
     localStorage.removeItem('selected_api_key_prefix');
     
-    CognitoAuth.logout();
-  };
-
-  const handleAuthCallback = async (code: string, state: string) => {
-    try {
-      setIsLoading(true);
-      
-      // Exchange code for tokens
-      const tokens = await CognitoAuth.handleCallback(code, state);
-      CognitoAuth.storeTokens(tokens);
-      
-      // Set tokens in state
-      setAccessToken(tokens.accessToken);
-      setIdToken(tokens.idToken);
-      
-      // Parse user info
-      const userInfo = CognitoAuth.parseIdToken(tokens.idToken);
-      setUser(userInfo);
-      
-      // Fetch API keys
-      await fetchApiKeys(tokens.accessToken);
-      
-    } catch (error) {
-      console.error('Error handling auth callback:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+    // Clear Cognito tokens
+    CognitoDirectAuth.clearTokens();
   };
 
   const refreshApiKeys = async () => {
-    const validToken = await CognitoAuth.getValidAccessToken();
+    const validToken = await CognitoDirectAuth.getValidAccessToken();
     if (validToken) {
       await fetchApiKeys(validToken);
     }
@@ -301,10 +343,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     defaultApiKey,
     isAuthenticated: !!user && !!accessToken,
     isLoading,
-    login,
-    signup,
+    signIn,
+    signUp,
+    confirmSignUp,
     logout,
-    handleAuthCallback,
     refreshApiKeys,
   };
 

@@ -7,17 +7,24 @@ import Link from 'next/link';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { signup, isAuthenticated } = useCognitoAuth();
+  const { isAuthenticated } = useCognitoAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/admin');
+      router.push('/api-keys');
+    }
+  }, [isAuthenticated, router]);
+
+  // Redirect to signup page
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/signup');
     }
   }, [isAuthenticated, router]);
 
   const handleSignup = () => {
-    signup();
+    router.push('/signup');
   };
 
   return (

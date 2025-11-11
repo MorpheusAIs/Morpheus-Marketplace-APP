@@ -1,58 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { API_CONFIG } from '@/lib/api/config';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { BUILD_VERSION } from '@/lib/build-version';
-import AuthModal from '@/components/auth/AuthModal';
+import { Navbar } from '@/components/navbar';
 import { CognitoDirectAuth } from '@/lib/auth/cognito-direct-auth';
 
 export default function Home() {
-  const { isAuthenticated } = useCognitoAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useCognitoAuth();
   
   // Use build version from generated file
   const buildVersion = BUILD_VERSION;
 
+  // Redirect authenticated users to API Keys page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push('/api-keys');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
   const handleLoginLogout = () => {
     if (isAuthenticated) {
-      // Use simple sign out that just clears tokens and stays on home page
-      CognitoDirectAuth.signOut();
-      // Force a page refresh to update the authentication state
+      CognitoDirectAuth.clearTokens();
       window.location.reload();
     } else {
-      // Open the beautiful direct auth modal instead of redirect
-      setShowAuthModal(true);
+      router.push('/signin');
     }
   };
 
   const handleRegister = () => {
-    // Open the beautiful direct auth modal in signup mode
-    setShowAuthModal(true);
+    router.push('/signup');
   };
 
   const handleAdmin = () => {
     if (isAuthenticated) {
-      // If already authenticated, go directly to admin
-      window.location.href = '/admin';
+      router.push('/api-keys');
     } else {
-      // Open the beautiful direct auth modal instead of redirect
-      setShowAuthModal(true);
+      router.push('/signin');
     }
   };
 
-  const handleAuthSuccess = (tokens: any, userInfo: any) => {
-    // Store tokens and redirect to admin
-    CognitoDirectAuth.storeTokens(tokens);
-    localStorage.setItem('user_info', JSON.stringify(userInfo));
-    setShowAuthModal(false);
-    window.location.href = '/admin';
-  };
-
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      <main className="flex-1 flex flex-col items-center justify-center p-8">
       <div className="relative bg-[var(--eclipse)]/80 p-8 rounded-lg max-w-5xl w-full backdrop-blur-md border border-[var(--neon-mint)]/20">
         <div className="flex flex-col items-center mb-8">
           <Image
@@ -119,13 +115,7 @@ export default function Home() {
           v.{buildVersion}
         </div>
       </div>
-
-      {/* Beautiful Direct Authentication Modal - NO REDIRECTS! */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-      />
-    </main>
+      </main>
+    </div>
   );
 }
