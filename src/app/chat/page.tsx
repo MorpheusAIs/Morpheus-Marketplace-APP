@@ -214,8 +214,9 @@ export default function ChatPage() {
 
   // Listen for conversation load events from sidebar
   useEffect(() => {
-    const handleLoadConversation = async (e: CustomEvent) => {
-      const conversation = e.detail;
+    const handleLoadConversation = async (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const conversation = customEvent.detail;
       if (conversation && conversation.id) {
         // Ensure we load the conversation properly through the context
         // This ensures the conversation ID is set correctly and messages are fetched
@@ -261,11 +262,11 @@ export default function ChatPage() {
       currentConversationIdRef.current = null;
     };
 
-    window.addEventListener('load-conversation', handleLoadConversation as EventListener);
+    window.addEventListener('load-conversation', handleLoadConversation);
     window.addEventListener('new-conversation-started', handleNewConversation);
 
     return () => {
-      window.removeEventListener('load-conversation', handleLoadConversation as EventListener);
+      window.removeEventListener('load-conversation', handleLoadConversation);
       window.removeEventListener('new-conversation-started', handleNewConversation);
     };
   }, [loadConversation]);
