@@ -90,13 +90,13 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
     --chart-4: 223.8136 0.0001% 89.5577%;
     --chart-5: 223.8136 0.0000% 45.6078%;
     --sidebar: 223.8136 0.0005% 98.6829%;
-    --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 223.8136 -172.5242% 100.0000%;
-    --sidebar-accent: 223.8136 0.0001% 92.1478%;
-    --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 223.8136 0.0001% 92.1478%;
-    --sidebar-ring: 0 0% 0%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
     --font-sans: Geist, sans-serif;
     --font-serif: Georgia, serif;
     --font-mono: Geist Mono, monospace;
@@ -117,6 +117,7 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
     --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
+    --sidebar-background: 0 0% 98%;
   }
   .dark {
     --background: 0 0% 0%;
@@ -144,13 +145,13 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
     --chart-4: 223.8136 0.0000% 32.3067%;
     --chart-5: 223.8136 0.0001% 89.5577%;
     --sidebar: oklch(0.18 0 0);
-    --sidebar-foreground: 223.8136 -172.5242% 100.0000%;
-    --sidebar-accent: oklch(0.22 0 0);
-    --sidebar-primary: 223.8136 -172.5242% 100.0000%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent-foreground: 223.8136 -172.5242% 100.0000%;
-    --sidebar-border: 223.8136 0.0000% 19.8916%;
-    --sidebar-ring: 223.8136 0.0000% 64.4710%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
     --font-sans: Geist, sans-serif;
     --font-serif: Georgia, serif;
     --font-mono: Geist Mono, monospace;
@@ -169,6 +170,7 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
     --shadow-lg: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 4px 6px -1px hsl(0 0% 0% / 0.18);
     --shadow-xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 8px 10px -1px hsl(0 0% 0% / 0.18);
     --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
+    --sidebar-background: 240 5.9% 10%;
   }
 }
 
