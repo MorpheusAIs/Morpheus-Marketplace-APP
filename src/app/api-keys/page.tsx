@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,24 +11,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Check, Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil, X } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
-import { apiPost, apiPut, apiDelete } from "@/lib/api/apiService";
-import { API_URLS } from "@/lib/api/config";
+import { apiPost, apiDelete, apiPut } from "@/lib/api/apiService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { API_URLS, API_CONFIG } from "@/lib/api/config";
 import { useNotification } from "@/lib/NotificationContext";
 import { CreateApiKeyDialog } from "@/components/create-api-key-dialog";
 import { NewApiKeyModal } from "@/components/new-api-key-modal";
 import { VerifyApiKeyModal } from "@/components/verify-api-key-modal";
-
-interface ApiKey {
-  id: number;
-  key_prefix: string;
-  name: string;
-  created_at: string;
-  is_active: boolean;
-  is_default: boolean;
-}
 
 interface ApiKeyResponse {
   key: string;
@@ -37,22 +35,18 @@ interface ApiKeyResponse {
 }
 
 export default function ApiKeysPage() {
-  const { apiKeys, defaultApiKey, accessToken, refreshApiKeys } = useCognitoAuth();
+  const { apiKeys, accessToken, refreshApiKeys, defaultApiKey } = useCognitoAuth();
   const { success, error } = useNotification();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isNewKeyModalOpen, setIsNewKeyModalOpen] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string>("");
-  const [verifiedKeyPrefix, setVerifiedKeyPrefix] = useState<string | null>(null);
+  const [isEditingDefaultKey, setIsEditingDefaultKey] = useState(false);
+  const [pendingDefaultKeyId, setPendingDefaultKeyId] = useState<number | null>(null);
 
-  // Check for verified API key in sessionStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const verifiedPrefix = sessionStorage.getItem('verified_api_key_prefix');
-      setVerifiedKeyPrefix(verifiedPrefix);
-    }
-  }, [apiKeys]);
+  // Find the default API key from the apiKeys array
+  const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
 
   const handleCreateKey = async (name: string) => {
     if (!accessToken) {
@@ -83,24 +77,6 @@ export default function ApiKeysPage() {
     }
   };
 
-  const handleSetDefault = async (keyId: number) => {
-    if (!accessToken) {
-      error("Authentication Required", "Please sign in to set default key");
-      return;
-    }
-
-    try {
-      const response = await apiPut(API_URLS.setDefaultKey(keyId), {}, accessToken);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      await refreshApiKeys();
-      success("Default Key Updated", "Your default API key has been updated.");
-    } catch (err) {
-      error("Failed to Set Default", err instanceof Error ? err.message : "Unknown error");
-    }
-  };
-
   const handleDelete = async (keyId: number, keyName: string) => {
     if (!accessToken) {
       error("Authentication Required", "Please sign in to delete keys");
@@ -119,17 +95,20 @@ export default function ApiKeysPage() {
     }
   };
 
-  const handleSelect = (keyPrefix: string) => {
-    setSelectedKeyPrefix(keyPrefix);
-    setIsVerifyModalOpen(true);
-  };
-
-  const handleVerifySuccess = () => {
+  const handleVerifySuccess = async () => {
     setIsVerifyModalOpen(false);
-    const verifiedPrefix = selectedKeyPrefix;
     setSelectedKeyPrefix("");
-    setVerifiedKeyPrefix(verifiedPrefix);
-    success("API Key Verified", "Your API key has been verified. You can now use Chat and Test features.");
+    
+    // If we were setting a default key, do that now after verification
+    if (pendingDefaultKeyId !== null) {
+      const pendingKey = apiKeys.find(key => key.id === pendingDefaultKeyId);
+      if (pendingKey) {
+        await handleSetDefaultKey(pendingKey.id, pendingKey.name);
+      }
+      setPendingDefaultKeyId(null);
+    } else {
+      success("API Key Verified", "Your API key has been verified. You can now use Chat and Test features.");
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -143,8 +122,36 @@ export default function ApiKeysPage() {
     return date.toLocaleDateString();
   };
 
-  const isKeySelected = (keyPrefix: string) => {
-    return verifiedKeyPrefix === keyPrefix;
+  const handleSetDefaultKey = async (keyId: number, keyName: string) => {
+    if (!accessToken) {
+      error("Authentication Required", "Please sign in to set default key");
+      return;
+    }
+
+    try {
+      const response = await apiPut(API_URLS.setDefaultKey(keyId), {}, accessToken);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      await refreshApiKeys();
+      setIsEditingDefaultKey(false);
+      success("Default API Key Updated", `"${keyName}" is now your default API key and has been verified.`);
+    } catch (err) {
+      error("Failed to Set Default Key", err instanceof Error ? err.message : "Unknown error");
+    }
+  };
+
+  const handleDefaultKeyChange = (keyId: string) => {
+    const selectedKey = apiKeys.find(key => key.id.toString() === keyId);
+    if (selectedKey && selectedKey.id !== currentDefaultKey?.id) {
+      // Open verification modal first, same as clicking Select in the table
+      setPendingDefaultKeyId(selectedKey.id);
+      setSelectedKeyPrefix(selectedKey.key_prefix);
+      setIsEditingDefaultKey(false); // Close edit mode while verification is happening
+      setIsVerifyModalOpen(true);
+    } else {
+      setIsEditingDefaultKey(false);
+    }
   };
 
   return (
@@ -184,11 +191,9 @@ export default function ApiKeysPage() {
                 </TableRow>
               ) : (
                 apiKeys.map((apiKey) => {
-                  const isSelected = isKeySelected(apiKey.key_prefix);
                   return (
                     <TableRow 
                       key={apiKey.id}
-                      className={isSelected ? "bg-muted/50 border-l-4 border-green-500" : ""}
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -208,28 +213,14 @@ export default function ApiKeysPage() {
                         {formatDate(apiKey.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant={isSelected ? "default" : "outline"}
-                            className={
-                              isSelected
-                                ? "bg-green-500 text-white hover:bg-green-600"
-                                : "text-green-500 border-green-500 hover:bg-green-500/10"
-                            }
-                            onClick={() => handleSelect(apiKey.key_prefix)}
-                          >
-                            <Check className="mr-2 h-4 w-4" />
-                            {isSelected ? "Selected" : "Select"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="text-red-500 border-red-500 hover:bg-red-500/10"
-                            onClick={() => handleDelete(apiKey.id, apiKey.name)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                          onClick={() => handleDelete(apiKey.id, apiKey.name)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -237,13 +228,89 @@ export default function ApiKeysPage() {
               )}
             </TableBody>
           </Table>
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Base URL: {" "}
+                <a
+                  href={API_CONFIG.BASE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-500 hover:text-green-600 underline"
+                >
+                  {API_CONFIG.BASE_URL}
+                </a>
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Default API key:</span>
+                {isEditingDefaultKey ? (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={currentDefaultKey?.id.toString() || ""}
+                      onValueChange={handleDefaultKeyChange}
+                    >
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Select API key" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {apiKeys.map((key) => (
+                          <SelectItem key={key.id} value={key.id.toString()}>
+                            {key.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => setIsEditingDefaultKey(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {currentDefaultKey ? (
+                      <Select
+                        value={currentDefaultKey.id.toString()}
+                        disabled={true}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={currentDefaultKey.id.toString()}>
+                            {currentDefaultKey.name}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="w-[200px] h-9 px-3 py-2 text-sm text-muted-foreground border border-input rounded-md bg-background flex items-center">
+                        No default key
+                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => setIsEditingDefaultKey(true)}
+                      disabled={apiKeys.length === 0}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <CreateApiKeyDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onCreate={handleCreateKey}
+        onOpenChangeAction={setIsCreateDialogOpen}
+        onCreateAction={handleCreateKey}
       />
 
       <NewApiKeyModal
@@ -254,7 +321,14 @@ export default function ApiKeysPage() {
 
       <VerifyApiKeyModal
         open={isVerifyModalOpen}
-        onOpenChange={setIsVerifyModalOpen}
+        onOpenChange={(open) => {
+          setIsVerifyModalOpen(open);
+          // If modal is closed without success, reset pending default key state
+          if (!open && pendingDefaultKeyId !== null) {
+            setPendingDefaultKeyId(null);
+            setIsEditingDefaultKey(false);
+          }
+        }}
         keyPrefix={selectedKeyPrefix}
         onVerifySuccess={handleVerifySuccess}
       />
