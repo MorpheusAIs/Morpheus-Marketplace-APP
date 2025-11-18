@@ -14,16 +14,18 @@ import { Label } from "@/components/ui/label";
 
 interface VerifyApiKeyModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChangeAction: (open: boolean) => void;
   keyPrefix: string;
-  onVerifySuccess: () => void;
+  keyName?: string;
+  onVerifySuccessAction: () => void;
 }
 
 export function VerifyApiKeyModal({
   open,
-  onOpenChange,
+  onOpenChangeAction,
   keyPrefix,
-  onVerifySuccess,
+  keyName,
+  onVerifySuccessAction,
 }: VerifyApiKeyModalProps) {
   const [apiKey, setApiKey] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -49,12 +51,15 @@ export function VerifyApiKeyModal({
       sessionStorage.setItem("verified_api_key", normalizedInput);
       sessionStorage.setItem("verified_api_key_prefix", keyPrefix);
       sessionStorage.setItem("verified_api_key_timestamp", Date.now().toString());
+      if (keyName) {
+        sessionStorage.setItem("verified_api_key_name", keyName);
+      }
       localStorage.setItem("selected_api_key_prefix", keyPrefix);
 
       setApiKey("");
       setIsVerifying(false);
-      onOpenChange(false);
-      onVerifySuccess();
+      onOpenChangeAction(false);
+      onVerifySuccessAction();
     } catch (err) {
       setError("Verification failed. Please try again.");
       setIsVerifying(false);
@@ -64,7 +69,7 @@ export function VerifyApiKeyModal({
   const handleClose = () => {
     setApiKey("");
     setError("");
-    onOpenChange(false);
+    onOpenChangeAction(false);
   };
 
   return (
