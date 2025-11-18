@@ -80,13 +80,23 @@ type Model = {
   id: string;
   blockchainId?: string;
   created?: number;
-  tags?: Array<any>;
+  tags?: string[];
   ModelType?: string;
 };
 
+interface ApiModelResponse {
+  id: string;
+  blockchainID?: string;
+  blockchainId?: string;
+  created?: number;
+  modelType?: string;
+  ModelType?: string;
+}
+
 export default function ChatPage() {
   // Cognito authentication
-  const { accessToken, isAuthenticated, apiKeys, isLoading: authLoading } = useCognitoAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { isLoading: _authLoading } = useCognitoAuth();
   const { error, warning } = useNotification();
   const router = useRouter();
   const { 
@@ -95,8 +105,7 @@ export default function ChatPage() {
     updateCurrentConversation,
     deleteConversationById,
     startNewConversation,
-    loadConversation,
-    isLoading: conversationLoading
+    loadConversation
   } = useConversation();
   
   // API Key state (retrieved from sessionStorage)
@@ -108,7 +117,8 @@ export default function ChatPage() {
   
   // Chat state
   const [isLoading, setIsLoading] = useState(false);
-  const [authError, setAuthError] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_authError, setAuthError] = useState(false);
   const [saveChatHistory, setSaveChatHistory] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('save_chat_history');
@@ -119,12 +129,16 @@ export default function ChatPage() {
   const [streamingStatus, setStreamingStatus] = useState<'ready' | 'submitted' | 'streaming' | 'error'>('ready');
   
   // Model state
-  const [models, setModels] = useState<Model[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_models, setModels] = useState<Model[]>([]);
   const [filteredModels, setFilteredModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('default');
-  const [loadingModels, setLoadingModels] = useState(false);
-  const [selectedModelType, setSelectedModelType] = useState<string>('all');
-  const [filterOptions, setFilterOptions] = useState<Array<{value: string, label: string}>>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_loadingModels, setLoadingModels] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_selectedModelType, setSelectedModelType] = useState<string>('all');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_filterOptions, setFilterOptions] = useState<Array<{value: string, label: string}>>([]);
   const [allowedTypes] = useState<string[]>(getAllowedModelTypes());
   
   // Chat history state - using localStorage now
@@ -368,8 +382,8 @@ export default function ChatPage() {
       if (Array.isArray(modelsArray)) {
         // Filter to only LLM models and format them
         const llmModels = modelsArray
-          .filter((model: any) => (model.modelType || model.ModelType) === 'LLM')
-          .map((model: any) => ({
+          .filter((model: ApiModelResponse) => (model.modelType || model.ModelType) === 'LLM')
+          .map((model: ApiModelResponse) => ({
             id: model.id,
             blockchainId: model.blockchainID || model.blockchainId,
             created: model.created,
@@ -403,7 +417,8 @@ export default function ChatPage() {
   };
 
   // Filter models by type using environment configuration
-  const applyModelTypeFilter = (modelsToFilter: Model[], filterType: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _applyModelTypeFilter = (modelsToFilter: Model[], filterType: string) => {
     const filtered = filterModelsByType(modelsToFilter, filterType, allowedTypes);
     setFilteredModels(filtered);
     
@@ -449,7 +464,8 @@ export default function ChatPage() {
   };
 
   // Handle form submission with streaming
-  const handleSubmit = async (message: PromptInputMessage, e: React.FormEvent) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSubmit = async (message: PromptInputMessage, _e: React.FormEvent) => {
     if (!message.text?.trim()) return;
     
     setIsLoading(true);
@@ -582,7 +598,8 @@ export default function ChatPage() {
                     : msg
                 ));
               }
-            } catch (e) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (_e) {
               // Ignore JSON parse errors for incomplete chunks
             }
           }
@@ -644,8 +661,8 @@ export default function ChatPage() {
           );
         }
       }
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
         // Stream was cancelled, don't show error
         return;
       }
@@ -675,7 +692,8 @@ export default function ChatPage() {
     }
   };
 
-  const truncateKey = (key: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _truncateKey = (key: string) => {
     return `${key.substring(0, 15)}...`;
   };
 
