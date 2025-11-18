@@ -87,16 +87,45 @@ export const MessageAction = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
+/**
+ * Sanitize content by removing invalid HTML tags like <think>, <think>, etc.
+ */
+function sanitizeContent(content: string): string {
+  if (typeof content !== 'string') {
+    return content;
+  }
+  
+  // Remove tags and their content (including nested content)
+  // Handle both self-closing and paired tags
+  return content
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+    // Remove any remaining standalone opening/closing tags
+    .replace(/<\/?think>/gi, '')
+    .replace(/<\/?redacted_reasoning>/gi, '')
+    .replace(/<\/?reasoning>/gi, '');
+}
+
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
-      className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        className
-      )}
-      {...props}
-    />
-  ),
+  ({ className, children, ...props }: MessageResponseProps) => {
+    // Sanitize content to remove invalid HTML tags
+    const sanitizedChildren = typeof children === 'string' 
+      ? sanitizeContent(children) 
+      : children;
+    
+    return (
+      <Streamdown
+        className={cn(
+          "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          className
+        )}
+        {...props}
+      >
+        {sanitizedChildren}
+      </Streamdown>
+    );
+  },
   (prevProps, nextProps) => prevProps.children === nextProps.children
 );
 

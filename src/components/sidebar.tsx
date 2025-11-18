@@ -24,6 +24,7 @@ import { faXTwitter } from "@fortawesome/free-brands-svg-icons";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { useConversationHistory } from "@/lib/hooks/use-conversation-history";
 import { useConversation } from "@/lib/ConversationContext";
+import { useNotification } from "@/lib/NotificationContext";
 import { NavUser } from "@/components/nav-user";
 import { DiscordIcon } from "@/components/discord-icon";
 
@@ -43,8 +44,9 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useCognitoAuth();
+  const { error } = useNotification();
   const isChatRoute = pathname?.startsWith("/chat");
-  const { conversations } = useConversationHistory();
+  const { conversations, isLoading: conversationsLoading } = useConversationHistory();
   const { currentConversationId, loadConversation, deleteConversationById, startNewConversation } = useConversation();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [localSaveChatHistory, setLocalSaveChatHistory] = useState(() => {
@@ -79,23 +81,48 @@ export function Sidebar({
     }
   };
 
-  const handleChatSelect = (chatId: string) => {
-    const conversation = loadConversation(chatId);
-    if (conversation) {
-      onChatSelect?.(chatId);
-      // Dispatch custom event to notify chat page
-      window.dispatchEvent(new CustomEvent('load-conversation', { detail: conversation }));
-      // Navigate to chat route if not already there
-      if (!isChatRoute) {
-        router.push('/chat');
+  const handleChatSelect = async (chatId: string) => {
+    try {
+      const conversation = await loadConversation(chatId);
+      if (conversation) {
+        onChatSelect?.(chatId);
+        // Dispatch custom event to notify chat page
+        window.dispatchEvent(new CustomEvent('load-conversation', { detail: conversation }));
+        // Navigate to chat route if not already there
+        if (!isChatRoute) {
+          router.push('/chat');
+        }
       }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load conversation';
+      error(
+        'Load Failed',
+        errorMessage,
+        {
+          duration: 5000
+        }
+      );
+      console.error('Error loading conversation:', err);
     }
   };
 
-  const handleDeleteChat = (chatId: string, e: React.MouseEvent) => {
+  const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+
     if (window.confirm('Are you sure you want to delete this conversation?')) {
-      deleteConversationById(chatId);
+      try {
+        await deleteConversationById(chatId);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete conversation';
+        error(
+          'Delete Failed',
+          errorMessage,
+          {
+            duration: 5000
+          }
+        );
+        console.error('Error deleting conversation:', err);
+      }
     }
   };
 
@@ -182,11 +209,14 @@ export function Sidebar({
               />
             </div>
 
-            {localSaveChatHistory && conversations.length > 0 && (
+            {localSaveChatHistory && (
               <div className="border-t border-gray-800 pt-2 w-full">
-                <ScrollArea className="h-[200px] w-full">
-                  <div className="space-y-1 w-full pr-2">
-                    {conversations.map((chat) => {
+                {conversationsLoading ? (
+                  <div className="text-sm text-gray-400 text-center py-4">Loading conversations...</div>
+                ) : conversations.length > 0 ? (
+                  <ScrollArea className="h-[200px] w-full">
+                    <div className="space-y-1 w-full pr-2">
+                      {conversations.map((chat) => {
                       const isActive = currentConversationId === chat.id;
                       const truncatedTitle = chat.title.length > 40 
                         ? `${chat.title.substring(0, 40)}...` 
@@ -219,9 +249,12 @@ export function Sidebar({
                           </button>
                         </div>
                       );
-                    })}
-                  </div>
-                </ScrollArea>
+                      })}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="text-sm text-gray-400 text-center py-4">No conversations yet</div>
+                )}
               </div>
             )}
           </div>
@@ -243,7 +276,7 @@ export function Sidebar({
         </Link>
 
         {/* Docs */}
-        <Link href="https://apidocs.mor.org" target="_blank" rel="noopener noreferrer">
+        <Link href="https://apidocs.mor.org?utm_source=api-admin" target="_blank" rel="noopener noreferrer">
           <Button variant="ghost" className="w-full justify-start text-base font-normal text-gray-50">
             <FileText className="mr-2 h-4 w-4" />
             Docs
@@ -286,7 +319,7 @@ export function Sidebar({
                 <DiscordIcon className="h-4 w-4" />
               </Link>
               <Link
-                href="https://mor.org"
+                href="https://mor.org?utm_source=api-admin"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-200 transition-colors text-sm"
