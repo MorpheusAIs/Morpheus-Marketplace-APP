@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, Pencil, X } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
@@ -156,81 +157,135 @@ export default function ApiKeysPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="flex-1 overflow-y-auto p-8">
-        <h1 className="text-4xl font-bold text-foreground">API Keys</h1>
-        <p className="text-lg text-muted-foreground mt-2">Manage your Morpheus API keys.</p>
+      <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <h1 className="text-2xl md:text-4xl font-bold text-foreground">API Keys</h1>
+        <p className="text-base md:text-lg text-muted-foreground mt-2">Manage your Morpheus API keys.</p>
 
-        <div className="bg-card p-6 rounded-lg mt-8 border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-semibold text-foreground">My API Keys</h2>
+        <div className="bg-card p-4 md:p-6 rounded-lg mt-6 md:mt-8 border border-border">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <h2 className="text-xl md:text-2xl font-semibold text-foreground">My API Keys</h2>
             <Button
               variant="ghost"
-              className="text-green-500 hover:bg-muted"
+              className="text-green-500 hover:bg-muted w-full sm:w-auto"
               onClick={() => setIsCreateDialogOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
               Create New Key
             </Button>
           </div>
-          <Table className="w-full">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-left text-muted-foreground font-medium">Name</TableHead>
-                <TableHead className="text-left text-muted-foreground font-medium">API Key</TableHead>
-                <TableHead className="text-left text-muted-foreground font-medium">Last Used</TableHead>
-                <TableHead className="text-left text-muted-foreground font-medium">Created</TableHead>
-                <TableHead className="text-right text-muted-foreground font-medium">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {apiKeys.length === 0 ? (
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Table className="w-full">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No API keys found. Create your first key below.
-                  </TableCell>
+                  <TableHead className="text-left text-muted-foreground font-medium">Name</TableHead>
+                  <TableHead className="text-left text-muted-foreground font-medium">API Key</TableHead>
+                  <TableHead className="text-left text-muted-foreground font-medium">Last Used</TableHead>
+                  <TableHead className="text-left text-muted-foreground font-medium">Created</TableHead>
+                  <TableHead className="text-right text-muted-foreground font-medium">Actions</TableHead>
                 </TableRow>
-              ) : (
-                apiKeys.map((apiKey) => {
-                  return (
-                    <TableRow 
-                      key={apiKey.id}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="text-foreground">{apiKey.name}</span>
-                          {apiKey.is_default && (
-                            <Badge variant="default" className="bg-green-600 text-white">
-                              Default
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">
+              </TableHeader>
+              <TableBody>
+                {apiKeys.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      No API keys found. Create your first key below.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  apiKeys.map((apiKey) => {
+                    return (
+                      <TableRow 
+                        key={apiKey.id}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="text-foreground">{apiKey.name}</span>
+                            {apiKey.is_default && (
+                              <Badge variant="default" className="bg-green-600 text-white">
+                                Default
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm text-foreground">
+                          {apiKey.key_prefix}...
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">-</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(apiKey.created_at)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                            onClick={() => handleDelete(apiKey.id, apiKey.name)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {apiKeys.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                No API keys found. Create your first key above.
+              </div>
+            ) : (
+              apiKeys.map((apiKey) => (
+                <Card key={apiKey.id} className="border-border">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <CardTitle className="text-base font-semibold truncate">{apiKey.name}</CardTitle>
+                        {apiKey.is_default && (
+                          <Badge variant="default" className="bg-green-600 text-white shrink-0">
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="font-mono text-xs text-muted-foreground shrink-0">
                         {apiKey.key_prefix}...
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">-</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(apiKey.created_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                          onClick={() => handleDelete(apiKey.id, apiKey.name)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Created:</span>
+                      <span className="text-foreground">{formatDate(apiKey.created_at)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Last Used:</span>
+                      <span className="text-foreground">-</span>
+                    </div>
+                    <div className="pt-2 border-t border-border">
+                      <Button
+                        variant="ghost"
+                        className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                        onClick={() => handleDelete(apiKey.id, apiKey.name)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
           <div className="mt-4 pt-4 border-t border-border">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="text-xs md:text-sm text-muted-foreground break-all md:break-normal">
                 Base URL: {" "}
                 <a
                   href={API_CONFIG.BASE_URL}
@@ -241,15 +296,15 @@ export default function ApiKeysPage() {
                   {API_CONFIG.BASE_URL}
                 </a>
               </p>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">Default API key:</span>
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+                <span className="text-xs md:text-sm text-muted-foreground">Default API key:</span>
                 {isEditingDefaultKey ? (
                   <div className="flex items-center gap-2">
                     <Select
                       value={currentDefaultKey?.id.toString() || ""}
                       onValueChange={handleDefaultKeyChange}
                     >
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-full md:w-[200px]">
                         <SelectValue placeholder="Select API key" />
                       </SelectTrigger>
                       <SelectContent>
@@ -263,7 +318,7 @@ export default function ApiKeysPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
                       onClick={() => setIsEditingDefaultKey(false)}
                     >
                       <X className="h-4 w-4" />
@@ -276,7 +331,7 @@ export default function ApiKeysPage() {
                         value={currentDefaultKey.id.toString()}
                         disabled={true}
                       >
-                        <SelectTrigger className="w-[200px]">
+                        <SelectTrigger className="w-full md:w-[200px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -286,14 +341,14 @@ export default function ApiKeysPage() {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="w-[200px] h-9 px-3 py-2 text-sm text-muted-foreground border border-input rounded-md bg-background flex items-center">
+                      <div className="w-full md:w-[200px] h-9 px-3 py-2 text-sm text-muted-foreground border border-input rounded-md bg-background flex items-center">
                         No default key
                       </div>
                     )}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
                       onClick={() => setIsEditingDefaultKey(true)}
                       disabled={apiKeys.length === 0}
                     >
@@ -321,7 +376,7 @@ export default function ApiKeysPage() {
 
       <VerifyApiKeyModal
         open={isVerifyModalOpen}
-        onOpenChange={(open) => {
+        onOpenChangeAction={(open) => {
           setIsVerifyModalOpen(open);
           // If modal is closed without success, reset pending default key state
           if (!open && pendingDefaultKeyId !== null) {
@@ -330,7 +385,8 @@ export default function ApiKeysPage() {
           }
         }}
         keyPrefix={selectedKeyPrefix}
-        onVerifySuccess={handleVerifySuccess}
+        keyName={apiKeys.find(key => key.key_prefix === selectedKeyPrefix)?.name}
+        onVerifySuccessAction={handleVerifySuccess}
       />
     </AuthenticatedLayout>
   );

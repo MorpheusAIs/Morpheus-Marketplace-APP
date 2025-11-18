@@ -57,7 +57,7 @@ export default function SignInPage() {
           />
           <span className="text-2xl font-semibold text-foreground">API Gateway</span>
         </div>
-        <Card className="w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
+        <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">Sign in</CardTitle>
             <CardDescription className="text-muted-foreground">
