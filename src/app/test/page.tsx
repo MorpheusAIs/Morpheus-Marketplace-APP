@@ -26,6 +26,15 @@ interface Model {
   ModelType?: string;
 }
 
+interface ApiModelResponse {
+  id: string;
+  blockchainID?: string;
+  blockchainId?: string;
+  created?: number;
+  modelType?: string;
+  ModelType?: string;
+}
+
 export default function TestPage() {
   const router = useRouter();
   const { error: showError } = useNotification();
@@ -92,7 +101,7 @@ export default function TestPage() {
       
       if (Array.isArray(modelsArray)) {
         // Format models from API response
-        const formattedModels = modelsArray.map((model: any) => ({
+        const formattedModels = modelsArray.map((model: ApiModelResponse) => ({
           id: model.id,
           blockchainId: model.blockchainID || model.blockchainId,
           created: model.created,
@@ -345,7 +354,7 @@ export default function TestPage() {
               </TabsList>
               <TabsContent value="response-content" className="mt-4">
                 {responseContent ? (
-                  <div className="bg-gray-900 p-4 rounded-md border border-gray-700">
+                  <div className="bg-black p-4 rounded-md border border-gray-300/20">
                     <pre className="text-white whitespace-pre-wrap">{responseContent}</pre>
                   </div>
                 ) : (
@@ -354,7 +363,7 @@ export default function TestPage() {
               </TabsContent>
               <TabsContent value="curl-request" className="mt-4">
                 {curlRequest ? (
-                  <div className="relative bg-gray-900 p-4 rounded-md border border-gray-700">
+                  <div className="relative bg-black p-4 rounded-md border border-gray-300/20">
                     <Button
                       variant="outline"
                       size="icon"
@@ -375,7 +384,7 @@ export default function TestPage() {
               </TabsContent>
               <TabsContent value="server-response" className="mt-4">
                 {serverResponse ? (
-                  <div className="relative bg-gray-900 p-4 rounded-md border border-gray-700">
+                  <div className="relative bg-black p-4 rounded-md border border-gray-300/20">
                     <Button
                       variant="outline"
                       size="icon"
