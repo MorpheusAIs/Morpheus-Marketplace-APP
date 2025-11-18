@@ -99,7 +99,7 @@ function sanitizeContent(content: string): string {
   // Handle both self-closing and paired tags
   return content
     .replace(/<think>[\s\S]*?<\/think>/gi, '')
-    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<think>[\s\S]*?<\/redacted_reasoning>/gi, '')
     .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
     // Remove any remaining standalone opening/closing tags
     .replace(/<\/?think>/gi, '')
