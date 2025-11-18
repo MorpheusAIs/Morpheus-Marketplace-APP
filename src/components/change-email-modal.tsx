@@ -14,10 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { useNotification } from "@/lib/NotificationContext";
-import {
-  ChangePasswordCommand,
-  UpdateUserAttributesCommand,
-} from "@aws-sdk/client-cognito-identity-provider";
+import { UpdateUserAttributesCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoConfig } from "@/lib/auth/cognito-config";
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 
@@ -35,10 +32,10 @@ function getCognitoClient(): CognitoIdentityProviderClient {
 
 interface ChangeEmailModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChangeAction: (open: boolean) => void;
 }
 
-export function ChangeEmailModal({ open, onOpenChange }: ChangeEmailModalProps) {
+export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalProps) {
   const { user, accessToken } = useCognitoAuth();
   const { success, error } = useNotification();
   const [newEmail, setNewEmail] = useState("");
@@ -83,7 +80,7 @@ export function ChangeEmailModal({ open, onOpenChange }: ChangeEmailModalProps) 
       
       success("Email Change Initiated", "Please check your new email to confirm the change.");
       setNewEmail("");
-      onOpenChange(false);
+      onOpenChangeAction(false);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to change email";
       setErrorMessage(errorMsg);
@@ -94,7 +91,7 @@ export function ChangeEmailModal({ open, onOpenChange }: ChangeEmailModalProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Change Email</DialogTitle>
@@ -129,7 +126,7 @@ export function ChangeEmailModal({ open, onOpenChange }: ChangeEmailModalProps) 
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChangeAction(false)}>
             Cancel
           </Button>
           <Button

@@ -19,6 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 interface Model {
   id: string;
@@ -82,12 +89,13 @@ export function ChatSettingsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md bg-card text-card-foreground shadow-lg">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Chat Settings</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-6">
+    <TooltipProvider>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="w-full max-w-md bg-card text-card-foreground shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Chat Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
           {/* Model Selection */}
           <div className="space-y-2">
             <Label htmlFor="select-model">Select Model</Label>
@@ -119,7 +127,21 @@ export function ChatSettingsDialog({
 
           {/* Assistant Tone */}
           <div className="space-y-2">
-            <Label htmlFor="assistant-tone">Assistant Tone/Style</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="assistant-tone">Assistant Tone/Style</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Describes the personality, tone, and style of the assistant's responses.
+                    Examples: "professional and concise", "friendly and conversational", "technical and detailed".
+                    Acceptable values: Any text description.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Textarea
               id="assistant-tone"
               placeholder="Describe the assistant's tone and style..."
@@ -132,7 +154,20 @@ export function ChatSettingsDialog({
           {/* Parameters Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="frequency-penalty">Frequency Penalty</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="frequency-penalty">Frequency Penalty</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Reduces the likelihood of the model repeating the same tokens. Higher values decrease repetition.
+                      Acceptable values: 0.0 to 2.0. Default: 0.0.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="frequency-penalty"
                 type="number"
@@ -145,7 +180,20 @@ export function ChatSettingsDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="presence-penalty">Presence Penalty</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="presence-penalty">Presence Penalty</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Encourages the model to talk about new topics. Higher values increase the likelihood of introducing new topics.
+                      Acceptable values: 0.0 to 2.0. Default: 0.0.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="presence-penalty"
                 type="number"
@@ -158,7 +206,20 @@ export function ChatSettingsDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="min-p">Min P</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="min-p">Min P</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Minimum probability threshold for token selection. Tokens with probability below this threshold are filtered out.
+                      Acceptable values: 0.0 to 1.0. Default: 0.0.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="min-p"
                 type="number"
@@ -171,7 +232,20 @@ export function ChatSettingsDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="top-p">Top P</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="top-p">Top P</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Nucleus sampling: considers tokens with top-p probability mass. Lower values make output more focused.
+                      Acceptable values: 0.0 to 1.0. Default: 1.0.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="top-p"
                 type="number"
@@ -187,7 +261,20 @@ export function ChatSettingsDialog({
 
           {/* Temperature */}
           <div className="space-y-2">
-            <Label htmlFor="temperature">Temperature</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="temperature">Temperature</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Controls randomness in the output. Higher values make output more random and creative, lower values make it more focused and deterministic.
+                    Acceptable values: 0.0 to 2.0. Default: 0.9.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Input
               id="temperature"
               type="number"
@@ -214,6 +301,7 @@ export function ChatSettingsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 }
 
