@@ -152,7 +152,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-[#FD67C4] border-[#FD67C4] hover:bg-[#FD67C4]/10"
+                className="text-white border-white hover:bg-white hover:text-black"
                 onClick={() => setIsEmailModalOpen(true)}
               >
                 <Pencil className="mr-2 h-4 w-4" />
@@ -169,7 +169,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-[#FD67C4] border-[#FD67C4] hover:bg-[#FD67C4]/10"
+                className="text-white border-white hover:bg-white hover:text-black"
                 onClick={() => setIsPasswordModalOpen(true)}
               >
                 <Pencil className="mr-2 h-4 w-4" />
@@ -275,8 +275,8 @@ export default function AccountSettingsPage() {
         </Card>
       </div>
 
-      <ChangeEmailModal open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen} />
-      <ChangePasswordModal open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen} />
+      <ChangeEmailModal open={isEmailModalOpen} onOpenChangeAction={setIsEmailModalOpen} />
+      <ChangePasswordModal open={isPasswordModalOpen} onOpenChangeAction={setIsPasswordModalOpen} />
       <DeleteAccountModal open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen} />
     </AuthenticatedLayout>
   );
