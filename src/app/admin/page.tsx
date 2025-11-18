@@ -8,17 +8,9 @@ import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api/apiService';
 import { useGTM } from '@/components/providers/GTMProvider';
 import { API_URLS } from '@/lib/api/config';
 import { CognitoDirectAuth } from '@/lib/auth/cognito-direct-auth';
+import { CognitoTokens, CognitoUser } from '@/lib/types/cognito';
 import Link from 'next/link';
 import AuthModal from '@/components/auth/AuthModal';
-
-interface ApiKey {
-  id: number;
-  key_prefix: string;
-  name: string;
-  created_at: string;
-  is_active: boolean;
-  is_default: boolean;
-}
 
 interface ApiKeyResponse {
   key: string;
@@ -173,7 +165,7 @@ export default function AdminPage() {
   };
 
   // Handle authentication success
-  const handleAuthSuccess = (tokens: any, userInfo: any) => {
+  const handleAuthSuccess = (tokens: CognitoTokens, userInfo: CognitoUser) => {
     // Store tokens and close modal
     CognitoDirectAuth.storeTokens(tokens, userInfo?.email || '');
     localStorage.setItem('user_info', JSON.stringify(userInfo));
@@ -657,10 +649,9 @@ export default function AdminPage() {
                     id="keyName"
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    className="w-full p-2 rounded-md border border-[var(--neon-mint)]/30 bg-[var(--midnight)] text-[var(--platinum)] !text-[var(--platinum)] focus:ring-0 focus:border-[var(--emerald)]"
+                    className="w-full p-2 rounded-md border border-[var(--neon-mint)]/30 bg-[var(--midnight)] text-[var(--platinum)] focus:ring-0 focus:border-[var(--emerald)]"
                     placeholder="Enter a name for your API key"
                     required
-                    style={{color: 'var(--platinum)'}}
                   />
                 </div>
                 <button
@@ -674,7 +665,7 @@ export default function AdminPage() {
               {newlyCreatedKey && (
                 <div className="mt-4 p-4 bg-[var(--midnight)] border border-[var(--neon-mint)]/30 rounded-md">
                   <p className="text-sm text-[var(--platinum)]/70 mb-2">
-                    Your new API key (save it securely, it won't be shown again):
+                    Your new API key (save it securely, it won&apos;t be shown again):
                   </p>
                   <div className="flex items-center">
                     <code className="p-2 bg-[var(--midnight)] text-[var(--neon-mint)] font-mono text-sm flex-1 rounded overflow-x-auto">
@@ -814,7 +805,7 @@ export default function AdminPage() {
                             
                             <div className="mb-4">
                               <p className="text-[var(--platinum)]/80 text-sm mb-2">
-                                You've selected: <span className="font-mono text-[var(--neon-mint)]">{selectedApiKeyPrefix}...</span>
+                                You&apos;ve selected: <span className="font-mono text-[var(--neon-mint)]">{selectedApiKeyPrefix}...</span>
                               </p>
                               <p className="text-[var(--platinum)]/60 text-xs">
                                 For security, we need you to verify the full API key to enable Chat and Test functionality.
@@ -868,7 +859,7 @@ export default function AdminPage() {
                     ) : (
                       <div className="mb-6 p-4 bg-[var(--eclipse)]/50 border border-[var(--neon-mint)]/20 rounded-md">
                         <p className="text-[var(--platinum)]/80 text-sm">
-                          Click "Select" on an API key above to verify and access automation settings.
+                          Click &quot;Select&quot; on an API key above to verify and access automation settings.
                         </p>
                       </div>
                     )}
@@ -885,8 +876,7 @@ export default function AdminPage() {
                         value={localSessionDuration}
                         onChange={(e) => setLocalSessionDuration(Number(e.target.value))}
                         min="1"
-                        className="w-full p-2 rounded-md border border-[var(--neon-mint)]/30 bg-[var(--midnight)] text-[var(--platinum)] !text-[var(--platinum)] focus:ring-0 focus:border-[var(--emerald)]"
-                        style={{color: 'var(--platinum)'}}
+                        className="w-full p-2 rounded-md border border-[var(--neon-mint)]/30 bg-[var(--midnight)] text-[var(--platinum)] focus:ring-0 focus:border-[var(--emerald)]"
                       />
                       <p className="mt-1 text-sm text-[var(--platinum)]/60">
                         How long authentication sessions should last. Minimum 1 second.
