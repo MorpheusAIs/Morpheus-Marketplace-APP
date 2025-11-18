@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
 import { useConversation } from '@/lib/ConversationContext';
-import { getConversation } from '@/lib/conversation-history';
 import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
 import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
@@ -26,7 +25,6 @@ import {
   ModelSelector,
   ModelSelectorContent,
   ModelSelectorEmpty,
-  ModelSelectorGroup,
   ModelSelectorInput,
   ModelSelectorItem,
   ModelSelectorList,
@@ -96,7 +94,9 @@ export default function ChatPage() {
     saveCurrentConversation, 
     updateCurrentConversation,
     deleteConversationById,
-    startNewConversation
+    startNewConversation,
+    loadConversation,
+    isLoading: conversationLoading
   } = useConversation();
   
   // API Key state (retrieved from sessionStorage)
@@ -148,9 +148,14 @@ export default function ChatPage() {
   });
   const [maxTokens, setMaxTokens] = useState<number>(128_000); // Default fallback
 
-  // Sync ref with context value
+  // Sync ref with context value and clear messages when starting new conversation
   useEffect(() => {
     currentConversationIdRef.current = currentConversationId;
+    // When conversation ID becomes null (new conversation started), ensure messages are cleared
+    if (!currentConversationId) {
+      setMessages([]);
+      setStreamingContent('');
+    }
   }, [currentConversationId]);
 
   // Load API key from sessionStorage and redirect if not verified
@@ -168,32 +173,35 @@ export default function ChatPage() {
 
   // Update title when conversation ID changes
   useEffect(() => {
-    if (currentConversationId) {
-      const conversation = getConversation(currentConversationId);
-      if (conversation) {
-        setConversationTitle(conversation.title);
-      } else {
-        // If conversation not found yet, wait a bit and try again (for new saves)
-        const timer = setTimeout(() => {
-          const conv = getConversation(currentConversationId);
-          if (conv) {
-            setConversationTitle(conv.title);
+    const updateTitle = async () => {
+      if (currentConversationId) {
+        try {
+          const conversation = await loadConversation(currentConversationId);
+          if (conversation) {
+            setConversationTitle(conversation.title);
           }
-        }, 100);
-        return () => clearTimeout(timer);
+        } catch (err) {
+          console.error('Error loading conversation for title:', err);
+        }
+      } else {
+        setConversationTitle('New Chat');
       }
-    } else {
-      setConversationTitle('New Chat');
-    }
-  }, [currentConversationId]);
+    };
+
+    updateTitle();
+  }, [currentConversationId, loadConversation]);
 
   // Also listen for conversation history updates to refresh title
   useEffect(() => {
-    const handleHistoryUpdate = () => {
+    const handleHistoryUpdate = async () => {
       if (currentConversationId) {
-        const conversation = getConversation(currentConversationId);
-        if (conversation) {
-          setConversationTitle(conversation.title);
+        try {
+          const conversation = await loadConversation(currentConversationId);
+          if (conversation) {
+            setConversationTitle(conversation.title);
+          }
+        } catch (err) {
+          console.error('Error loading conversation for title update:', err);
         }
       }
     };
@@ -202,26 +210,55 @@ export default function ChatPage() {
     return () => {
       window.removeEventListener('conversation-history-updated', handleHistoryUpdate);
     };
-  }, [currentConversationId]);
+  }, [currentConversationId, loadConversation]);
 
   // Listen for conversation load events from sidebar
   useEffect(() => {
-    const handleLoadConversation = (e: CustomEvent) => {
+    const handleLoadConversation = async (e: CustomEvent) => {
       const conversation = e.detail;
-      if (conversation && conversation.messages) {
-        const formattedMessages: Message[] = conversation.messages.map((msg: ConversationMessage) => ({
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          sequence: msg.sequence,
-        }));
-        setMessages(formattedMessages);
+      if (conversation && conversation.id) {
+        // Ensure we load the conversation properly through the context
+        // This ensures the conversation ID is set correctly and messages are fetched
+        try {
+          const loadedConversation = await loadConversation(conversation.id);
+          if (loadedConversation) {
+            // Always set messages, even if empty array
+            const formattedMessages: Message[] = (loadedConversation.messages || []).map((msg: ConversationMessage) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              sequence: msg.sequence,
+            }));
+            setMessages(formattedMessages);
+            setStreamingContent('');
+            console.log(`Loaded conversation ${conversation.id} with ${formattedMessages.length} messages`);
+          }
+        } catch (err) {
+          console.error('Error loading conversation:', err);
+          // Fallback to using the conversation from the event if loading fails
+          if (conversation && conversation.messages) {
+            const formattedMessages: Message[] = conversation.messages.map((msg: ConversationMessage) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              sequence: msg.sequence,
+            }));
+            setMessages(formattedMessages);
+            setStreamingContent('');
+          } else {
+            // If no messages in fallback, set empty array
+            setMessages([]);
+            setStreamingContent('');
+          }
+        }
       }
     };
 
     const handleNewConversation = () => {
       setMessages([]);
       setStreamingContent('');
+      // Clear the ref immediately when starting a new conversation
+      currentConversationIdRef.current = null;
     };
 
     window.addEventListener('load-conversation', handleLoadConversation as EventListener);
@@ -231,7 +268,7 @@ export default function ChatPage() {
       window.removeEventListener('load-conversation', handleLoadConversation as EventListener);
       window.removeEventListener('new-conversation-started', handleNewConversation);
     };
-  }, []);
+  }, [loadConversation]);
 
   // Load save chat history preference
   useEffect(() => {
@@ -387,14 +424,26 @@ export default function ChatPage() {
   };
 
   // Handle conversation deletion
-  const handleDeleteConversation = () => {
+  const handleDeleteConversation = async () => {
     if (currentConversationId) {
-      deleteConversationById(currentConversationId);
-      setMessages([]);
-      setStreamingContent('');
-      setConversationTitle('New Chat');
-      startNewConversation();
-      setShowDeleteDialog(false);
+      try {
+        await deleteConversationById(currentConversationId);
+        setMessages([]);
+        setStreamingContent('');
+        setConversationTitle('New Chat');
+        startNewConversation();
+        setShowDeleteDialog(false);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete conversation';
+        error(
+          'Delete Failed',
+          errorMessage,
+          {
+            duration: 8000
+          }
+        );
+        console.error('Error deleting conversation:', err);
+      }
     }
   };
 
@@ -558,34 +607,41 @@ export default function ChatPage() {
       setStreamingStatus('ready');
       setStreamingContent('');
 
-      // Save to localStorage if saveChatHistory is enabled
-      // Use setTimeout to ensure state is updated
+      // Save to API if saveChatHistory is enabled
       if (saveChatHistory && accumulatedContent) {
-        setTimeout(() => {
-          try {
-            // Convert all messages (including the new ones) to ConversationMessage format
-            const conversationMessages: ConversationMessage[] = updatedMessages.map(msg => ({
-              role: msg.role,
-              content: msg.content,
-              id: msg.id,
-              sequence: msg.sequence,
-            }));
+        try {
+          // Convert all messages (including the new ones) to ConversationMessage format
+          const conversationMessages: ConversationMessage[] = updatedMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            id: msg.id,
+            sequence: msg.sequence,
+          }));
 
-            // Save conversation - use ref to get current value
-            const currentId = currentConversationIdRef.current;
-            if (!currentId) {
-              // Create new conversation
-              const newId = saveCurrentConversation(conversationMessages);
-              console.log('Saved new conversation:', newId);
-            } else {
-              // Update existing conversation
-              updateCurrentConversation(conversationMessages);
-              console.log('Updated conversation:', currentId);
-            }
-          } catch (saveError) {
-            console.error('Error saving chat to localStorage:', saveError);
+          // Check current conversation ID from state (not ref) to ensure we have the latest value
+          // If no current conversation ID, create a new one; otherwise update existing
+          if (!currentConversationId) {
+            // Create new conversation
+            const newId = await saveCurrentConversation(conversationMessages);
+            console.log('Saved new conversation:', newId);
+            // Update ref immediately after saving
+            currentConversationIdRef.current = newId;
+          } else {
+            // Update existing conversation
+            await updateCurrentConversation(conversationMessages);
+            console.log('Updated conversation:', currentConversationId);
           }
-        }, 0);
+        } catch (saveError) {
+          console.error('Error saving chat to API:', saveError);
+          const errorMessage = saveError instanceof Error ? saveError.message : 'Failed to save conversation';
+          warning(
+            'Save Failed',
+            `Could not save conversation: ${errorMessage}`,
+            {
+              duration: 5000
+            }
+          );
+        }
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -719,47 +775,39 @@ export default function ChatPage() {
                   </ModelSelectorTrigger>
                   <ModelSelectorContent>
                     <ModelSelectorInput placeholder="Search models..." />
-                    <ModelSelectorList>
+                    <ModelSelectorList className="max-h-[500px]">
                       <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
                       {(() => {
-                        // Group LLM models by name prefix (e.g., "hermes-3-llama-3.1-405b" and "hermes-3-llama-3.1-405b:web")
-                        // Group by base name (without :web suffix)
-                        const groupedModels = filteredModels.reduce((acc, model) => {
-                          const baseName = model.id.split(':')[0];
-                          if (!acc[baseName]) {
-                            acc[baseName] = [];
+                        // Deduplicate models by id
+                        const uniqueModelsMap = new Map<string, Model>();
+                        filteredModels.forEach((model) => {
+                          if (!uniqueModelsMap.has(model.id)) {
+                            uniqueModelsMap.set(model.id, model);
                           }
-                          acc[baseName].push(model);
-                          return acc;
-                        }, {} as Record<string, Model[]>);
-
-                        // Sort groups and models
-                        const sortedGroups = Object.keys(groupedModels).sort();
-
-                        return sortedGroups.map((baseName) => {
-                          const groupModels = groupedModels[baseName].sort((a, b) => a.id.localeCompare(b.id));
-                          return (
-                            <ModelSelectorGroup key={baseName} heading={baseName}>
-                              {groupModels.map((model) => (
-                                <ModelSelectorItem
-                                  key={model.id}
-                                  onSelect={() => {
-                                    setSelectedModel(model.id);
-                                    setShowModelSelector(false);
-                                  }}
-                                  value={model.id}
-                                >
-                                  <ModelSelectorName>{model.id}</ModelSelectorName>
-                                  {selectedModel === model.id ? (
-                                    <CheckIcon className="ml-auto size-4" />
-                                  ) : (
-                                    <div className="ml-auto size-4" />
-                                  )}
-                                </ModelSelectorItem>
-                              ))}
-                            </ModelSelectorGroup>
-                          );
                         });
+                        
+                        // Convert to array and sort alphabetically by id
+                        const uniqueModels = Array.from(uniqueModelsMap.values())
+                          .sort((a, b) => a.id.localeCompare(b.id));
+
+                        // Render models directly (no grouping needed)
+                        return uniqueModels.map((model) => (
+                          <ModelSelectorItem
+                            key={model.id}
+                            onSelect={() => {
+                              setSelectedModel(model.id);
+                              setShowModelSelector(false);
+                            }}
+                            value={model.id}
+                          >
+                            <ModelSelectorName>{model.id}</ModelSelectorName>
+                            {selectedModel === model.id ? (
+                              <CheckIcon className="ml-auto size-4" />
+                            ) : (
+                              <div className="ml-auto size-4" />
+                            )}
+                          </ModelSelectorItem>
+                        ));
                       })()}
                     </ModelSelectorList>
                   </ModelSelectorContent>
