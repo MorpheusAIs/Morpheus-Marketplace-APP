@@ -58,7 +58,7 @@ export function Sidebar({
   const { logout, user } = useCognitoAuth();
   const { error } = useNotification();
   const isChatRoute = pathname?.startsWith("/chat");
-  const { conversations, isLoading: conversationsLoading } = useConversationHistory();
+  const { conversations, isLoading: conversationsLoading, getConversationById } = useConversationHistory();
   const { currentConversationId, loadConversation, deleteConversationById, startNewConversation } = useConversation();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [localSaveChatHistory, setLocalSaveChatHistory] = useState(() => {
@@ -95,14 +95,21 @@ export function Sidebar({
 
   const handleChatSelect = async (chatId: string) => {
     try {
-      const conversation = await loadConversation(chatId);
-      if (conversation) {
+      // First check if conversation is already preloaded in state
+      const preloadedConversation = getConversationById(chatId);
+      
+      if (preloadedConversation && preloadedConversation.messages && preloadedConversation.messages.length > 0) {
+        // Use preloaded conversation - just navigate, no need to fetch
+        console.log(`Using preloaded conversation ${chatId} with ${preloadedConversation.messages.length} messages`);
         onChatSelect?.(chatId);
-        // Dispatch custom event to notify chat page
-        window.dispatchEvent(new CustomEvent('load-conversation', { detail: conversation }));
-        // Navigate to chat route if not already there
-        if (!isChatRoute) {
-          router.push('/chat');
+        router.push(`/chat/${chatId}`);
+      } else {
+        // Conversation not preloaded or missing messages, fetch it
+        console.log(`Conversation ${chatId} not preloaded, fetching...`);
+        const conversation = await loadConversation(chatId);
+        if (conversation) {
+          onChatSelect?.(chatId);
+          router.push(`/chat/${chatId}`);
         }
       }
     } catch (err) {
