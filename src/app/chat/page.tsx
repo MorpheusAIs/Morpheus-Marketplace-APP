@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
 import { useConversation } from '@/lib/ConversationContext';
@@ -99,12 +99,12 @@ export default function ChatPage() {
   const { isLoading: _authLoading } = useCognitoAuth();
   const { error, warning } = useNotification();
   const router = useRouter();
+  const pathname = usePathname();
   const { 
     currentConversationId, 
     saveCurrentConversation, 
     updateCurrentConversation,
     deleteConversationById,
-    startNewConversation,
     loadConversation
   } = useConversation();
   
@@ -232,44 +232,16 @@ export default function ChatPage() {
       const customEvent = e as CustomEvent;
       const conversation = customEvent.detail;
       if (conversation && conversation.id) {
-        // Ensure we load the conversation properly through the context
-        // This ensures the conversation ID is set correctly and messages are fetched
-        try {
-          const loadedConversation = await loadConversation(conversation.id);
-          if (loadedConversation) {
-            // Always set messages, even if empty array
-            const formattedMessages: Message[] = (loadedConversation.messages || []).map((msg: ConversationMessage) => ({
-              id: msg.id,
-              role: msg.role,
-              content: msg.content,
-              sequence: msg.sequence,
-            }));
-            setMessages(formattedMessages);
-            setStreamingContent('');
-            console.log(`Loaded conversation ${conversation.id} with ${formattedMessages.length} messages`);
-          }
-        } catch (err) {
-          console.error('Error loading conversation:', err);
-          // Fallback to using the conversation from the event if loading fails
-          if (conversation && conversation.messages) {
-            const formattedMessages: Message[] = conversation.messages.map((msg: ConversationMessage) => ({
-              id: msg.id,
-              role: msg.role,
-              content: msg.content,
-              sequence: msg.sequence,
-            }));
-            setMessages(formattedMessages);
-            setStreamingContent('');
-          } else {
-            // If no messages in fallback, set empty array
-            setMessages([]);
-            setStreamingContent('');
-          }
-        }
+        // Navigate to the conversation route instead of loading here
+        router.push(`/chat/${conversation.id}`);
       }
     };
 
     const handleNewConversation = () => {
+      // Ensure we're on the base /chat route for new conversations
+      if (pathname !== '/chat') {
+        router.push('/chat');
+      }
       setMessages([]);
       setStreamingContent('');
       // Clear the ref immediately when starting a new conversation
@@ -283,7 +255,7 @@ export default function ChatPage() {
       window.removeEventListener('load-conversation', handleLoadConversation);
       window.removeEventListener('new-conversation-started', handleNewConversation);
     };
-  }, [loadConversation]);
+  }, [router, pathname]);
 
   // Load save chat history preference
   useEffect(() => {
@@ -444,10 +416,7 @@ export default function ChatPage() {
     if (currentConversationId) {
       try {
         await deleteConversationById(currentConversationId);
-        setMessages([]);
-        setStreamingContent('');
-        setConversationTitle('New Chat');
-        startNewConversation();
+        router.push('/chat');
         setShowDeleteDialog(false);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete conversation';
@@ -640,13 +609,15 @@ export default function ChatPage() {
           // If no current conversation ID, create a new one; otherwise update existing
           if (!currentConversationId) {
             // Create new conversation
-            const newId = await saveCurrentConversation(conversationMessages);
+            const newId = await saveCurrentConversation(conversationMessages, fullApiKey);
             console.log('Saved new conversation:', newId);
             // Update ref immediately after saving
             currentConversationIdRef.current = newId;
+            // Navigate to the new conversation route
+            router.push(`/chat/${newId}`);
           } else {
             // Update existing conversation
-            await updateCurrentConversation(conversationMessages);
+            await updateCurrentConversation(conversationMessages, fullApiKey);
             console.log('Updated conversation:', currentConversationId);
           }
         } catch (saveError) {
