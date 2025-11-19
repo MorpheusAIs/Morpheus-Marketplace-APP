@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { FileUIPart } from "ai";
-import { ChevronLeftIcon, ChevronRightIcon, PaperclipIcon, XIcon } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { PaperclipIcon, XIcon } from "lucide-react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import { Streamdown } from "streamdown";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
@@ -32,7 +31,7 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
     className={cn(
       "is-user:dark flex w-fit flex-col gap-2 overflow-hidden text-sm",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-purple-800 group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:rounded-lg group-[.is-assistant]:bg-sidebar group-[.is-assistant]:px-4 group-[.is-assistant]:py-3 group-[.is-assistant]:text-foreground group-[.is-assistant]:max-w-full",
+      "group-[.is-assistant]:rounded-lg group-[.is-assistant]:bg-sidebar group-[.is-assistant]:px-6 group-[.is-assistant]:py-5 group-[.is-assistant]:text-foreground group-[.is-assistant]:max-w-full",
       className
     )}
     {...props}
