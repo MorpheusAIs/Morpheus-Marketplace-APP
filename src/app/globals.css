@@ -55,6 +55,13 @@ input:focus, textarea:focus, select:focus, button:focus {
   outline: none !important;
 }
 
+/* Remove focus box-shadow for sidebar conversation history items */
+.conversation-history-item:focus,
+.conversation-history-item:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* For white and gray background inputs only */
 .bg-white input, .bg-white textarea, .bg-white select,
 input.bg-white, textarea.bg-white, select.bg-white,

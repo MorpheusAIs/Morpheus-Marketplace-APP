@@ -222,9 +222,9 @@ export function Sidebar({
                                     <SidebarMenuButton
                                       isActive={isActive}
                                       onClick={() => handleChatSelect(chat.id)}
-                                      className="group/chat-item"
+                                      className="group/chat-item conversation-history-item focus-visible:ring-0 focus-visible:ring-transparent"
                                     >
-                                      <span className="flex-1 text-left min-w-0 overflow-hidden truncate" title={chat.title}>
+                                      <span className={`flex-1 text-left min-w-0 overflow-hidden truncate transition-colors ${isActive ? 'text-green-500' : 'text-sidebar-foreground/70 hover:text-white'}`} title={chat.title}>
                                         {truncatedTitle}
                                       </span>
                                     </SidebarMenuButton>
