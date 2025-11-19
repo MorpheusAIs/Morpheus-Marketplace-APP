@@ -29,6 +29,7 @@ interface CognitoAuthContextType {
   confirmSignUp: (email: string, confirmationCode: string, password: string) => Promise<void>;
   logout: () => void;
   refreshApiKeys: () => Promise<void>;
+  socialLogin: (provider: 'Google' | 'GitHub' | 'X') => void;
 }
 
 const CognitoAuthContext = createContext<CognitoAuthContextType | undefined>(undefined);
@@ -335,6 +336,13 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
+  const socialLogin = (provider: 'Google' | 'GitHub' | 'X') => {
+    if (typeof window === 'undefined') return;
+    
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    CognitoDirectAuth.initiateSocialLogin(provider, redirectUri);
+  };
+
   const value = {
     user,
     accessToken,
@@ -348,6 +356,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     confirmSignUp,
     logout,
     refreshApiKeys,
+    socialLogin,
   };
 
   return (

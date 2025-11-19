@@ -34,10 +34,10 @@ function getCognitoClient(): CognitoIdentityProviderClient {
 
 interface ChangePasswordModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChangeAction: (open: boolean) => void;
 }
 
-export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalProps) {
+export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePasswordModalProps) {
   const { accessToken } = useCognitoAuth();
   const { success, error } = useNotification();
   const [previousPassword, setPreviousPassword] = useState("");
@@ -81,7 +81,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
       setPreviousPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      onOpenChange(false);
+      onOpenChangeAction(false);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to change password";
       setErrorMessage(errorMsg);
@@ -92,7 +92,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="w-full max-w-md p-6 bg-card text-card-foreground rounded-lg shadow-lg border-none">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-2xl font-bold text-foreground">
@@ -204,7 +204,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               type="button"
               variant="outline"
               className="px-6 py-2"
-              onClick={() => onOpenChange(false)}
+              onClick={() => onOpenChangeAction(false)}
             >
               Cancel
             </Button>

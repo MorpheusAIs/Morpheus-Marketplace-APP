@@ -20,6 +20,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 export function NavUser({
   user,
@@ -34,12 +40,54 @@ export function NavUser({
   onAccountClick?: () => void;
   onLogout?: () => void;
 }) {
+  const isMobile = useIsMobile();
+  
   // Get first letter of email for avatar fallback
   const avatarFallback = user.email.charAt(0).toUpperCase();
   
   // Use name if available, otherwise use email prefix
   const displayName = user.name || user.email.split('@')[0];
 
+  // Mobile view: Show menu items directly in sidebar
+  if (isMobile) {
+    return (
+      <div className="space-y-1">
+        {/* User Info */}
+        <div className="flex items-center gap-2 px-2 py-2">
+          <Avatar className="h-8 w-8 rounded-lg">
+            <AvatarImage src={user.avatar} alt={displayName} />
+            <AvatarFallback className="rounded-lg bg-green-600 text-white">
+              {avatarFallback}
+            </AvatarFallback>
+          </Avatar>
+          <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
+            <span className="truncate font-medium text-sidebar-foreground">{displayName}</span>
+            <span className="truncate text-xs text-sidebar-foreground/70">{user.email}</span>
+          </div>
+        </div>
+        
+        {/* Account Menu Item */}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => onAccountClick?.()} className="w-full justify-start">
+              <User className="h-4 w-4" />
+              <span>Account</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+          {/* Log out Menu Item */}
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => onLogout?.()} className="w-full justify-start">
+              <LogOut className="h-4 w-4" />
+              <span>Log out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </div>
+    );
+  }
+
+  // Desktop view: Show dropdown menu (original behavior)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

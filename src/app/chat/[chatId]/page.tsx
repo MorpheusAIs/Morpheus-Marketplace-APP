@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
 import { useConversation } from '@/lib/ConversationContext';
+import { useConversationHistory } from '@/lib/hooks/use-conversation-history';
 import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
 import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
@@ -31,7 +32,7 @@ import {
   ModelSelectorName,
   ModelSelectorTrigger,
 } from '@/components/ai-elements/model-selector';
-import './markdown.css';
+import '../markdown.css';
 import {
   Conversation,
   ConversationContent,
@@ -99,12 +100,16 @@ export default function ChatPage() {
   const { isLoading: _authLoading } = useCognitoAuth();
   const { error, warning } = useNotification();
   const router = useRouter();
-  const pathname = usePathname();
+  const params = useParams();
+  const chatId = params?.chatId as string | undefined;
+  
+  const { getConversationById } = useConversationHistory();
   const { 
     currentConversationId, 
     saveCurrentConversation, 
     updateCurrentConversation,
     deleteConversationById,
+    startNewConversation,
     loadConversation
   } = useConversation();
   
@@ -117,6 +122,7 @@ export default function ChatPage() {
   
   // Chat state
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(true);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_authError, setAuthError] = useState(false);
   const [saveChatHistory, setSaveChatHistory] = useState(() => {
@@ -141,7 +147,7 @@ export default function ChatPage() {
   const [_filterOptions, setFilterOptions] = useState<Array<{value: string, label: string}>>([]);
   const [allowedTypes] = useState<string[]>(getAllowedModelTypes());
   
-  // Chat history state - using localStorage now
+  // Chat history state
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationTitle, setConversationTitle] = useState<string>('New Chat');
   
@@ -162,14 +168,9 @@ export default function ChatPage() {
   });
   const [maxTokens, setMaxTokens] = useState<number>(128_000); // Default fallback
 
-  // Sync ref with context value and clear messages when starting new conversation
+  // Sync ref with context value
   useEffect(() => {
     currentConversationIdRef.current = currentConversationId;
-    // When conversation ID becomes null (new conversation started), ensure messages are cleared
-    if (!currentConversationId) {
-      setMessages([]);
-      setStreamingContent('');
-    }
   }, [currentConversationId]);
 
   // Load API key from sessionStorage and redirect if not verified
@@ -184,6 +185,57 @@ export default function ChatPage() {
       router.push('/api-keys');
     }
   }, [router]);
+
+  // Load conversation from URL on mount or when chatId changes
+  useEffect(() => {
+    const loadConversationFromUrl = async () => {
+      if (!chatId || !fullApiKey) {
+        setIsLoadingConversation(false);
+        return;
+      }
+
+      setIsLoadingConversation(true);
+      try {
+        // First check if conversation is already preloaded
+        const preloadedConversation = getConversationById(chatId);
+        
+        let conversation;
+        if (preloadedConversation && preloadedConversation.messages && preloadedConversation.messages.length > 0) {
+          // Use preloaded conversation
+          console.log(`Using preloaded conversation ${chatId} with ${preloadedConversation.messages.length} messages`);
+          conversation = preloadedConversation;
+        } else {
+          // Not preloaded, fetch it
+          console.log(`Conversation ${chatId} not preloaded, fetching...`);
+          conversation = await loadConversation(chatId, fullApiKey);
+        }
+
+        if (conversation) {
+          const formattedMessages: Message[] = (conversation.messages || []).map((msg: ConversationMessage) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            sequence: msg.sequence,
+          }));
+          setMessages(formattedMessages);
+          setConversationTitle(conversation.title);
+          setStreamingContent('');
+          console.log(`Loaded conversation ${chatId} with ${formattedMessages.length} messages`);
+        } else {
+          // Conversation not found, redirect to /chat
+          router.push('/chat');
+        }
+      } catch (err) {
+        console.error('Error loading conversation from URL:', err);
+        // On error, redirect to /chat
+        router.push('/chat');
+      } finally {
+        setIsLoadingConversation(false);
+      }
+    };
+
+    loadConversationFromUrl();
+  }, [chatId, fullApiKey, loadConversation, router, getConversationById]);
 
   // Update title when conversation ID changes
   useEffect(() => {
@@ -205,7 +257,7 @@ export default function ChatPage() {
     updateTitle();
   }, [currentConversationId, loadConversation]);
 
-  // Also listen for conversation history updates to refresh title
+  // Listen for conversation history updates to refresh title
   useEffect(() => {
     const handleHistoryUpdate = async () => {
       if (currentConversationId) {
@@ -232,20 +284,13 @@ export default function ChatPage() {
       const customEvent = e as CustomEvent;
       const conversation = customEvent.detail;
       if (conversation && conversation.id) {
-        // Navigate to the conversation route instead of loading here
+        // Navigate to the conversation route
         router.push(`/chat/${conversation.id}`);
       }
     };
 
     const handleNewConversation = () => {
-      // Ensure we're on the base /chat route for new conversations
-      if (pathname !== '/chat') {
-        router.push('/chat');
-      }
-      setMessages([]);
-      setStreamingContent('');
-      // Clear the ref immediately when starting a new conversation
-      currentConversationIdRef.current = null;
+      router.push('/chat');
     };
 
     window.addEventListener('load-conversation', handleLoadConversation);
@@ -255,7 +300,7 @@ export default function ChatPage() {
       window.removeEventListener('load-conversation', handleLoadConversation);
       window.removeEventListener('new-conversation-started', handleNewConversation);
     };
-  }, [router, pathname]);
+  }, [router]);
 
   // Load save chat history preference
   useEffect(() => {
@@ -275,10 +320,8 @@ export default function ChatPage() {
     const updateMaxTokens = async () => {
       if (selectedModel && selectedModel !== 'default') {
         try {
-          // Try to get context window from tokenlens
           const contextWindow = await getContextWindow(selectedModel);
           if (contextWindow) {
-            // Extract the total max tokens from the context window object
             const totalMax = contextWindow.totalMax ?? contextWindow.combinedMax ?? contextWindow.inputMax;
             if (totalMax !== undefined) {
               setMaxTokens(totalMax);
@@ -286,7 +329,6 @@ export default function ChatPage() {
           }
         } catch (error) {
           console.warn('Could not get context window from tokenlens, using default:', error);
-          // Keep default value
         }
       }
     };
@@ -296,7 +338,6 @@ export default function ChatPage() {
   // Estimate tokens from text (rough estimate: ~4 characters per token)
   const estimateTokens = (text: string): number => {
     if (!text) return 0;
-    // Rough estimation: average of 4 characters per token
     return Math.ceil(text.length / 4);
   };
 
@@ -305,7 +346,6 @@ export default function ChatPage() {
     let inputTokens = 0;
     let outputTokens = 0;
 
-    // Count tokens for all messages
     messages.forEach((msg) => {
       const tokens = estimateTokens(msg.content);
       if (msg.role === 'user') {
@@ -315,11 +355,9 @@ export default function ChatPage() {
       }
     });
 
-    // Add system message tokens
     const systemMessage = "You are a helpful assistant. Format your responses using Markdown when appropriate. You can use features like **bold text**, *italics*, ### headings, `code blocks`, numbered and bulleted lists, and tables to make your answers more readable and structured.";
     inputTokens += estimateTokens(systemMessage);
 
-    // Add streaming content if present
     if (streamingContent) {
       outputTokens += estimateTokens(streamingContent);
     }
@@ -347,12 +385,9 @@ export default function ChatPage() {
       }
       
       const data = await response.json();
-      
-      // Handle the API response format: {"object":"list","data":[...]}
       const modelsArray = data.data || data;
       
       if (Array.isArray(modelsArray)) {
-        // Filter to only LLM models and format them
         const llmModels = modelsArray
           .filter((model: ApiModelResponse) => (model.modelType || model.ModelType) === 'LLM')
           .map((model: ApiModelResponse) => ({
@@ -366,7 +401,6 @@ export default function ChatPage() {
         setModels(sortedModels);
         setFilteredModels(sortedModels);
         
-        // Set default model
         if (sortedModels.length > 0) {
           const defaultModelId = selectDefaultModel(sortedModels);
           if (defaultModelId) {
@@ -408,7 +442,6 @@ export default function ChatPage() {
   // Handle model type filter change
   const handleModelTypeFilterChange = (filterType: string) => {
     setSelectedModelType(filterType);
-    // For chat, we only show LLM models, so no filtering needed
   };
 
   // Handle conversation deletion
@@ -473,7 +506,6 @@ export default function ChatPage() {
     abortControllerRef.current = abortController;
     
     try {
-      // Create the request body for the API with streaming enabled
       const requestBody = {
         model: selectedModel,
         messages: [
@@ -493,7 +525,6 @@ export default function ChatPage() {
         stream: true
       };
 
-      // Make the streaming API call
       const res = await fetch(API_URLS.chatCompletions(), {
         method: 'POST',
         headers: {
@@ -528,7 +559,6 @@ export default function ChatPage() {
         throw new Error(`API returned status ${res.status}`);
       }
 
-      // Read the stream
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let accumulatedContent = '';
@@ -560,7 +590,6 @@ export default function ChatPage() {
                 accumulatedContent += delta;
                 setStreamingContent(accumulatedContent);
                 
-                // Update the message in real-time
                 setMessages(prev => prev.map(msg => 
                   msg.id === streamingMessageId 
                     ? { ...msg, content: accumulatedContent }
@@ -575,14 +604,12 @@ export default function ChatPage() {
         }
       }
 
-      // Finalize the message
       const finalMessage: Message = {
         id: streamingMessageId,
         role: 'assistant',
         content: accumulatedContent,
       };
       
-      // Update messages state
       let updatedMessages: Message[] = [];
       setMessages(prev => {
         updatedMessages = prev.map(msg => 
@@ -597,7 +624,6 @@ export default function ChatPage() {
       // Save to API if saveChatHistory is enabled
       if (saveChatHistory && accumulatedContent) {
         try {
-          // Convert all messages (including the new ones) to ConversationMessage format
           const conversationMessages: ConversationMessage[] = updatedMessages.map(msg => ({
             role: msg.role,
             content: msg.content,
@@ -605,18 +631,13 @@ export default function ChatPage() {
             sequence: msg.sequence,
           }));
 
-          // Check current conversation ID from state (not ref) to ensure we have the latest value
-          // If no current conversation ID, create a new one; otherwise update existing
           if (!currentConversationId) {
-            // Create new conversation
             const newId = await saveCurrentConversation(conversationMessages, fullApiKey);
             console.log('Saved new conversation:', newId);
-            // Update ref immediately after saving
             currentConversationIdRef.current = newId;
             // Navigate to the new conversation route
             router.push(`/chat/${newId}`);
           } else {
-            // Update existing conversation
             await updateCurrentConversation(conversationMessages, fullApiKey);
             console.log('Updated conversation:', currentConversationId);
           }
@@ -634,7 +655,6 @@ export default function ChatPage() {
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
-        // Stream was cancelled, don't show error
         return;
       }
       
@@ -663,13 +683,18 @@ export default function ChatPage() {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _truncateKey = (key: string) => {
-    return `${key.substring(0, 15)}...`;
-  };
-
   if (!fullApiKey) {
     return null;
+  }
+
+  if (isLoadingConversation) {
+    return (
+      <AuthenticatedLayout>
+        <div className="flex flex-col h-full bg-background text-foreground items-center justify-center">
+          <div className="text-muted-foreground">Loading conversation...</div>
+        </div>
+      </AuthenticatedLayout>
+    );
   }
 
   return (
@@ -768,7 +793,6 @@ export default function ChatPage() {
                     <ModelSelectorList className="max-h-[500px]">
                       <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
                       {(() => {
-                        // Deduplicate models by id
                         const uniqueModelsMap = new Map<string, Model>();
                         filteredModels.forEach((model) => {
                           if (!uniqueModelsMap.has(model.id)) {
@@ -776,11 +800,9 @@ export default function ChatPage() {
                           }
                         });
                         
-                        // Convert to array and sort alphabetically by id
                         const uniqueModels = Array.from(uniqueModelsMap.values())
                           .sort((a, b) => a.id.localeCompare(b.id));
 
-                        // Render models directly (no grouping needed)
                         return uniqueModels.map((model) => (
                           <ModelSelectorItem
                             key={model.id}
@@ -840,7 +862,7 @@ export default function ChatPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-
     </AuthenticatedLayout>
   );
 }
+

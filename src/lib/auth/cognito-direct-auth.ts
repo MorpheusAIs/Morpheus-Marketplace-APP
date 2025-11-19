@@ -225,4 +225,83 @@ export class CognitoDirectAuth {
       throw new Error('Failed to parse ID token');
     }
   }
+
+  /**
+   * Exchange authorization code for tokens (OAuth flow)
+   */
+  static async exchangeCodeForTokens(code: string, redirectUri: string): Promise<CognitoTokens> {
+    const tokenEndpoint = `https://${cognitoConfig.domain}/oauth2/token`;
+    
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: cognitoConfig.userPoolClientId,
+      code: code,
+      redirect_uri: redirectUri,
+    });
+
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Token exchange failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      accessToken: data.access_token,
+      idToken: data.id_token,
+      refreshToken: data.refresh_token,
+    };
+  }
+
+  /**
+   * Generate state parameter for OAuth flow (CSRF protection)
+   */
+  static generateState(): string {
+    if (typeof window === 'undefined') {
+      // Server-side: generate random string
+      return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    } else {
+      // Client-side: use Web Crypto API
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+  }
+
+  /**
+   * Initiate social login redirect
+   */
+  static initiateSocialLogin(provider: 'Google' | 'GitHub' | 'X', redirectUri: string): void {
+    if (typeof window === 'undefined') return;
+
+    const state = this.generateState();
+    sessionStorage.setItem('oauth_state', state);
+
+    // Map provider names to Cognito identity provider names
+    const providerMap: Record<string, string> = {
+      'Google': 'Google',
+      'GitHub': 'GitHub',
+      'X': 'Twitter', // Cognito uses 'Twitter' for X/Twitter
+    };
+
+    const cognitoProviderName = providerMap[provider] || provider;
+    
+    const authUrl = new URL(`https://${cognitoConfig.domain}/oauth2/authorize`);
+    authUrl.searchParams.set('client_id', cognitoConfig.userPoolClientId);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', 'openid email profile');
+    authUrl.searchParams.set('redirect_uri', redirectUri);
+    authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('identity_provider', cognitoProviderName);
+
+    window.location.href = authUrl.toString();
+  }
 }

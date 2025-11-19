@@ -18,20 +18,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, RefreshCw, Send, Copy } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { API_URLS } from "@/lib/api/config";
-import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from "@/lib/model-filter-utils";
+import { getAllowedModelTypes, filterModelsByType, selectDefaultModel } from "@/lib/model-filter-utils";
 import { useNotification } from "@/lib/NotificationContext";
+import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 
 interface Model {
   id: string;
   ModelType?: string;
 }
 
+interface ApiModelResponse {
+  id: string;
+  blockchainID?: string;
+  blockchainId?: string;
+  created?: number;
+  modelType?: string;
+  ModelType?: string;
+}
+
 export default function TestPage() {
   const router = useRouter();
   const { error: showError } = useNotification();
+  const { apiKeys } = useCognitoAuth();
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [apiKeyPrefix, setApiKeyPrefix] = useState("");
-  const [modelType, setModelType] = useState("all");
+  const [apiKeyName, setApiKeyName] = useState("");
   const [selectedModel, setSelectedModel] = useState("default");
   const [prompt, setPrompt] = useState("What is the capital of New Hampshire?");
   const [curlRequest, setCurlRequest] = useState("");
@@ -40,7 +51,6 @@ export default function TestPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [filteredModels, setFilteredModels] = useState<Model[]>([]);
-  const [filterOptions, setFilterOptions] = useState<Array<{value: string, label: string}>>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [allowedTypes] = useState<string[]>(getAllowedModelTypes());
   const [copiedCurl, setCopiedCurl] = useState(false);
@@ -50,26 +60,50 @@ export default function TestPage() {
   useEffect(() => {
     const storedApiKey = sessionStorage.getItem('verified_api_key');
     const storedPrefix = sessionStorage.getItem('verified_api_key_prefix');
+    const storedName = sessionStorage.getItem('verified_api_key_name');
     
     if (storedApiKey && storedPrefix) {
       setSelectedApiKey(storedApiKey);
       setApiKeyPrefix(storedPrefix);
+      
+      // Get API key name from sessionStorage or find it from apiKeys context
+      if (storedName) {
+        setApiKeyName(storedName);
+      } else if (apiKeys.length > 0) {
+        // Try to find the API key name by matching the prefix
+        const matchingKey = apiKeys.find(key => key.key_prefix === storedPrefix);
+        if (matchingKey) {
+          setApiKeyName(matchingKey.name);
+          sessionStorage.setItem('verified_api_key_name', matchingKey.name);
+        } else {
+          // If still not found, try to get it from the API keys list
+          // This handles the case where the prefix might not match exactly
+          const foundKey = apiKeys.find(key => 
+            storedPrefix.toLowerCase().startsWith(key.key_prefix.toLowerCase()) ||
+            key.key_prefix.toLowerCase().startsWith(storedPrefix.toLowerCase())
+          );
+          if (foundKey) {
+            setApiKeyName(foundKey.name);
+            sessionStorage.setItem('verified_api_key_name', foundKey.name);
+          }
+        }
+      }
     } else {
       router.push('/api-keys');
     }
-  }, [router]);
+  }, [router, apiKeys]);
 
   // Fetch available models
   useEffect(() => {
     fetchAvailableModels();
   }, []);
 
-  // Filter models when model type changes
+  // Filter models to LLM only when models change
   useEffect(() => {
     if (models.length > 0) {
-      applyModelTypeFilter(models, modelType);
+      applyModelTypeFilter(models, 'LLM');
     }
-  }, [modelType, models]);
+  }, [models]);
 
   const fetchAvailableModels = async () => {
     setLoadingModels(true);
@@ -92,16 +126,20 @@ export default function TestPage() {
       
       if (Array.isArray(modelsArray)) {
         // Format models from API response
-        const formattedModels = modelsArray.map((model: any) => ({
+        const formattedModels = modelsArray.map((model: ApiModelResponse) => ({
           id: model.id,
           blockchainId: model.blockchainID || model.blockchainId,
           created: model.created,
           ModelType: model.modelType || model.ModelType || 'UNKNOWN'
         }));
         
-        const sortedModels = formattedModels.sort((a: Model, b: Model) => a.id.localeCompare(b.id));
+        // Filter to only LLM models
+        const llmModels = formattedModels.filter((model: Model) => 
+          (model.ModelType?.toUpperCase() || 'UNKNOWN') === 'LLM'
+        );
+        const sortedModels = llmModels.sort((a: Model, b: Model) => a.id.localeCompare(b.id));
         setModels(sortedModels);
-        applyModelTypeFilter(sortedModels, 'all');
+        applyModelTypeFilter(sortedModels, 'LLM');
       } else {
         const fallbackModels = [{ id: 'default', ModelType: 'LLM' }];
         setModels(fallbackModels);
@@ -120,9 +158,6 @@ export default function TestPage() {
   const applyModelTypeFilter = (modelsToFilter: Model[], filterType: string) => {
     const filtered = filterModelsByType(modelsToFilter, filterType, allowedTypes);
     setFilteredModels(filtered);
-    
-    const options = getFilterOptions(modelsToFilter, allowedTypes);
-    setFilterOptions(options);
     
     if (filtered.length > 0) {
       const defaultModelId = selectDefaultModel(filtered);
@@ -238,77 +273,94 @@ export default function TestPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="flex-1 overflow-y-auto p-8">
-        <h1 className="text-4xl font-bold text-foreground">API Test</h1>
-        <p className="text-muted-foreground text-lg mt-2">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <h1 className="text-2xl md:text-4xl font-bold text-foreground">API Test</h1>
+        <p className="text-muted-foreground text-base md:text-lg mt-2">
           Type an example prompt and view the raw CURL request and server response
         </p>
 
-        {/* API Key Selection */}
-        <Card className="p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-6">
-          <CardContent className="flex items-center">
-            <Label className="text-sm font-medium">Selected API Key:</Label>
-            <span className="font-mono text-sm ml-2">{apiKeyPrefix}...</span>
-            <Badge variant="default" className="ml-4 flex items-center gap-1 bg-green-500/20 text-green-500">
-              <Check className="h-4 w-4" />
-              Ready for Testing
-            </Badge>
-            <Button variant="outline" className="ml-auto" onClick={() => router.push('/api-keys')}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Switch Key
-            </Button>
-          </CardContent>
-        </Card>
+        {/* API Key Selection and Model Selection */}
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 mt-4 md:mt-6">
+          {/* API Key Selection */}
+          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm flex-1">
+            <CardContent className="flex flex-col gap-3">
+              {/* Row 1: Label and Switch Key Button (Desktop) */}
+              <div className="hidden sm:flex sm:items-center gap-3">
+                <Label className="text-sm font-medium shrink-0">Selected API Key:</Label>
+                <Button variant="outline" className="sm:ml-auto shrink-0" onClick={() => router.push('/api-keys')}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Switch Key
+                </Button>
+              </div>
+              {/* Mobile: Row 1 - Label */}
+              <div className="flex sm:hidden">
+                <Label className="text-sm font-medium">Selected API Key:</Label>
+              </div>
+              {/* Mobile: Row 2 - API Key Name and Badge */}
+              {/* Desktop: Row 2 - API Key Name, String, and Badge */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                {/* Mobile: Show name and badge on same row */}
+                <div className="flex sm:hidden items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-foreground">{apiKeyName || apiKeys.find(key => key.key_prefix === apiKeyPrefix)?.name || ''}</span>
+                  <Badge variant="default" className="flex items-center gap-1 bg-green-500/20 text-green-500 shrink-0">
+                    <Check className="h-4 w-4" />
+                    Ready for Testing
+                  </Badge>
+                </div>
+                {/* Desktop: Show name, string, and badge */}
+                <div className="hidden sm:flex sm:items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                  <span className="text-sm font-medium text-foreground shrink-0">{apiKeyName || apiKeys.find(key => key.key_prefix === apiKeyPrefix)?.name || ''}</span>
+                  <span className="font-mono text-sm break-all flex-1 min-w-0">{apiKeyPrefix}...</span>
+                  <Badge variant="default" className="flex items-center gap-1 bg-green-500/20 text-green-500 shrink-0">
+                    <Check className="h-4 w-4" />
+                    Ready for Testing
+                  </Badge>
+                </div>
+              </div>
+              {/* Mobile: Row 2 - Switch Key Button */}
+              <div className="flex sm:hidden">
+                <Button variant="outline" className="w-full" onClick={() => router.push('/api-keys')}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Switch Key
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Model Selection */}
-        <Card className="p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-6">
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Label>Model Type</Label>
-                <Select value={modelType} onValueChange={setModelType} disabled={loadingModels}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filterOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1">
+          {/* Model Selection */}
+          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm flex-1">
+            <CardContent>
+              <div className="flex items-center justify-between mb-2">
                 <Label>Model</Label>
-                <Select value={selectedModel} onValueChange={setSelectedModel} disabled={loadingModels}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingModels ? (
-                      <SelectItem value="loading">Loading...</SelectItem>
-                    ) : filteredModels.length === 0 ? (
-                      <SelectItem value="none">No models available</SelectItem>
-                    ) : (
-                      filteredModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.id}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <span className="text-xs md:text-sm text-muted-foreground">Model Type: LLM</span>
               </div>
-            </div>
-            <p className="text-muted-foreground text-sm mt-2">
-              {loadingModels ? 'Loading...' : `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''} available`}
-            </p>
-          </CardContent>
-        </Card>
+              <Select value={selectedModel} onValueChange={setSelectedModel} disabled={loadingModels}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingModels ? (
+                    <SelectItem value="loading">Loading...</SelectItem>
+                  ) : filteredModels.length === 0 ? (
+                    <SelectItem value="none">No models available</SelectItem>
+                  ) : (
+                    filteredModels.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.id}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs md:text-sm mt-2">
+                {loadingModels ? 'Loading...' : `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''} available`}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* User Prompt */}
-        <Card className="p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-6">
+        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-4 md:mt-6">
           <CardContent>
             <Label htmlFor="user-prompt">User Prompt</Label>
             <Textarea
@@ -321,7 +373,7 @@ export default function TestPage() {
             />
             <Button
               variant="default"
-              className="bg-green-600 hover:bg-green-700 text-white mt-4"
+              className="bg-green-600 hover:bg-green-700 text-white mt-4 w-full md:w-auto"
               onClick={handleSendRequest}
               disabled={isLoading || !prompt.trim()}
             >
@@ -331,30 +383,37 @@ export default function TestPage() {
         </Card>
 
         {/* Output */}
-        <Card className="p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-6">
+        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-4 md:mt-6">
           <CardContent>
-            <h2 className="text-xl font-semibold mb-4">Select Output</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-4">Select Output</h2>
             <Tabs defaultValue="response-content">
-              <TabsList>
-                <TabsTrigger value="response-content">Response Content</TabsTrigger>
-                <TabsTrigger value="curl-request">
-                  <Send className="mr-2 h-4 w-4" />
-                  Curl Request
+              <TabsList className="grid w-full grid-cols-3 gap-1 md:gap-2">
+                <TabsTrigger value="response-content" className="text-xs md:text-sm px-2 md:px-4">
+                  <span className="hidden sm:inline">Response Content</span>
+                  <span className="sm:hidden">Response</span>
                 </TabsTrigger>
-                <TabsTrigger value="server-response">Server Response</TabsTrigger>
+                <TabsTrigger value="curl-request" className="text-xs md:text-sm px-2 md:px-4">
+                  <Send className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4 shrink-0" />
+                  <span className="hidden sm:inline">Curl Request</span>
+                  <span className="sm:hidden">Curl</span>
+                </TabsTrigger>
+                <TabsTrigger value="server-response" className="text-xs md:text-sm px-2 md:px-4">
+                  <span className="hidden sm:inline">Server Response</span>
+                  <span className="sm:hidden">Server</span>
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="response-content" className="mt-4">
                 {responseContent ? (
-                  <div className="bg-gray-900 p-4 rounded-md border border-gray-700">
-                    <pre className="text-white whitespace-pre-wrap">{responseContent}</pre>
+                  <div className="bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
+                    <pre className="text-white whitespace-pre-wrap text-xs md:text-sm overflow-x-auto">{responseContent}</pre>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Send a request to see the response content</p>
+                  <p className="text-muted-foreground text-sm">Send a request to see the response content</p>
                 )}
               </TabsContent>
               <TabsContent value="curl-request" className="mt-4">
                 {curlRequest ? (
-                  <div className="relative bg-gray-900 p-4 rounded-md border border-gray-700">
+                  <div className="relative bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
                     <Button
                       variant="outline"
                       size="icon"
@@ -367,15 +426,15 @@ export default function TestPage() {
                         <Copy className="h-4 w-4" />
                       )}
                     </Button>
-                    <pre className="text-white whitespace-pre-wrap font-mono text-sm pr-12">{curlRequest}</pre>
+                    <pre className="text-white whitespace-pre-wrap font-mono text-xs md:text-sm overflow-x-auto pr-12">{curlRequest}</pre>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Send a request to generate the cURL command</p>
+                  <p className="text-muted-foreground text-sm">Send a request to generate the cURL command</p>
                 )}
               </TabsContent>
               <TabsContent value="server-response" className="mt-4">
                 {serverResponse ? (
-                  <div className="relative bg-gray-900 p-4 rounded-md border border-gray-700">
+                  <div className="relative bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
                     <Button
                       variant="outline"
                       size="icon"
@@ -388,10 +447,10 @@ export default function TestPage() {
                         <Copy className="h-4 w-4" />
                       )}
                     </Button>
-                    <pre className="text-white whitespace-pre-wrap font-mono text-sm overflow-x-auto pr-12">{serverResponse}</pre>
+                    <pre className="text-white whitespace-pre-wrap font-mono text-xs md:text-sm overflow-x-auto pr-12">{serverResponse}</pre>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Send a request to see the server response</p>
+                  <p className="text-muted-foreground text-sm">Send a request to see the server response</p>
                 )}
               </TabsContent>
             </Tabs>

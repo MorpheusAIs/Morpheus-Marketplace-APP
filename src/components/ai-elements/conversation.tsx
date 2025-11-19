@@ -69,7 +69,7 @@ export const Conversation = ({ className, ...props }: ConversationProps) => {
 export type ConversationContentProps = ComponentProps<"div">;
 
 export const ConversationContent = ({ className, ...props }: ConversationContentProps) => (
-  <div className={cn("flex flex-col gap-8 p-4", className)} {...props} />
+  <div className={cn("flex flex-col gap-8 px-8 md:px-12 lg:px-16 py-4", className)} {...props} />
 );
 
 export type ConversationEmptyStateProps = ComponentProps<"div"> & {

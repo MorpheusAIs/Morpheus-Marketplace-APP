@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { Sidebar } from "@/components/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -35,10 +37,16 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <SidebarProvider>
       <Sidebar />
-      <div className="flex-1 overflow-y-auto">{children}</div>
-    </div>
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+        </header>
+        <div className="flex-1 overflow-y-auto">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 

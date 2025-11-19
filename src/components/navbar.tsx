@@ -16,7 +16,7 @@ interface NavbarProps {
 export function Navbar({
   logoComponent,
   appName = "API Gateway Admin",
-  externalLinkHref = "https://mor.org",
+  externalLinkHref = "https://mor.org?utm_source=api-admin",
   externalLinkText = "mor.org",
   signInHref = "/signin",
 }: NavbarProps) {

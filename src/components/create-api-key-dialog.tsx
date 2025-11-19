@@ -15,27 +15,27 @@ import { ArrowRight } from "lucide-react";
 
 interface CreateApiKeyDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCreate: (name: string) => void;
+  onOpenChangeAction: (open: boolean) => void;
+  onCreateAction: (name: string) => void;
 }
 
 export function CreateApiKeyDialog({
   open,
-  onOpenChange,
-  onCreate,
+  onOpenChangeAction,
+  onCreateAction,
 }: CreateApiKeyDialogProps) {
   const [keyName, setKeyName] = useState("");
 
   const handleSubmit = () => {
     if (keyName.trim()) {
-      onCreate(keyName.trim());
+      onCreateAction(keyName.trim());
       setKeyName("");
-      onOpenChange(false);
+      onOpenChangeAction(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="w-[400px] p-6 bg-card text-card-foreground rounded-lg shadow-lg">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl font-bold">Create An API Key</DialogTitle>
