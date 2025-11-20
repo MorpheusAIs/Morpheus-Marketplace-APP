@@ -21,9 +21,11 @@ import { API_URLS } from "@/lib/api/config";
 import { getAllowedModelTypes, filterModelsByType, selectDefaultModel } from "@/lib/model-filter-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { apiGet, apiPost } from "@/lib/api/apiService";
 
 interface Model {
   id: string;
+  blockchainId?: string;
   ModelType?: string;
 }
 
@@ -36,10 +38,34 @@ interface ApiModelResponse {
   ModelType?: string;
 }
 
+interface AutomationSettings {
+  is_enabled: boolean;
+  session_duration: number;
+  user_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface SessionPingResponse {
+  status: 'alive' | 'dead' | 'no_session';
+  session_id?: string;
+  response_time_ms?: number;
+  message?: string;
+}
+
+interface SessionCreateResponse {
+  session_id: string;
+  provider: string;
+  model_id: string;
+  bid_id?: string;
+  duration: number;
+  cost: number;
+}
+
 export default function TestPage() {
   const router = useRouter();
   const { error: showError } = useNotification();
-  const { apiKeys } = useCognitoAuth();
+  const { apiKeys, accessToken } = useCognitoAuth();
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [apiKeyPrefix, setApiKeyPrefix] = useState("");
   const [apiKeyName, setApiKeyName] = useState("");
@@ -131,7 +157,7 @@ export default function TestPage() {
           blockchainId: model.blockchainID || model.blockchainId,
           created: model.created,
           ModelType: model.modelType || model.ModelType || 'UNKNOWN'
-        }));
+        })) as Model[];
         
         // Filter to only LLM models
         const llmModels = formattedModels.filter((model: Model) => 
@@ -212,6 +238,137 @@ export default function TestPage() {
     setCurlRequest(curl);
   };
 
+  // Check if automation is enabled
+  const checkAutomationSettings = async (): Promise<AutomationSettings | null> => {
+    if (!accessToken) {
+      // If no access token, assume automation is enabled (default behavior)
+      return null;
+    }
+
+    try {
+      const response = await apiGet<AutomationSettings>(
+        API_URLS.automationSettings(),
+        accessToken
+      );
+
+      if (response.error || !response.data) {
+        console.warn('Could not fetch automation settings, assuming enabled:', response.error);
+        return null;
+      }
+
+      return response.data;
+    } catch (err) {
+      console.error('Error checking automation settings:', err);
+      // Default to enabled if we can't check
+      return null;
+    }
+  };
+
+  // Check if there's an active session
+  const checkActiveSession = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(API_URLS.sessionPing(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'Authorization': `Bearer ${selectedApiKey}`
+        }
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data: SessionPingResponse = await response.json();
+      return data.status === 'alive';
+    } catch (err) {
+      console.error('Error checking active session:', err);
+      return false;
+    }
+  };
+
+  // Create a session for the selected model
+  const createSession = async (modelId: string, duration?: number): Promise<boolean> => {
+    // Find the model to get its blockchain ID
+    const model = models.find(m => m.id === modelId);
+    if (!model) {
+      throw new Error(`Model ${modelId} not found`);
+    }
+
+    // Use blockchain ID if available, otherwise fall back to model ID
+    const modelIdentifier = model.blockchainId || modelId;
+
+    // Build URL with query parameter for model_id
+    const url = new URL(API_URLS.sessionCreateModel());
+    url.searchParams.set('model_id', modelIdentifier);
+
+    // Request body according to SessionDataRequest schema from OpenAPI spec
+    // Required fields: sessionDuration, directPayment, failover
+    const requestBody = {
+      sessionDuration: duration || 3600,
+      directPayment: false,
+      failover: false
+    };
+
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+        'Authorization': `Bearer ${selectedApiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
+      const errorDetail = errorData.detail || `HTTP ${response.status}`;
+      throw new Error(errorDetail);
+    }
+
+    const data: SessionCreateResponse = await response.json();
+    console.log('Session created successfully:', data.session_id);
+    return true;
+  };
+
+  // Ensure session exists before making request (when automation is disabled)
+  const ensureSessionExists = async (): Promise<void> => {
+    const automationSettings = await checkAutomationSettings();
+    
+    // If automation is enabled, no need to check/create session
+    if (automationSettings === null || automationSettings.is_enabled) {
+      return;
+    }
+
+    // Automation is disabled, check if session exists
+    const hasActiveSession = await checkActiveSession();
+    
+    if (!hasActiveSession) {
+      // Try to create a session, but handle 404 gracefully
+      // The endpoint may not exist in dev environment
+      try {
+        const sessionDuration = automationSettings.session_duration || 3600;
+        await createSession(selectedModel, sessionDuration);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        
+        // If endpoint doesn't exist (404), provide helpful guidance
+        if (errorMessage.includes("404") || errorMessage.includes("Not Found") || 
+            errorMessage.includes("not available")) {
+          throw new Error(
+            "Cannot create session automatically. " +
+            "The session creation endpoint is not available in this environment. " +
+            "Please enable automation in your account settings (Account → Automation Settings) " +
+            "to automatically create sessions, or create a session manually through the API."
+          );
+        }
+        // Re-throw other errors
+        throw err;
+      }
+    }
+  };
+
   const handleSendRequest = async () => {
     if (!prompt.trim() || !selectedApiKey) {
       showError("Validation Error", "Please provide a prompt and ensure API key is set");
@@ -224,6 +381,9 @@ export default function TestPage() {
     generateCurlRequest();
 
     try {
+      // Ensure session exists if automation is disabled
+      await ensureSessionExists();
+
       const requestBody = {
         model: selectedModel,
         messages: [
@@ -251,6 +411,14 @@ export default function TestPage() {
 
       const data = await response.json();
       setServerResponse(JSON.stringify(data, null, 2));
+
+      if (!response.ok) {
+        // Handle error response
+        const errorMessage = data.detail || `HTTP ${response.status}`;
+        setResponseContent(`Error: ${errorMessage}`);
+        showError("Request Failed", errorMessage);
+        return;
+      }
 
       if (data.choices && data.choices.length > 0 && data.choices[0].message) {
         setResponseContent(data.choices[0].message.content);

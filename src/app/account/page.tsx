@@ -57,7 +57,10 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     if (automationSettings !== null) {
       const sessionDurationChanged = Number(localSessionDuration) !== Number(automationSettings.session_duration);
-      const isEnabledChanged = Boolean(localIsEnabled) !== Boolean(automationSettings.is_enabled);
+      // Handle null values - default to true per OpenAPI spec
+      const currentEnabled = localIsEnabled ?? true;
+      const savedEnabled = automationSettings.is_enabled ?? true;
+      const isEnabledChanged = Boolean(currentEnabled) !== Boolean(savedEnabled);
       const isChanged = sessionDurationChanged || isEnabledChanged;
       setHasUnsavedChanges(isChanged);
     } else {
@@ -77,8 +80,9 @@ export default function AccountSettingsPage() {
 
       if (response.data) {
         setAutomationSettings(response.data);
-        setLocalSessionDuration(response.data.session_duration);
-        setLocalIsEnabled(response.data.is_enabled);
+        setLocalSessionDuration(response.data.session_duration ?? 3600);
+        // Handle null values - default to true per OpenAPI spec
+        setLocalIsEnabled(response.data.is_enabled ?? true);
       }
     } catch (err) {
       console.error('Error loading automation settings:', err);
