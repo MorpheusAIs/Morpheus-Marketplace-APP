@@ -166,10 +166,14 @@ export function Sidebar({
             <SidebarMenu>
               {/* API Keys */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/api-keys"}>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname === "/api-keys"}
+                  className={pathname === "/api-keys" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                >
                   <Link href="/api-keys">
-                    <Key className="h-4 w-4" />
-                    <span>API Keys</span>
+                    <Key className={`h-4 w-4 ${pathname === "/api-keys" ? "text-green-500" : ""}`} />
+                    <span className={pathname === "/api-keys" ? "text-green-500" : ""}>API Keys</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -178,17 +182,23 @@ export function Sidebar({
               <Collapsible open={isHistoryExpanded} onOpenChange={setIsHistoryExpanded}>
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={isChatRoute} className="group">
-                      <MessageSquare className="h-4 w-4" />
-                      <span>Chat</span>
-                      <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''}`} />
+                    <SidebarMenuButton 
+                      isActive={isChatRoute} 
+                      className={`group ${isChatRoute ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}`}
+                    >
+                      <MessageSquare className={`h-4 w-4 ${isChatRoute ? "text-green-500" : ""}`} />
+                      <span className={isChatRoute ? "text-green-500" : ""}>Chat</span>
+                      <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''} ${isChatRoute ? "text-green-500" : ""}`} />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                 </SidebarMenuItem>
                 <CollapsibleContent>
                   <div className="space-y-1 px-2 pt-1 pb-0">
                     <SidebarMenuItem>
-                      <SidebarMenuButton onClick={handleNewChat}>
+                      <SidebarMenuButton 
+                        onClick={handleNewChat}
+                        className="text-sidebar-foreground/70 hover:text-white [&>svg]:text-sidebar-foreground/70 [&>svg]:hover:text-white"
+                      >
                         <SquarePen className="h-4 w-4" />
                         <span>New Chat</span>
                       </SidebarMenuButton>
@@ -206,7 +216,7 @@ export function Sidebar({
                     </div>
 
                     {localSaveChatHistory && (
-                      <div className="border-t border-sidebar-border pt-2">
+                      <div className="border-t border-sidebar-border pt-2 pb-3">
                         {conversationsLoading ? (
                           <div className="text-sm text-sidebar-foreground/50 text-center py-4">Loading conversations...</div>
                         ) : conversations.length > 0 ? (
@@ -222,9 +232,9 @@ export function Sidebar({
                                     <SidebarMenuButton
                                       isActive={isActive}
                                       onClick={() => handleChatSelect(chat.id)}
-                                      className="group/chat-item conversation-history-item focus-visible:ring-0 focus-visible:ring-transparent"
+                                      className="group/chat-item conversation-history-item focus-visible:ring-0 focus-visible:ring-transparent !font-light"
                                     >
-                                      <span className={`flex-1 text-left min-w-0 overflow-hidden truncate transition-colors ${isActive ? 'text-green-500' : 'text-sidebar-foreground/70 hover:text-white'}`} title={chat.title}>
+                                      <span className={`flex-1 text-left min-w-0 overflow-hidden truncate transition-colors !font-light ${isActive ? 'text-green-500' : 'text-sidebar-foreground/70 hover:text-white'}`} title={chat.title}>
                                         {truncatedTitle}
                                       </span>
                                     </SidebarMenuButton>
@@ -250,17 +260,24 @@ export function Sidebar({
 
               {/* Test */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/test"}>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname === "/test"}
+                  className={pathname === "/test" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                >
                   <Link href="/test">
-                    <FlaskConical className="h-4 w-4" />
-                    <span>Test</span>
+                    <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-green-500" : ""}`} />
+                    <span className={pathname === "/test" ? "text-green-500" : ""}>Test</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
               {/* Docs */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton 
+                  asChild
+                  className="hover:!bg-white/10"
+                >
                   <Link href="https://apidocs.mor.org?utm_source=api-admin" target="_blank" rel="noopener noreferrer">
                     <FileText className="h-4 w-4" />
                     <span>Docs</span>
