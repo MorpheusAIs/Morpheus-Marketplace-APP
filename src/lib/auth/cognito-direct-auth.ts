@@ -195,8 +195,14 @@ export class CognitoDirectAuth {
         this.storeTokens(newTokens, email);
       }
       return newTokens.accessToken;
-    } catch {
-      // Refresh failed, clear tokens
+    } catch (err) {
+      // Refresh failed (e.g., refresh token invalidated after password reset)
+      // Silently clear tokens and return null - this is expected behavior
+      // Don't log NotAuthorizedException as it's expected after password reset
+      const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
+      if (errorName !== 'NotAuthorizedException') {
+        console.error('Error refreshing token:', err);
+      }
       this.clearTokens();
       return null;
     }
