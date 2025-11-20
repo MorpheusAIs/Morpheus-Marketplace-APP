@@ -126,7 +126,7 @@ export default function SignInPage() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Field>
-                <Field>
+                {/* <Field>
                   <FieldSeparator className="w-full *:data-[slot=field-separator-content]:bg-card">
                     Or continue with
                   </FieldSeparator>
@@ -174,7 +174,7 @@ export default function SignInPage() {
                     </svg>
                     <span className="sr-only">Login with Google</span>
                   </Button>
-                </Field>
+                </Field> */}
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
                   <Link href="/signup" className="text-green-500 hover:underline">

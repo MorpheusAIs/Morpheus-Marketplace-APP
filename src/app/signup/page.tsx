@@ -215,7 +215,7 @@ export default function SignUpPage() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Field>
-                <Field>
+                {/* <Field>
                   <FieldSeparator className="w-full *:data-[slot=field-separator-content]:bg-card">
                     Or continue with
                   </FieldSeparator>
@@ -263,7 +263,7 @@ export default function SignUpPage() {
                     </svg>
                     <span className="sr-only">Sign up with Google</span>
                   </Button>
-                </Field>
+                </Field> */}
                 <FieldDescription className="text-center">
                   Already have an account?{" "}
                   <Link href="/signin" className="text-green-500 hover:underline">
