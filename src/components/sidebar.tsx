@@ -39,6 +39,7 @@ import { useNotification } from "@/lib/NotificationContext";
 import { NavUser } from "@/components/nav-user";
 import { DiscordIcon } from "@/components/discord-icon";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SidebarProps {
   onChatSelect?: (chatId: string) => void;
@@ -55,11 +56,16 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout, user } = useCognitoAuth();
+  const { logout, user, apiKeys } = useCognitoAuth();
   const { error } = useNotification();
+  const hasApiKeys = apiKeys.length > 0;
   const isChatRoute = pathname?.startsWith("/chat");
+  // Extract chatId from pathname if we're on a chat detail page
+  const currentChatIdFromRoute = pathname?.startsWith("/chat/") && pathname !== "/chat" 
+    ? pathname.split("/chat/")[1]?.split("/")[0] 
+    : null;
   const { conversations, isLoading: conversationsLoading, getConversationById } = useConversationHistory();
-  const { currentConversationId, loadConversation, deleteConversationById, startNewConversation } = useConversation();
+  const { loadConversation, deleteConversationById, startNewConversation } = useConversation();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [localSaveChatHistory, setLocalSaveChatHistory] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -179,29 +185,56 @@ export function Sidebar({
               </SidebarMenuItem>
 
               {/* Chat with Collapsible */}
-              <Collapsible open={isHistoryExpanded} onOpenChange={setIsHistoryExpanded}>
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton 
-                      isActive={isChatRoute} 
-                      className={`group ${isChatRoute ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}`}
-                    >
-                      <MessageSquare className={`h-4 w-4 ${isChatRoute ? "text-green-500" : ""}`} />
-                      <span className={isChatRoute ? "text-green-500" : ""}>Chat</span>
-                      <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''} ${isChatRoute ? "text-green-500" : ""}`} />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                </SidebarMenuItem>
+              <TooltipProvider>
+                <Collapsible open={hasApiKeys ? isHistoryExpanded : false} onOpenChange={(open) => hasApiKeys && setIsHistoryExpanded(open)}>
+                  <SidebarMenuItem>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="w-full">
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton 
+                              isActive={isChatRoute} 
+                              disabled={!hasApiKeys}
+                              className={`group ${isChatRoute ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"} ${!hasApiKeys ? "opacity-50 cursor-not-allowed" : ""}`}
+                            >
+                              <MessageSquare className={`h-4 w-4 ${isChatRoute ? "text-green-500" : ""}`} />
+                              <span className={isChatRoute ? "text-green-500" : ""}>Chat</span>
+                              <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''} ${isChatRoute ? "text-green-500" : ""}`} />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                        </div>
+                      </TooltipTrigger>
+                      {!hasApiKeys && (
+                        <TooltipContent>
+                          <p>Create an API key first to use Chat</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </SidebarMenuItem>
                 <CollapsibleContent>
                   <div className="space-y-1 px-2 pt-1 pb-0">
                     <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        onClick={handleNewChat}
-                        className="text-sidebar-foreground/70 hover:text-white [&>svg]:text-sidebar-foreground/70 [&>svg]:hover:text-white"
-                      >
-                        <SquarePen className="h-4 w-4" />
-                        <span>New Chat</span>
-                      </SidebarMenuButton>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="w-full">
+                              <SidebarMenuButton 
+                                onClick={handleNewChat}
+                                disabled={!hasApiKeys}
+                                className={`text-sidebar-foreground/70 hover:text-white [&>svg]:text-sidebar-foreground/70 [&>svg]:hover:text-white ${!hasApiKeys ? "opacity-50 cursor-not-allowed" : ""}`}
+                              >
+                                <SquarePen className="h-4 w-4" />
+                                <span>New Chat</span>
+                              </SidebarMenuButton>
+                            </div>
+                          </TooltipTrigger>
+                          {!hasApiKeys && (
+                            <TooltipContent>
+                              <p>Create an API key first to start a new chat</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </SidebarMenuItem>
 
                     <div className="flex items-center justify-between gap-2 px-2 py-2 border-t border-sidebar-border">
@@ -223,7 +256,8 @@ export function Sidebar({
                           <ScrollArea className="max-h-[200px]">
                             <div className="space-y-1 pr-2">
                               {conversations.map((chat) => {
-                                const isActive = currentConversationId === chat.id;
+                                // Only mark as active if we're actually on that chat's route
+                                const isActive = currentChatIdFromRoute === chat.id;
                                 const truncatedTitle = chat.title.length > 40 
                                   ? `${chat.title.substring(0, 40)}...` 
                                   : chat.title;
@@ -257,20 +291,45 @@ export function Sidebar({
                   </div>
                 </CollapsibleContent>
               </Collapsible>
+              </TooltipProvider>
 
               {/* Test */}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={pathname === "/test"}
-                  className={pathname === "/test" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
-                >
-                  <Link href="/test">
-                    <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-green-500" : ""}`} />
-                    <span className={pathname === "/test" ? "text-green-500" : ""}>Test</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <TooltipProvider>
+                <SidebarMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="w-full">
+                        {hasApiKeys ? (
+                          <SidebarMenuButton 
+                            asChild 
+                            isActive={pathname === "/test"}
+                            className={pathname === "/test" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                          >
+                            <Link href="/test">
+                              <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-green-500" : ""}`} />
+                              <span className={pathname === "/test" ? "text-green-500" : ""}>Test</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        ) : (
+                          <SidebarMenuButton 
+                            disabled
+                            isActive={pathname === "/test"}
+                            className={`${pathname === "/test" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"} opacity-50 cursor-not-allowed`}
+                          >
+                            <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-green-500" : ""}`} />
+                            <span className={pathname === "/test" ? "text-green-500" : ""}>Test</span>
+                          </SidebarMenuButton>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    {!hasApiKeys && (
+                      <TooltipContent>
+                        <p>Create an API key first to use Test</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </SidebarMenuItem>
+              </TooltipProvider>
 
               {/* Docs */}
               <SidebarMenuItem>

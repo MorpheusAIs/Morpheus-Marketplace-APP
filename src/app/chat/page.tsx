@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MessageSquare, CheckIcon, Settings, Trash2 } from 'lucide-react';
+import { MessageSquare, CheckIcon, Settings, Trash2, Key } from 'lucide-react';
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -67,6 +67,7 @@ import {
 import { ChatSettingsDialog } from '@/components/chat-settings-dialog';
 import { getContextWindow } from 'tokenlens';
 import type { LanguageModelUsage } from 'ai';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Type definitions
 type Message = {
@@ -172,7 +173,7 @@ export default function ChatPage() {
     }
   }, [currentConversationId]);
 
-  // Load API key from sessionStorage and redirect if not verified
+  // Load API key from sessionStorage
   useEffect(() => {
     const storedApiKey = sessionStorage.getItem('verified_api_key');
     const storedPrefix = sessionStorage.getItem('verified_api_key_prefix');
@@ -180,10 +181,8 @@ export default function ChatPage() {
     if (storedApiKey && storedPrefix) {
       setFullApiKey(storedApiKey);
       setApiKeyPrefix(storedPrefix);
-    } else {
-      router.push('/api-keys');
     }
-  }, [router]);
+  }, []);
 
   // Update title when conversation ID changes
   useEffect(() => {
@@ -670,6 +669,35 @@ export default function ChatPage() {
 
   if (!fullApiKey) {
     return null;
+  }
+
+  // Show message if no API key
+  if (!fullApiKey || !apiKeyPrefix) {
+    return (
+      <AuthenticatedLayout>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                API Key Required
+              </CardTitle>
+              <CardDescription>
+                You need to create and verify an API key before you can use Chat.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => router.push('/api-keys')}
+                className="w-full bg-green-500 hover:bg-green-600 text-white"
+              >
+                Go to API Keys
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthenticatedLayout>
+    );
   }
 
   return (

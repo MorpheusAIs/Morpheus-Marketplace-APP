@@ -23,6 +23,18 @@ export function useConversationHistory() {
   const hasInitializedRef = useRef(hasInitialized);
 
   const refreshConversations = useCallback(async (force = false) => {
+    // Check if API key exists before attempting to load conversations
+    const apiKey = typeof window !== 'undefined' ? sessionStorage.getItem('verified_api_key') : null;
+    if (!apiKey) {
+      // No API key available - silently skip loading conversations
+      // This is expected for new users who haven't created/verified an API key yet
+      setIsLoading(false);
+      globalIsLoading = false;
+      setError(null);
+      globalError = null;
+      return;
+    }
+
     // Don't show loading if we already have conversations and this isn't a forced refresh
     if (!force && globalConversations.length > 0) {
       setIsLoading(false);
