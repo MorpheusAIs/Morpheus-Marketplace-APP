@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,13 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, RefreshCw, Send, Copy } from "lucide-react";
+import { Check, RefreshCw, Send, Copy, Key } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { API_URLS } from "@/lib/api/config";
 import { getAllowedModelTypes, filterModelsByType, selectDefaultModel } from "@/lib/model-filter-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
-import { apiGet, apiPost } from "@/lib/api/apiService";
+import { apiGet } from "@/lib/api/apiService";
 
 interface Model {
   id: string;
@@ -82,7 +82,7 @@ export default function TestPage() {
   const [copiedCurl, setCopiedCurl] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
 
-  // Load API key from sessionStorage and redirect if not verified
+  // Load API key from sessionStorage
   useEffect(() => {
     const storedApiKey = sessionStorage.getItem('verified_api_key');
     const storedPrefix = sessionStorage.getItem('verified_api_key_prefix');
@@ -114,10 +114,8 @@ export default function TestPage() {
           }
         }
       }
-    } else {
-      router.push('/api-keys');
     }
-  }, [router, apiKeys]);
+  }, [apiKeys]);
 
   // Fetch available models
   useEffect(() => {
@@ -435,8 +433,33 @@ export default function TestPage() {
     }
   };
 
-  if (!selectedApiKey) {
-    return null; // Will redirect via useEffect
+  // Show message if no API key
+  if (!selectedApiKey || !apiKeyPrefix) {
+    return (
+      <AuthenticatedLayout>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                API Key Required
+              </CardTitle>
+              <CardDescription>
+                You need to create and verify an API key before you can use Test.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => router.push('/api-keys')}
+                className="w-full bg-green-500 hover:bg-green-600 text-white"
+              >
+                Go to API Keys
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthenticatedLayout>
+    );
   }
 
   return (
