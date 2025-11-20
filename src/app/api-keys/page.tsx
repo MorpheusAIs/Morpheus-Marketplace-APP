@@ -181,7 +181,6 @@ export default function ApiKeysPage() {
                 <TableRow>
                   <TableHead className="text-left text-muted-foreground font-medium">Name</TableHead>
                   <TableHead className="text-left text-muted-foreground font-medium">API Key</TableHead>
-                  <TableHead className="text-left text-muted-foreground font-medium">Last Used</TableHead>
                   <TableHead className="text-left text-muted-foreground font-medium">Created</TableHead>
                   <TableHead className="text-right text-muted-foreground font-medium">Actions</TableHead>
                 </TableRow>
@@ -189,7 +188,7 @@ export default function ApiKeysPage() {
               <TableBody>
                 {apiKeys.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                       No API keys found. Create your first key below.
                     </TableCell>
                   </TableRow>
@@ -212,7 +211,6 @@ export default function ApiKeysPage() {
                         <TableCell className="font-mono text-sm text-foreground">
                           {apiKey.key_prefix}...
                         </TableCell>
-                        <TableCell className="text-muted-foreground">-</TableCell>
                         <TableCell className="text-muted-foreground">
                           {formatDate(apiKey.created_at)}
                         </TableCell>
@@ -262,10 +260,6 @@ export default function ApiKeysPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Created:</span>
                       <span className="text-foreground">{formatDate(apiKey.created_at)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Last Used:</span>
-                      <span className="text-foreground">-</span>
                     </div>
                     <div className="pt-2 border-t border-border">
                       <Button
