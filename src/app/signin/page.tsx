@@ -40,7 +40,31 @@ export default function SignInPage() {
       await signIn(email, password);
       router.push("/api-keys");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to sign in");
+      // Log full error for debugging
+      console.error('SignIn error:', {
+        error: err,
+        name: err && typeof err === 'object' && 'name' in err ? (err as { name?: string }).name : undefined,
+        message: err instanceof Error ? err.message : String(err),
+        code: err && typeof err === 'object' && '$metadata' in err ? (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode : undefined,
+      });
+      
+      // Check if this is a UserNotFoundException from Cognito
+      // AWS SDK errors have a 'name' property
+      const errorName = err && typeof err === 'object' && 'name' in err 
+        ? (err as { name?: string }).name 
+        : '';
+      
+      // Also check error message for user enumeration prevention
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      
+      if (errorName === 'UserNotFoundException') {
+        setError("User doesn't exist");
+      } else if (errorMessage.includes("User does not exist") || errorMessage.includes("UserNotFoundException")) {
+        // Fallback check in case error name isn't set but message indicates user not found
+        setError("User doesn't exist");
+      } else {
+        setError(errorMessage || "Failed to sign in");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -114,7 +138,17 @@ export default function SignInPage() {
                   </div>
                 </Field>
                 {error && (
-                  <p className="text-sm text-red-500">{error}</p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-500">{error}</p>
+                    {error === "User doesn't exist" && (
+                      <p className="text-sm text-muted-foreground">
+                        Don&apos;t have an account?{" "}
+                        <Link href="/signup" className="text-green-500 hover:underline font-medium">
+                          Sign up here
+                        </Link>
+                      </p>
+                    )}
+                  </div>
                 )}
                 <Field>
                   <Button

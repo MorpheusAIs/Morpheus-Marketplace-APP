@@ -39,17 +39,29 @@ export class CognitoDirectAuth {
       },
     });
 
-    const response = await getCognitoClient().send(command);
+    try {
+      const response = await getCognitoClient().send(command);
 
-    if (!response.AuthenticationResult) {
-      throw new Error('Authentication failed - no tokens received');
+      if (!response.AuthenticationResult) {
+        throw new Error('Authentication failed - no tokens received');
+      }
+
+      return {
+        accessToken: response.AuthenticationResult.AccessToken!,
+        idToken: response.AuthenticationResult.IdToken!,
+        refreshToken: response.AuthenticationResult.RefreshToken!,
+      };
+    } catch (err) {
+      // Log full error details for debugging
+      console.error('Cognito signIn error details:', {
+        error: err,
+        name: err && typeof err === 'object' && 'name' in err ? (err as { name?: string }).name : undefined,
+        message: err instanceof Error ? err.message : String(err),
+        code: err && typeof err === 'object' && '$metadata' in err ? (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode : undefined,
+        fullError: JSON.stringify(err, Object.getOwnPropertyNames(err), 2),
+      });
+      throw err;
     }
-
-    return {
-      accessToken: response.AuthenticationResult.AccessToken!,
-      idToken: response.AuthenticationResult.IdToken!,
-      refreshToken: response.AuthenticationResult.RefreshToken!,
-    };
   }
 
   /**

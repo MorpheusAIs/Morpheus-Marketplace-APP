@@ -262,18 +262,23 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       await fetchApiKeys(tokens.accessToken);
       
     } catch (err) {
-      // Check if this is a NotAuthorizedException (common after password reset)
-      // AWS SDK errors have a 'name' property
-      const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
+      // Check error type - AWS SDK errors have a 'name' property
+      const errorName = err && typeof err === 'object' && 'name' in err 
+        ? (err as { name?: string }).name 
+        : '';
       const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
       
-      // NotAuthorizedException can occur if old tokens exist after password reset
-      // Since we clear tokens before signing in, this shouldn't happen, but handle gracefully
+      // Don't show generic error notifications for specific error types
+      // These will be handled in the UI with custom messages
       if (errorName === 'NotAuthorizedException') {
         // Don't show error notification for NotAuthorizedException during sign-in
         // as it might be from a background refresh attempt
         console.warn('Sign in error (may be from background operation):', errorMessage);
+      } else if (errorName === 'UserNotFoundException') {
+        // Don't show generic error - let the UI handle it with custom message and signup link
+        console.log('User not found:', errorMessage);
       } else {
+        // Show error notification for other unexpected errors
         console.error('Error signing in:', err);
         error('Sign In Failed', errorMessage);
       }
