@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,8 @@ import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui
 import { Mail, Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { forgotPassword, confirmForgotPassword, isAuthenticated, isLoading } = useCognitoAuth();
   
   // Check if we're in the reset confirmation step (code in URL or email in sessionStorage)
@@ -308,5 +307,17 @@ export default function ForgotPasswordPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="text-foreground">Loading...</div>
+      </div>
+    }>
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }
