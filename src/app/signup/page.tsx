@@ -12,13 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldGroup, FieldLabel, FieldSeparator, FieldDescription } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signUp, isAuthenticated, isLoading, socialLogin } = useCognitoAuth();
+  const { signUp, isAuthenticated, isLoading } = useCognitoAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [email, setEmail] = useState("");
