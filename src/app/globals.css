@@ -62,6 +62,13 @@ input:focus, textarea:focus, select:focus, button:focus {
   outline: none !important;
 }
 
+/* Override global focus styling for delete account input - use red border only */
+.delete-account-input:focus,
+.delete-account-input:focus-visible {
+  box-shadow: 0 0 0 1px rgb(239 68 68) !important;
+  outline: none !important;
+}
+
 /* For white and gray background inputs only */
 .bg-white input, .bg-white textarea, .bg-white select,
 input.bg-white, textarea.bg-white, select.bg-white,

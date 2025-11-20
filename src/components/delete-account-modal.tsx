@@ -38,24 +38,21 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
 
     setIsDeleting(true);
     try {
-      // Note: Check if backend endpoint exists for account deletion
-      // For now, we'll use a placeholder - you may need to add this endpoint to config.ts
-      if (accessToken) {
-        // If backend endpoint exists:
-        // const response = await apiDelete(API_URLS.deleteAccount(), accessToken);
-        // if (response.error) {
-        //   throw new Error(response.error);
-        // }
-        
-        // For now, just sign out the user
-        // TODO: Implement actual account deletion API call when endpoint is available
-        console.log("Account deletion requested");
+      if (!accessToken) {
+        throw new Error("No access token available. Please log in again.");
       }
+
+      // Call the delete account API endpoint (DELETE /auth/register)
+      const response = await apiDelete(API_URLS.deleteAccount(), accessToken);
       
-      // Sign out user
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Sign out user after successful deletion
       logout();
       
-      success("Account Deleted", "Your account has been deleted successfully.");
+      success("Account Deleted", "Your account has been permanently deleted.");
       setConfirmationText("");
       onOpenChange(false);
       router.push("/signin");
@@ -89,7 +86,7 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
             placeholder="Delete"
             value={confirmationText}
             onChange={(e) => setConfirmationText(e.target.value)}
-            className="bg-input border-border text-foreground focus:ring-red-500 focus:border-red-500"
+            className="delete-account-input bg-input border-border text-foreground focus-visible:ring-red-500 focus-visible:ring-1 focus-visible:border-red-500 focus-visible:outline-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && isConfirmed) {
                 handleDelete();
