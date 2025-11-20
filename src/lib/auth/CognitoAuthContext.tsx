@@ -27,6 +27,8 @@ interface CognitoAuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ requiresConfirmation: true; email: string }>;
   confirmSignUp: (email: string, confirmationCode: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
   logout: () => void;
   refreshApiKeys: () => Promise<void>;
   socialLogin: (provider: 'Google' | 'GitHub' | 'X') => void;
@@ -72,7 +74,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         }
       }
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      // Check if this is an expected error (e.g., NotAuthorizedException after password reset)
+      const errorName = error && typeof error === 'object' && 'name' in error ? (error as any).name : '';
+      // Only log unexpected errors - NotAuthorizedException is expected when tokens are invalid
+      if (errorName !== 'NotAuthorizedException') {
+        console.error('Error initializing auth:', error);
+      }
       // Clear any invalid tokens
       logout();
     } finally {
@@ -233,6 +240,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     try {
       setIsLoading(true);
       
+      // Clear any existing tokens before signing in (important after password reset)
+      // This prevents using stale refresh tokens that may have been invalidated
+      CognitoDirectAuth.clearTokens();
+      
       // Sign in with Cognito
       const tokens = await CognitoDirectAuth.signIn(email, password);
       
@@ -251,9 +262,21 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       await fetchApiKeys(tokens.accessToken);
       
     } catch (err) {
-      console.error('Error signing in:', err);
+      // Check if this is a NotAuthorizedException (common after password reset)
+      // AWS SDK errors have a 'name' property
+      const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
       const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
-      error('Sign In Failed', errorMessage);
+      
+      // NotAuthorizedException can occur if old tokens exist after password reset
+      // Since we clear tokens before signing in, this shouldn't happen, but handle gracefully
+      if (errorName === 'NotAuthorizedException') {
+        // Don't show error notification for NotAuthorizedException during sign-in
+        // as it might be from a background refresh attempt
+        console.warn('Sign in error (may be from background operation):', errorMessage);
+      } else {
+        console.error('Error signing in:', err);
+        error('Sign In Failed', errorMessage);
+      }
       throw err;
     } finally {
       setIsLoading(false);
@@ -343,6 +366,42 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     CognitoDirectAuth.initiateSocialLogin(provider, redirectUri);
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      setIsLoading(true);
+      await CognitoDirectAuth.forgotPassword(email);
+      success('Reset Code Sent', 'A password reset code has been sent to your email address.');
+    } catch (err) {
+      console.error('Error requesting password reset:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send reset code';
+      error('Password Reset Failed', errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmForgotPassword = async (email: string, confirmationCode: string, newPassword: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Clear any existing tokens before confirming password reset
+      // Old tokens become invalid after password reset, so we should clear them
+      CognitoDirectAuth.clearTokens();
+      logout(); // Also clear auth state
+      
+      await CognitoDirectAuth.confirmForgotPassword(email, confirmationCode, newPassword);
+      success('Password Reset', 'Your password has been reset successfully. You can now sign in with your new password.');
+    } catch (err) {
+      console.error('Error confirming password reset:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reset password';
+      error('Password Reset Failed', errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value = {
     user,
     accessToken,
@@ -354,6 +413,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     signIn,
     signUp,
     confirmSignUp,
+    forgotPassword,
+    confirmForgotPassword,
     logout,
     refreshApiKeys,
     socialLogin,

@@ -5,6 +5,8 @@ import {
   InitiateAuthCommand,
   SignUpCommand,
   ConfirmSignUpCommand,
+  ForgotPasswordCommand,
+  ConfirmForgotPasswordCommand,
   AuthFlowType,
   ChallengeNameType,
 } from '@aws-sdk/client-cognito-identity-provider';
@@ -193,8 +195,14 @@ export class CognitoDirectAuth {
         this.storeTokens(newTokens, email);
       }
       return newTokens.accessToken;
-    } catch {
-      // Refresh failed, clear tokens
+    } catch (err) {
+      // Refresh failed (e.g., refresh token invalidated after password reset)
+      // Silently clear tokens and return null - this is expected behavior
+      // Don't log NotAuthorizedException as it's expected after password reset
+      const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
+      if (errorName !== 'NotAuthorizedException') {
+        console.error('Error refreshing token:', err);
+      }
       this.clearTokens();
       return null;
     }
@@ -303,5 +311,35 @@ export class CognitoDirectAuth {
     authUrl.searchParams.set('identity_provider', cognitoProviderName);
 
     window.location.href = authUrl.toString();
+  }
+
+  /**
+   * Request password reset code
+   */
+  static async forgotPassword(email: string): Promise<void> {
+    const command = new ForgotPasswordCommand({
+      ClientId: cognitoConfig.userPoolClientId,
+      Username: email,
+    });
+
+    await getCognitoClient().send(command);
+  }
+
+  /**
+   * Confirm password reset with code and new password
+   */
+  static async confirmForgotPassword(
+    email: string,
+    confirmationCode: string,
+    newPassword: string
+  ): Promise<void> {
+    const command = new ConfirmForgotPasswordCommand({
+      ClientId: cognitoConfig.userPoolClientId,
+      Username: email,
+      ConfirmationCode: confirmationCode,
+      Password: newPassword,
+    });
+
+    await getCognitoClient().send(command);
   }
 }
