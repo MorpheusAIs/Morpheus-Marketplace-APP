@@ -9,3 +9,4 @@ if (typeof window !== 'undefined' && (!cognitoConfig.region || !cognitoConfig.us
   console.warn('Cognito configuration is incomplete. Please check your environment variables.');
 }
 
+

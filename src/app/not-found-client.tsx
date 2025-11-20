@@ -9,17 +9,22 @@ export function RedirectClient() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          router.push('/');
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [router]);
+  }, []);
+
+  // Separate effect to handle navigation when countdown reaches 0
+  useEffect(() => {
+    if (countdown <= 0) {
+      // Use setTimeout to ensure this runs after the current render cycle
+      const timeoutId = setTimeout(() => {
+        router.push('/');
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [countdown, router]);
 
   return (
     <p className="text-sm text-muted-foreground text-center">
