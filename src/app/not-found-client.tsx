@@ -1,22 +1,29 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function RedirectClient() {
   const router = useRouter();
+  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push('/');
-    }, 3000);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          router.push('/');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => clearInterval(timer);
   }, [router]);
 
   return (
-    <p className="text-muted-foreground">
-      Redirecting to home page in 3 seconds...
+    <p className="text-sm text-muted-foreground text-center">
+      Redirecting to home page in {countdown} second{countdown !== 1 ? 's' : ''}...
     </p>
   );
 }
