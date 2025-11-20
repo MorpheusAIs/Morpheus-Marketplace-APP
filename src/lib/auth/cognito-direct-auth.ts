@@ -5,6 +5,8 @@ import {
   InitiateAuthCommand,
   SignUpCommand,
   ConfirmSignUpCommand,
+  ForgotPasswordCommand,
+  ConfirmForgotPasswordCommand,
   AuthFlowType,
   ChallengeNameType,
 } from '@aws-sdk/client-cognito-identity-provider';
@@ -303,5 +305,35 @@ export class CognitoDirectAuth {
     authUrl.searchParams.set('identity_provider', cognitoProviderName);
 
     window.location.href = authUrl.toString();
+  }
+
+  /**
+   * Request password reset code
+   */
+  static async forgotPassword(email: string): Promise<void> {
+    const command = new ForgotPasswordCommand({
+      ClientId: cognitoConfig.userPoolClientId,
+      Username: email,
+    });
+
+    await getCognitoClient().send(command);
+  }
+
+  /**
+   * Confirm password reset with code and new password
+   */
+  static async confirmForgotPassword(
+    email: string,
+    confirmationCode: string,
+    newPassword: string
+  ): Promise<void> {
+    const command = new ConfirmForgotPasswordCommand({
+      ClientId: cognitoConfig.userPoolClientId,
+      Username: email,
+      ConfirmationCode: confirmationCode,
+      Password: newPassword,
+    });
+
+    await getCognitoClient().send(command);
   }
 }

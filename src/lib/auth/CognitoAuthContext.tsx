@@ -27,6 +27,8 @@ interface CognitoAuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ requiresConfirmation: true; email: string }>;
   confirmSignUp: (email: string, confirmationCode: string, password: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
   logout: () => void;
   refreshApiKeys: () => Promise<void>;
   socialLogin: (provider: 'Google' | 'GitHub' | 'X') => void;
@@ -343,6 +345,36 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     CognitoDirectAuth.initiateSocialLogin(provider, redirectUri);
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      setIsLoading(true);
+      await CognitoDirectAuth.forgotPassword(email);
+      success('Reset Code Sent', 'A password reset code has been sent to your email address.');
+    } catch (err) {
+      console.error('Error requesting password reset:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send reset code';
+      error('Password Reset Failed', errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmForgotPassword = async (email: string, confirmationCode: string, newPassword: string) => {
+    try {
+      setIsLoading(true);
+      await CognitoDirectAuth.confirmForgotPassword(email, confirmationCode, newPassword);
+      success('Password Reset', 'Your password has been reset successfully. You can now sign in with your new password.');
+    } catch (err) {
+      console.error('Error confirming password reset:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reset password';
+      error('Password Reset Failed', errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value = {
     user,
     accessToken,
@@ -354,6 +386,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     signIn,
     signUp,
     confirmSignUp,
+    forgotPassword,
+    confirmForgotPassword,
     logout,
     refreshApiKeys,
     socialLogin,
