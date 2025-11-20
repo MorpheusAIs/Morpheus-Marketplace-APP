@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MessageSquare, CheckIcon, Settings, Trash2, Key } from 'lucide-react';
+import { MessageSquare, CheckIcon, Settings, Trash2, Key, Loader2 } from 'lucide-react';
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -734,19 +734,38 @@ export default function ChatPage() {
                 description="Type a message below to begin chatting"
               />
             ) : (
-              messages.map((message, index) => (
-                <Message key={message.id || index} from={message.role}>
-                  <MessageContent>
-                    {message.role === 'assistant' ? (
-                      <MessageResponse>
-                        {message.content || streamingContent}
-                      </MessageResponse>
-                    ) : (
-                      <div className="whitespace-pre-wrap">{message.content}</div>
-                    )}
-                  </MessageContent>
-                </Message>
-              ))
+              messages.map((message, index) => {
+                const isLastMessage = index === messages.length - 1;
+                const isAssistantMessage = message.role === 'assistant';
+                const hasNoContent = !message.content && !streamingContent;
+                const isProcessing = streamingStatus === 'submitted' || streamingStatus === 'streaming';
+                const isWaitingForStream = isLastMessage && isAssistantMessage && hasNoContent && isProcessing;
+                
+                return (
+                  <Message key={message.id || index} from={message.role}>
+                    <MessageContent className="relative">
+                      {isAssistantMessage ? (
+                        <>
+                          {isWaitingForStream && (
+                            <div className="absolute top-1/2 left-3 -translate-y-1/2 z-20">
+                              <Loader2 className="h-5 w-5 animate-spin text-white" />
+                            </div>
+                          )}
+                          {message.content || streamingContent ? (
+                            <MessageResponse>
+                              {message.content || streamingContent}
+                            </MessageResponse>
+                          ) : (
+                            isWaitingForStream && <div className="min-h-[20px] w-full" />
+                          )}
+                        </>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{message.content}</div>
+                      )}
+                    </MessageContent>
+                  </Message>
+                );
+              })
             )}
           </ConversationContent>
           <ConversationScrollButton />
