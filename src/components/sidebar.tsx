@@ -178,15 +178,15 @@ export function Sidebar({
               <Collapsible open={isHistoryExpanded} onOpenChange={setIsHistoryExpanded}>
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={isChatRoute}>
+                    <SidebarMenuButton isActive={isChatRoute} className="group">
                       <MessageSquare className="h-4 w-4" />
                       <span>Chat</span>
-                      <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''}`} />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                 </SidebarMenuItem>
                 <CollapsibleContent>
-                  <div className="space-y-1 px-2 py-1">
+                  <div className="space-y-1 px-2 pt-1 pb-0">
                     <SidebarMenuItem>
                       <SidebarMenuButton onClick={handleNewChat}>
                         <SquarePen className="h-4 w-4" />
@@ -210,7 +210,7 @@ export function Sidebar({
                         {conversationsLoading ? (
                           <div className="text-sm text-sidebar-foreground/50 text-center py-4">Loading conversations...</div>
                         ) : conversations.length > 0 ? (
-                          <ScrollArea className="h-[200px]">
+                          <ScrollArea className="max-h-[200px]">
                             <div className="space-y-1 pr-2">
                               {conversations.map((chat) => {
                                 const isActive = currentConversationId === chat.id;
