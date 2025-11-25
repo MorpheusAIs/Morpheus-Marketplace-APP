@@ -41,25 +41,90 @@
   margin-bottom: 0.25rem;
 }
 
-.markdown-content code {
+/* Inline code - target both markdown-content and Streamdown output */
+.markdown-content code:not(pre code),
+code:not(pre code) {
   font-family: monospace;
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: #1e1e1e;
+  color: #d4d4d4;
   padding: 0.2rem 0.4rem;
   border-radius: 0.25rem;
   font-size: 0.9rem;
+  border: 1px solid #3e3e3e;
 }
 
-.markdown-content pre {
-  background-color: rgba(0, 0, 0, 0.05);
+/* Code blocks - target both markdown-content and Streamdown output */
+.markdown-content pre,
+pre {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
   padding: 1rem;
   border-radius: 0.5rem;
   overflow-x: auto;
   margin-bottom: 1rem;
+  margin-top: 1rem;
+  border: 1px solid #3e3e3e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.markdown-content pre > code {
+.markdown-content pre > code,
+pre > code {
   background-color: transparent;
+  color: inherit;
   padding: 0;
+  border: none;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  display: block;
+}
+
+/* Syntax highlighting colors (VS Code Dark+ theme inspired) */
+.markdown-content pre code .keyword,
+pre code .keyword,
+.markdown-content pre code .keyword.operator,
+pre code .keyword.operator {
+  color: #c586c0;
+}
+
+.markdown-content pre code .string,
+pre code .string {
+  color: #ce9178;
+}
+
+.markdown-content pre code .number,
+pre code .number {
+  color: #b5cea8;
+}
+
+.markdown-content pre code .function,
+pre code .function {
+  color: #dcdcaa;
+}
+
+.markdown-content pre code .comment,
+pre code .comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.markdown-content pre code .variable,
+pre code .variable {
+  color: #9cdcfe;
+}
+
+.markdown-content pre code .type,
+pre code .type {
+  color: #4ec9b0;
+}
+
+.markdown-content pre code .constant,
+pre code .constant {
+  color: #569cd6;
+}
+
+.markdown-content pre code .punctuation,
+pre code .punctuation {
+  color: #d4d4d4;
 }
 
 .markdown-content blockquote {

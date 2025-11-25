@@ -11,7 +11,8 @@ export const API_CONFIG = {
       LOGIN: '/auth/login',
       KEYS: '/auth/keys',
       PRIVATE_KEY: '/auth/private-key',
-      DELEGATION: '/auth/delegation'
+      DELEGATION: '/auth/delegation',
+      DELETE_ACCOUNT: '/auth/register' // Uses same endpoint as register but with DELETE method
     },
     // Chat endpoints
     CHAT: {
@@ -24,7 +25,9 @@ export const API_CONFIG = {
     SESSION: {
       INITIALIZE: '/session/initialize',
       PING: '/session/pingsession',
-      CLOSE: '/session/close'
+      CLOSE: '/session/closesession',
+      CREATE_MODEL: '/session/modelsession', // Correct endpoint path
+      CREATE_BID: '/session/bidsession'
     },
     // Automation endpoints
     AUTOMATION: {
@@ -65,6 +68,7 @@ export const API_URLS = {
   deleteKey: (keyId: number) => buildApiUrl(`${API_CONFIG.ENDPOINTS.AUTH.KEYS}/${keyId}`),
   privateKey: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.PRIVATE_KEY),
   delegation: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.DELEGATION),
+  deleteAccount: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.DELETE_ACCOUNT),
   
   // Chat URLs
   chatCompletions: () => buildApiUrl(API_CONFIG.ENDPOINTS.CHAT.COMPLETIONS),
@@ -76,6 +80,7 @@ export const API_URLS = {
   sessionInitialize: () => buildApiUrl(API_CONFIG.ENDPOINTS.SESSION.INITIALIZE),
   sessionPing: () => buildApiUrl(API_CONFIG.ENDPOINTS.SESSION.PING),
   sessionClose: () => buildApiUrl(API_CONFIG.ENDPOINTS.SESSION.CLOSE),
+  sessionCreateModel: () => buildApiUrl(API_CONFIG.ENDPOINTS.SESSION.CREATE_MODEL),
   
   // Automation URLs
   automationSettings: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTOMATION.SETTINGS),

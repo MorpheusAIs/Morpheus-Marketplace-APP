@@ -2,69 +2,83 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
+import { CognitoDirectAuth } from '@/lib/auth/cognito-direct-auth';
 
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { handleAuthCallback } = useCognitoAuth();
-  const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
-  const [hasProcessed, setHasProcessed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Prevent multiple processing attempts (React Strict Mode, etc.)
-    if (hasProcessed) return;
-
-    const processCallback = async () => {
+    const handleCallback = async () => {
       try {
-        setHasProcessed(true); // Mark as processed immediately
-        
         const code = searchParams.get('code');
         const state = searchParams.get('state');
-        const error = searchParams.get('error');
-        const errorDescription = searchParams.get('error_description');
+        const errorParam = searchParams.get('error');
 
-        if (error) {
-          setError(`Authentication error: ${error}. ${errorDescription || ''}`);
+        // Check for OAuth errors
+        if (errorParam) {
+          const errorDescription = searchParams.get('error_description') || 'Authentication failed';
+          setError(errorDescription);
           setIsProcessing(false);
+          setTimeout(() => {
+            router.push('/signin');
+          }, 3000);
           return;
         }
 
-        if (!code || !state) {
-          setError('Missing authorization code or state parameter');
-          setIsProcessing(false);
-          return;
+        // Validate state parameter (CSRF protection)
+        if (typeof window !== 'undefined') {
+          const storedState = sessionStorage.getItem('oauth_state');
+          if (state && storedState && state !== storedState) {
+            throw new Error('Invalid state parameter. Possible CSRF attack.');
+          }
+          sessionStorage.removeItem('oauth_state');
         }
 
-        // Handle the authentication callback
-        await handleAuthCallback(code, state);
-        
-        // Redirect to admin page on success
-        router.push('/admin');
-        
+        if (!code) {
+          throw new Error('No authorization code received');
+        }
+
+        // Exchange code for tokens
+        const redirectUri = `${window.location.origin}/auth/callback`;
+        const tokens = await CognitoDirectAuth.exchangeCodeForTokens(code, redirectUri);
+
+        // Parse user info from ID token
+        const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
+        const email = userInfo.email;
+
+        // Store tokens
+        CognitoDirectAuth.storeTokens(tokens, email);
+
+        // Redirect to API keys page
+        router.push('/api-keys');
       } catch (err) {
-        console.error('Authentication callback error:', err);
+        console.error('OAuth callback error:', err);
         setError(err instanceof Error ? err.message : 'Authentication failed');
         setIsProcessing(false);
+        setTimeout(() => {
+          router.push('/signin');
+        }, 3000);
       }
     };
 
-    processCallback();
-  }, [searchParams, handleAuthCallback, router, hasProcessed]);
+    handleCallback();
+  }, [searchParams, router]);
 
   if (isProcessing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--matrix-green)]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="mb-4">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--neon-mint)]"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
           </div>
-          <h1 className="text-xl font-semibold text-[var(--neon-mint)] mb-2">
-            Completing Authentication...
+          <h1 className="text-xl font-semibold text-foreground mb-2">
+            Completing sign in...
           </h1>
-          <p className="text-[var(--platinum)]/70">
-            Please wait while we process your login.
+          <p className="text-muted-foreground">
+            Please wait while we complete your authentication.
           </p>
         </div>
       </div>
@@ -73,31 +87,16 @@ function AuthCallbackContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--matrix-green)]">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="mb-4">
-            <div className="text-red-400 text-4xl mb-4">⚠️</div>
-          </div>
-          <h1 className="text-xl font-semibold text-[var(--neon-mint)] mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md">
+          <div className="mb-4 text-red-500 text-4xl">⚠️</div>
+          <h1 className="text-xl font-semibold text-foreground mb-2">
             Authentication Error
           </h1>
-          <p className="text-[var(--platinum)]/80 mb-6">
-            {error}
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <p className="text-sm text-muted-foreground">
+            Redirecting to sign in page...
           </p>
-          <div className="space-y-4">
-            <button
-              onClick={() => router.push('/admin')}
-              className="w-full px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md hover:bg-[var(--emerald)] transition-colors"
-            >
-              Go to Admin & Try Again
-            </button>
-            <button
-              onClick={() => router.push('/')}
-              className="w-full px-4 py-2 bg-[var(--eclipse)] text-[var(--platinum)] rounded-md hover:bg-[var(--emerald)]/20 transition-colors"
-            >
-              Go Home
-            </button>
-          </div>
         </div>
       </div>
     );
