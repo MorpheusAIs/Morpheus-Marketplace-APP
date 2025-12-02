@@ -166,8 +166,8 @@ export default function AdminPage() {
 
   // Handle authentication success
   const handleAuthSuccess = (tokens: CognitoTokens, userInfo: CognitoUser) => {
-    // Store tokens and close modal
-    CognitoDirectAuth.storeTokens(tokens, userInfo?.email || '');
+    // Store tokens and close modal (email may be undefined for some auth methods)
+    CognitoDirectAuth.storeTokens(tokens, userInfo?.email);
     localStorage.setItem('user_info', JSON.stringify(userInfo));
     setShowAuthModal(false);
     // Refresh the page to update authentication state

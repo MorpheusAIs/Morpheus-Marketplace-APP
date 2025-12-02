@@ -124,13 +124,19 @@ export class CognitoDirectAuth {
   /**
    * Store tokens in localStorage
    */
-  static storeTokens(tokens: CognitoTokens, email: string): void {
+  static storeTokens(tokens: CognitoTokens, email?: string): void {
     if (typeof window === 'undefined') return;
     
     localStorage.setItem('cognito_access_token', tokens.accessToken);
     localStorage.setItem('cognito_id_token', tokens.idToken);
     localStorage.setItem('cognito_refresh_token', tokens.refreshToken);
-    localStorage.setItem('cognito_user_email', email);
+    
+    // Only store email if provided (may not be available for some auth methods)
+    if (email) {
+      localStorage.setItem('cognito_user_email', email);
+    } else {
+      localStorage.removeItem('cognito_user_email');
+    }
   }
 
   /**
