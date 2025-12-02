@@ -124,13 +124,19 @@ export class CognitoDirectAuth {
   /**
    * Store tokens in localStorage
    */
-  static storeTokens(tokens: CognitoTokens, email: string): void {
+  static storeTokens(tokens: CognitoTokens, email?: string): void {
     if (typeof window === 'undefined') return;
     
     localStorage.setItem('cognito_access_token', tokens.accessToken);
     localStorage.setItem('cognito_id_token', tokens.idToken);
     localStorage.setItem('cognito_refresh_token', tokens.refreshToken);
-    localStorage.setItem('cognito_user_email', email);
+    
+    // Only store email if provided (may not be available for some auth methods)
+    if (email) {
+      localStorage.setItem('cognito_user_email', email);
+    } else {
+      localStorage.removeItem('cognito_user_email');
+    }
   }
 
   /**
@@ -225,7 +231,7 @@ export class CognitoDirectAuth {
    */
   static parseIdToken(idToken: string): {
     sub: string;
-    email: string;
+    email?: string;
     name?: string;
     given_name?: string;
     family_name?: string;
@@ -236,10 +242,10 @@ export class CognitoDirectAuth {
       
       return {
         sub: decoded.sub,
-        email: decoded.email,
-        name: decoded.name,
-        given_name: decoded.given_name,
-        family_name: decoded.family_name,
+        email: decoded.email || undefined,  // May not be present in some auth flows
+        name: decoded.name || undefined,
+        given_name: decoded.given_name || undefined,
+        family_name: decoded.family_name || undefined,
       };
     } catch (error) {
       throw new Error('Failed to parse ID token');
