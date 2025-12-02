@@ -225,7 +225,7 @@ export class CognitoDirectAuth {
    */
   static parseIdToken(idToken: string): {
     sub: string;
-    email: string;
+    email?: string;
     name?: string;
     given_name?: string;
     family_name?: string;
@@ -236,10 +236,10 @@ export class CognitoDirectAuth {
       
       return {
         sub: decoded.sub,
-        email: decoded.email,
-        name: decoded.name,
-        given_name: decoded.given_name,
-        family_name: decoded.family_name,
+        email: decoded.email || undefined,  // May not be present in some auth flows
+        name: decoded.name || undefined,
+        given_name: decoded.given_name || undefined,
+        family_name: decoded.family_name || undefined,
       };
     } catch (error) {
       throw new Error('Failed to parse ID token');
