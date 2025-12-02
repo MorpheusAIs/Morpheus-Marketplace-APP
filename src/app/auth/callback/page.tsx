@@ -47,10 +47,9 @@ function AuthCallbackContent() {
 
         // Parse user info from ID token
         const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
-        const email = userInfo.email;
 
-        // Store tokens
-        CognitoDirectAuth.storeTokens(tokens, email);
+        // Store tokens (email may be undefined for some auth methods)
+        CognitoDirectAuth.storeTokens(tokens, userInfo.email);
 
         // Redirect to API keys page
         router.push('/api-keys');
