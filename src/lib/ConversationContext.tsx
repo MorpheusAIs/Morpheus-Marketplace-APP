@@ -57,7 +57,13 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveCurrentConversation = useCallback(async (messages: ConversationMessage[], apiKey?: string): Promise<string> => {
-    if (messages.length === 0) {
+    // Filter out messages with empty content
+    const messagesWithContent = messages.filter(msg => msg.content && msg.content.trim().length > 0);
+    
+    // Check if we have at least one user message with content
+    const hasUserMessage = messagesWithContent.some(msg => msg.role === 'user');
+    
+    if (messagesWithContent.length === 0 || !hasUserMessage) {
       throw new Error('Cannot save empty conversation');
     }
 
