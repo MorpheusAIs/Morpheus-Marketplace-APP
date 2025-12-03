@@ -34,7 +34,7 @@ export function NavUser({
 }: {
   user: {
     name?: string;
-    email: string;
+    email?: string;  // Optional: may not be provided by some auth methods
     avatar?: string;
   };
   onAccountClick?: () => void;
@@ -42,11 +42,14 @@ export function NavUser({
 }) {
   const isMobile = useIsMobile();
   
-  // Get first letter of email for avatar fallback
-  const avatarFallback = user.email.charAt(0).toUpperCase();
+  // Get first letter of email for avatar fallback, or use default
+  const avatarFallback = user.email?.charAt(0).toUpperCase() || 'U';
   
-  // Use name if available, otherwise use email prefix
-  const displayName = user.name || user.email.split('@')[0];
+  // Use name if available, otherwise use email prefix, fallback to "User"
+  const displayName = user.name || (user.email ? user.email.split('@')[0] : 'User');
+  
+  // Display email or fallback message
+  const displayEmail = user.email || 'No email provided';
 
   // Mobile view: Show menu items directly in sidebar
   if (isMobile) {
@@ -62,7 +65,7 @@ export function NavUser({
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
             <span className="truncate font-medium text-sidebar-foreground">{displayName}</span>
-            <span className="truncate text-xs text-sidebar-foreground/70">{user.email}</span>
+            <span className="truncate text-xs text-sidebar-foreground/70">{displayEmail}</span>
           </div>
         </div>
         
@@ -103,7 +106,7 @@ export function NavUser({
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight ml-2">
             <span className="truncate font-medium">{displayName}</span>
-            <span className="truncate text-xs text-gray-400">{user.email}</span>
+            <span className="truncate text-xs text-gray-400">{displayEmail}</span>
           </div>
           <ChevronsUpDown className="ml-auto h-4 w-4" />
         </Button>
@@ -124,7 +127,7 @@ export function NavUser({
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{displayName}</span>
-              <span className="truncate text-xs">{user.email}</span>
+              <span className="truncate text-xs">{displayEmail}</span>
             </div>
           </div>
         </DropdownMenuLabel>

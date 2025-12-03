@@ -35,8 +35,8 @@ export default function DirectLoginPage() {
   }, [router]);
 
   const handleAuthSuccess = async (tokens: any, userInfo: any) => {
-    // Store tokens using the direct auth utility
-    CognitoDirectAuth.storeTokens(tokens, userInfo?.email || '');
+    // Store tokens using the direct auth utility (email may be undefined for some auth methods)
+    CognitoDirectAuth.storeTokens(tokens, userInfo?.email);
     
     // Also store user info for compatibility with existing auth context
     localStorage.setItem('user_info', JSON.stringify(userInfo));
