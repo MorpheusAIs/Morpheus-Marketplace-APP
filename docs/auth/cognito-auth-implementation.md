@@ -8,7 +8,7 @@ All environment variables are already configured in your v0 workspace:
 NEXT_PUBLIC_COGNITO_REGION=us-east-2
 NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=gllbg66ej476tsaf2ibfjc7g8
 NEXT_PUBLIC_COGNITO_DOMAIN=auth.mor.org
-NEXT_PUBLIC_API_BASE_URL=https://api.dev.mor.org
+NEXT_PUBLIC_API_BASE_URL=https://api.mor.org
 ```
 
 **Note**: All variables are prefixed with `NEXT_PUBLIC_` because they're used in client-side code.

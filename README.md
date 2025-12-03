@@ -40,10 +40,10 @@ Copy the example environment file and configure it for your local environment:
 cp env.example .env.local
 ```
 
-Edit `.env.local` with your configuration. The `env.example` file is pre-configured with dev environment values:
+Edit `.env.local` with your configuration. The `env.example` file is pre-configured with production environment values:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=https://api.dev.mor.org
+NEXT_PUBLIC_API_BASE_URL=https://api.mor.org
 NEXT_PUBLIC_COGNITO_REGION=us-east-2
 NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=gllbg66ej476tsaf2ibfjc7g8
 NEXT_PUBLIC_COGNITO_DOMAIN=auth.mor.org
