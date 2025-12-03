@@ -28,6 +28,16 @@ import { useNotification } from "@/lib/NotificationContext";
 import { CreateApiKeyDialog } from "@/components/create-api-key-dialog";
 import { NewApiKeyModal } from "@/components/new-api-key-modal";
 import { VerifyApiKeyModal } from "@/components/verify-api-key-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ApiKeyResponse {
   key: string;
@@ -45,6 +55,8 @@ export default function ApiKeysPage() {
   const [selectedKeyPrefix, setSelectedKeyPrefix] = useState<string>("");
   const [isEditingDefaultKey, setIsEditingDefaultKey] = useState(false);
   const [pendingDefaultKeyId, setPendingDefaultKeyId] = useState<number | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string } | null>(null);
 
   // Find the default API key from the apiKeys array
   const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
@@ -78,22 +90,34 @@ export default function ApiKeysPage() {
     }
   };
 
-  const handleDelete = async (keyId: number, keyName: string) => {
-    if (!accessToken) {
+  const handleDeleteClick = (keyId: number, keyName: string) => {
+    setKeyToDelete({ id: keyId, name: keyName });
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!keyToDelete || !accessToken) {
       error("Authentication Required", "Please sign in to delete keys");
       return;
     }
 
     try {
-      const response = await apiDelete(API_URLS.deleteKey(keyId), accessToken);
+      const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), accessToken);
       if (response.error) {
         throw new Error(response.error);
       }
       await refreshApiKeys();
-      success("API Key Deleted", `The API key "${keyName}" has been deleted.`);
+      success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
+      setShowDeleteDialog(false);
+      setKeyToDelete(null);
     } catch (err) {
       error("Failed to Delete Key", err instanceof Error ? err.message : "Unknown error");
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteDialog(false);
+    setKeyToDelete(null);
   };
 
   const handleVerifySuccess = async () => {
@@ -218,7 +242,7 @@ export default function ApiKeysPage() {
                           <Button
                             variant="ghost"
                             className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                            onClick={() => handleDelete(apiKey.id, apiKey.name)}
+                            onClick={() => handleDeleteClick(apiKey.id, apiKey.name)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
@@ -265,7 +289,7 @@ export default function ApiKeysPage() {
                       <Button
                         variant="ghost"
                         className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                        onClick={() => handleDelete(apiKey.id, apiKey.name)}
+                        onClick={() => handleDeleteClick(apiKey.id, apiKey.name)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
@@ -382,6 +406,27 @@ export default function ApiKeysPage() {
         keyName={apiKeys.find(key => key.key_prefix === selectedKeyPrefix)?.name}
         onVerifySuccessAction={handleVerifySuccess}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete API Key</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the API key "{keyToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AuthenticatedLayout>
   );
 }

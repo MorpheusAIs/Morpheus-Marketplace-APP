@@ -467,7 +467,7 @@ NEXT_PUBLIC_COGNITO_DOMAIN=auth.mor.org
 
 **Configuration:**
 - Environment variable: `NEXT_PUBLIC_API_BASE_URL`
-- Default: `https://api.mor.org`
+- Default: `https://api.mor.org` (production)
 - Development: `https://api.dev.mor.org`
 
 ### API Endpoints
@@ -686,7 +686,7 @@ success('Title', 'Message', { duration: 5000 });
 
 ```bash
 # API Configuration
-NEXT_PUBLIC_API_BASE_URL=https://api.dev.mor.org
+NEXT_PUBLIC_API_BASE_URL=https://api.mor.org
 
 # Cognito Configuration
 NEXT_PUBLIC_COGNITO_REGION=us-east-2
