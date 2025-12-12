@@ -414,7 +414,21 @@ export default function TestPage() {
         // Handle error response
         const errorMessage = data.detail || `HTTP ${response.status}`;
         setResponseContent(`Error: ${errorMessage}`);
-        showError("Request Failed", errorMessage);
+        
+        // Check for automation disabled error and show helpful message
+        if (response.status === 403 && errorMessage.toLowerCase().includes('automation')) {
+          showError(
+            "Automation Disabled",
+            "Session automation is disabled. Please enable it in your Account settings to use the API.",
+            {
+              actionLabel: 'Go to Account',
+              actionUrl: '/account',
+              duration: 15000
+            }
+          );
+        } else {
+          showError("Request Failed", errorMessage);
+        }
         return;
       }
 
