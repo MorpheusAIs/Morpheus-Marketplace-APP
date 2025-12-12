@@ -7,6 +7,7 @@ import { useNotification } from '@/lib/NotificationContext';
 import { useConversation } from '@/lib/ConversationContext';
 import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
+import { RESILIENCE_CONFIG } from '@/lib/api/apiService';
 import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MessageSquare, CheckIcon, Settings, Trash2, Key, Loader2 } from 'lucide-react';
+import { MessageSquare, CheckIcon, Settings, Trash2, Key, Loader2, Wifi } from 'lucide-react';
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -94,11 +95,14 @@ interface ApiModelResponse {
   ModelType?: string;
 }
 
+// Connection status type for better UX during high-latency connections
+type ConnectionStatus = 'idle' | 'connecting' | 'streaming' | 'error' | 'retrying';
+
 export default function ChatPage() {
   // Cognito authentication
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isLoading: _authLoading } = useCognitoAuth();
-  const { error, warning } = useNotification();
+  const { error, warning, info } = useNotification();
   const router = useRouter();
   const pathname = usePathname();
   const { 
@@ -128,6 +132,10 @@ export default function ChatPage() {
     return true;
   });
   const [streamingStatus, setStreamingStatus] = useState<'ready' | 'submitted' | 'streaming' | 'error'>('ready');
+  
+  // Connection status for high-latency feedback
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
+  const [retryCount, setRetryCount] = useState(0);
   
   // Model state
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -431,6 +439,92 @@ export default function ChatPage() {
     }
   };
 
+  /**
+   * Makes a chat request with timeout and retry support.
+   * Returns the response or null if all attempts fail.
+   */
+  const makeChatRequest = async (
+    requestBody: object,
+    abortSignal: AbortSignal,
+    attempt: number = 0
+  ): Promise<Response | null> => {
+    const maxRetries = RESILIENCE_CONFIG.MAX_RETRIES;
+    const timeout = RESILIENCE_CONFIG.CHAT_TIMEOUT_MS;
+    
+    try {
+      // Create a timeout controller
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        timeoutController.abort();
+      }, timeout);
+      
+      // Combine the user's abort signal with our timeout
+      const combinedAbort = () => {
+        clearTimeout(timeoutId);
+        if (!timeoutController.signal.aborted) {
+          timeoutController.abort();
+        }
+      };
+      abortSignal.addEventListener('abort', combinedAbort);
+      
+      try {
+        const res = await fetch(API_URLS.chatCompletions(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'accept': 'text/event-stream',
+            'Authorization': `Bearer ${fullApiKey}`
+          },
+          body: JSON.stringify(requestBody),
+          signal: timeoutController.signal
+        });
+        
+        clearTimeout(timeoutId);
+        return res;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        
+        // Check if this was a user abort
+        if (abortSignal.aborted) {
+          throw fetchError; // Re-throw user aborts
+        }
+        
+        // Check if this was a timeout or network error (retryable)
+        const isRetryable = 
+          fetchError instanceof Error && 
+          (fetchError.name === 'AbortError' || 
+           fetchError.message.includes('timeout') ||
+           fetchError.message.includes('network') ||
+           fetchError.message.includes('fetch'));
+        
+        if (isRetryable && attempt < maxRetries) {
+          const delay = RESILIENCE_CONFIG.RETRY_DELAY_MS * Math.pow(RESILIENCE_CONFIG.RETRY_BACKOFF_MULTIPLIER, attempt);
+          console.log(`⚠️ Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`);
+          
+          setConnectionStatus('retrying');
+          setRetryCount(attempt + 1);
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // Check if aborted during delay
+          if (abortSignal.aborted) {
+            throw new Error('Request cancelled');
+          }
+          
+          setConnectionStatus('connecting');
+          return makeChatRequest(requestBody, abortSignal, attempt + 1);
+        }
+        
+        throw fetchError;
+      }
+    } catch (error) {
+      if (attempt >= maxRetries) {
+        console.error(`❌ All ${maxRetries + 1} attempts failed`);
+      }
+      throw error;
+    }
+  };
+
   // Handle form submission with streaming
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSubmit = async (message: PromptInputMessage, _e: React.FormEvent) => {
@@ -439,6 +533,8 @@ export default function ChatPage() {
     setIsLoading(true);
     setAuthError(false);
     setStreamingStatus('submitted');
+    setConnectionStatus('connecting');
+    setRetryCount(0);
     
     const currentPrompt = message.text;
     
@@ -460,7 +556,6 @@ export default function ChatPage() {
     
     setMessages(prev => [...prev, streamingMessage]);
     setStreamingContent('');
-    setStreamingStatus('streaming');
     
     // Cancel any existing stream
     if (abortControllerRef.current) {
@@ -492,17 +587,12 @@ export default function ChatPage() {
         stream: true
       };
 
-      // Make the streaming API call
-      const res = await fetch(API_URLS.chatCompletions(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'text/event-stream',
-          'Authorization': `Bearer ${fullApiKey}`
-        },
-        body: JSON.stringify(requestBody),
-        signal: abortController.signal
-      });
+      // Make the streaming API call with retry support
+      const res = await makeChatRequest(requestBody, abortController.signal);
+      
+      if (!res) {
+        throw new Error('Failed to connect to AI provider after multiple attempts');
+      }
 
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
@@ -522,10 +612,15 @@ export default function ChatPage() {
             }
           );
           setStreamingStatus('error');
+          setConnectionStatus('error');
           return;
         }
         throw new Error(`API returned status ${res.status}`);
       }
+
+      // Connection established, now streaming
+      setConnectionStatus('streaming');
+      setStreamingStatus('streaming');
 
       // Read the stream
       const reader = res.body?.getReader();
@@ -591,6 +686,7 @@ export default function ChatPage() {
       });
       
       setStreamingStatus('ready');
+      setConnectionStatus('idle');
       setStreamingContent('');
 
       // Save to API if saveChatHistory is enabled
@@ -634,26 +730,46 @@ export default function ChatPage() {
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
         // Stream was cancelled, don't show error
+        setConnectionStatus('idle');
         return;
       }
       
       setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
       
       console.error('Error:', err);
+      
+      // Provide more helpful error messages based on error type
+      let errorTitle = 'Message Failed';
+      let errorDescription = 'Failed to send your message. Please check your connection and try again.';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('timeout')) {
+          errorTitle = 'Connection Timeout';
+          errorDescription = 'The request took too long. This may be due to high network latency or server load. Please try again.';
+        } else if (err.message.includes('network') || err.message.includes('fetch')) {
+          errorTitle = 'Network Error';
+          errorDescription = 'Unable to reach the server. Please check your internet connection and try again.';
+        } else if (err.message.includes('multiple attempts')) {
+          errorTitle = 'Connection Failed';
+          errorDescription = 'Could not establish connection after multiple attempts. The AI provider may be temporarily unavailable.';
+        }
+      }
+      
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'An error occurred while processing your request.'
+        content: `⚠️ ${errorDescription}`
       }]);
       
       error(
-        'Message Failed',
-        'Failed to send your message. Please check your connection and try again.',
+        errorTitle,
+        errorDescription,
         {
           duration: 8000
         }
       );
       
       setStreamingStatus('error');
+      setConnectionStatus('error');
     } finally {
       setIsLoading(false);
       if (streamingStatus !== 'streaming') {
@@ -700,6 +816,20 @@ export default function ChatPage() {
     );
   }
 
+  // Helper to get connection status message
+  const getConnectionStatusMessage = (): string | null => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return 'Connecting to AI provider...';
+      case 'retrying':
+        return `Retrying connection (attempt ${retryCount + 1}/${RESILIENCE_CONFIG.MAX_RETRIES + 1})...`;
+      default:
+        return null;
+    }
+  };
+
+  const connectionMessage = getConnectionStatusMessage();
+
   return (
     <AuthenticatedLayout>
       <div className="flex flex-col h-full bg-background text-foreground">
@@ -723,6 +853,15 @@ export default function ChatPage() {
             </Button>
           )}
         </header>
+
+        {/* Connection Status Banner - Shows during connecting/retrying */}
+        {connectionMessage && (
+          <div className="bg-orange-500/90 text-white px-4 py-2 flex items-center justify-center gap-2 text-sm font-medium animate-pulse">
+            <Wifi className="h-4 w-4" />
+            <span>{connectionMessage}</span>
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </div>
+        )}
 
         {/* Messages */}
         <Conversation className="flex-1">
