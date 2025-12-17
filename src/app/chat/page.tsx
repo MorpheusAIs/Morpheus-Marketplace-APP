@@ -102,7 +102,7 @@ export default function ChatPage() {
   // Cognito authentication
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isLoading: _authLoading } = useCognitoAuth();
-  const { error, warning, info } = useNotification();
+  const { error, warning } = useNotification();
   const router = useRouter();
   const pathname = usePathname();
   const { 

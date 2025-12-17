@@ -110,7 +110,6 @@ export default function ChatPage() {
     saveCurrentConversation, 
     updateCurrentConversation,
     deleteConversationById,
-    startNewConversation,
     loadConversation
   } = useConversation();
   
