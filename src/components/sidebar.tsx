@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -64,10 +64,32 @@ export function Sidebar({
   const currentChatIdFromRoute = pathname?.startsWith("/chat/") && pathname !== "/chat" 
     ? pathname.split("/chat/")[1]?.split("/")[0] 
     : null;
-  const { conversations, isLoading: conversationsLoading, getConversationById } = useConversationHistory();
+  const { conversations, isLoading: conversationsLoading, getConversationById, refresh } = useConversationHistory();
   const { loadConversation, deleteConversationById, startNewConversation } = useConversation();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [deleteKey, setDeleteKey] = useState(0);
+
+  // Ensure conversation list is accurate when viewing a conversation
+  // If we're viewing a conversation that's not in the list, refresh the list
+  useEffect(() => {
+    if (currentChatIdFromRoute && !conversationsLoading && conversations.length === 0) {
+      // We're viewing a conversation but the list is empty - refresh to ensure accuracy
+      console.log('Conversation list is empty but viewing a conversation, refreshing...');
+      refresh(true).catch(err => {
+        console.warn('Error refreshing conversations:', err);
+      });
+    } else if (currentChatIdFromRoute && !conversationsLoading && conversations.length > 0) {
+      // Check if the current conversation is in the list
+      const currentInList = conversations.some(conv => conv.id === currentChatIdFromRoute);
+      if (!currentInList) {
+        // Current conversation not in list - refresh to ensure accuracy
+        console.log(`Current conversation ${currentChatIdFromRoute} not in list, refreshing...`);
+        refresh(true).catch(err => {
+          console.warn('Error refreshing conversations:', err);
+        });
+      }
+    }
+  }, [currentChatIdFromRoute, conversationsLoading, conversations.length, refresh]);
   const [localSaveChatHistory, setLocalSaveChatHistory] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("save_chat_history");
