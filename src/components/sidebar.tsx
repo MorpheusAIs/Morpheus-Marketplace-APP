@@ -67,6 +67,7 @@ export function Sidebar({
   const { conversations, isLoading: conversationsLoading, getConversationById } = useConversationHistory();
   const { loadConversation, deleteConversationById, startNewConversation } = useConversation();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
+  const [deleteKey, setDeleteKey] = useState(0);
   const [localSaveChatHistory, setLocalSaveChatHistory] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem("save_chat_history");
@@ -137,6 +138,8 @@ export function Sidebar({
     if (window.confirm('Are you sure you want to delete this conversation?')) {
       try {
         await deleteConversationById(chatId);
+        // Force re-render to reset hover states on delete buttons
+        setDeleteKey(prev => prev + 1);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete conversation';
         error(
@@ -262,7 +265,7 @@ export function Sidebar({
                                   ? `${chat.title.substring(0, 40)}...` 
                                   : chat.title;
                                 return (
-                                  <SidebarMenuItem key={chat.id}>
+                                  <SidebarMenuItem key={`${chat.id}-${deleteKey}`}>
                                     <SidebarMenuButton
                                       isActive={isActive}
                                       onClick={() => handleChatSelect(chat.id)}
@@ -373,7 +376,7 @@ export function Sidebar({
                 <FontAwesomeIcon icon={faXTwitter} className="h-4 w-4" />
               </Link>
               <Link
-                href="https://discord.gg/GpEwTnhW"
+                href="https://discord.com/invite/Dc26EFb6JK"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"

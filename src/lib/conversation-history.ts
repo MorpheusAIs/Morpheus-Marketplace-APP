@@ -183,8 +183,18 @@ export async function saveConversation(messages: ConversationMessage[], apiKey?:
     throw new Error('Cannot save empty conversation');
   }
 
+  // Filter out messages with empty content (but keep messages with content)
+  const messagesWithContent = messages.filter(msg => msg.content && msg.content.trim().length > 0);
+  
+  // Check if we have at least one user message with content
+  const hasUserMessage = messagesWithContent.some(msg => msg.role === 'user');
+  
+  if (messagesWithContent.length === 0 || !hasUserMessage) {
+    throw new Error('Cannot save empty conversation');
+  }
+
   // Generate title from first user message (first 50 characters)
-  const firstUserMessage = messages.find(msg => msg.role === 'user');
+  const firstUserMessage = messagesWithContent.find(msg => msg.role === 'user');
   const title = firstUserMessage 
     ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
     : 'New Conversation';
@@ -217,8 +227,10 @@ export async function saveConversation(messages: ConversationMessage[], apiKey?:
     let failCount = 0;
     
     try {
-      for (let i = 0; i < messages.length; i++) {
-        const message = messages[i];
+      // Only add messages with content
+      const messagesToAdd = messagesWithContent;
+      for (let i = 0; i < messagesToAdd.length; i++) {
+        const message = messagesToAdd[i];
         console.log(`Adding message ${i + 1}/${messages.length}:`, {
           role: message.role,
           contentLength: message.content?.length || 0,
@@ -247,7 +259,7 @@ export async function saveConversation(messages: ConversationMessage[], apiKey?:
           successCount++;
         }
       }
-      console.log(`Message addition complete: ${successCount} succeeded, ${failCount} failed out of ${messages.length} total`);
+      console.log(`Message addition complete: ${successCount} succeeded, ${failCount} failed out of ${messagesToAdd.length} total`);
     } catch (messagesError) {
       console.error(`Error adding messages to conversation ${conversationId}:`, messagesError);
       // Don't throw - conversation was created, messages can be added later
@@ -279,8 +291,18 @@ export async function updateConversation(id: string, messages: ConversationMessa
     throw new Error('Cannot update conversation with empty messages');
   }
 
+  // Filter out messages with empty content (but keep messages with content)
+  const messagesWithContent = messages.filter(msg => msg.content && msg.content.trim().length > 0);
+  
+  // Check if we have at least one user message with content
+  const hasUserMessage = messagesWithContent.some(msg => msg.role === 'user');
+  
+  if (messagesWithContent.length === 0 || !hasUserMessage) {
+    throw new Error('Cannot update conversation with empty messages');
+  }
+
   // Generate title from first user message (first 50 characters)
-  const firstUserMessage = messages.find(msg => msg.role === 'user');
+  const firstUserMessage = messagesWithContent.find(msg => msg.role === 'user');
   const title = firstUserMessage 
     ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
     : 'New Conversation';
@@ -308,8 +330,8 @@ export async function updateConversation(id: string, messages: ConversationMessa
     // Note: The API might need us to delete old messages first, but for now we'll add new ones
     // If the API doesn't support replacing, we might need to delete and re-add
     try {
-      // Try to add all messages (API might handle duplicates or replace)
-      for (const message of messages) {
+      // Try to add all messages with content (API might handle duplicates or replace)
+      for (const message of messagesWithContent) {
         const messageResponse = await apiPost<ConversationMessage>(
           API_URLS.chatMessages(id),
           message,
@@ -321,7 +343,7 @@ export async function updateConversation(id: string, messages: ConversationMessa
           // Continue with other messages even if one fails
         }
       }
-      console.log(`Successfully updated ${messages.length} messages in conversation ${id}`);
+      console.log(`Successfully updated ${messagesWithContent.length} messages in conversation ${id}`);
     } catch (messagesError) {
       console.error(`Error updating messages in conversation ${id}:`, messagesError);
       // Don't throw - conversation metadata was updated

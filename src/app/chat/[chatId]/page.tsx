@@ -160,6 +160,8 @@ export default function ChatPage() {
   const [streamingContent, setStreamingContent] = useState<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentConversationIdRef = useRef<string | null>(null);
+  const isSavingRef = useRef<boolean>(false);
+  const isLoadingConversationRef = useRef<boolean>(false);
   
   // Token usage state
   const [tokenUsage, setTokenUsage] = useState<LanguageModelUsage>({
@@ -190,10 +192,18 @@ export default function ChatPage() {
     const loadConversationFromUrl = async () => {
       if (!chatId || !fullApiKey) {
         setIsLoadingConversation(false);
+        isLoadingConversationRef.current = false;
+        return;
+      }
+
+      // Prevent multiple simultaneous loads
+      if (isLoadingConversationRef.current) {
+        console.log('Conversation load already in progress, skipping...');
         return;
       }
 
       setIsLoadingConversation(true);
+      isLoadingConversationRef.current = true;
       try {
         // First check if conversation is already preloaded
         const preloadedConversation = getConversationById(chatId);
@@ -210,16 +220,27 @@ export default function ChatPage() {
         }
 
         if (conversation) {
-          const formattedMessages: Message[] = (conversation.messages || []).map((msg: ConversationMessage) => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            sequence: msg.sequence,
-          }));
-          setMessages(formattedMessages);
+          // Deduplicate messages when loading
+          const seenMessages = new Set<string>();
+          const deduplicatedMessages: Message[] = [];
+          
+          (conversation.messages || []).forEach((msg: ConversationMessage) => {
+            const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
+            if (!seenMessages.has(messageKey)) {
+              seenMessages.add(messageKey);
+              deduplicatedMessages.push({
+                id: msg.id,
+                role: msg.role,
+                content: msg.content,
+                sequence: msg.sequence,
+              });
+            }
+          });
+
+          setMessages(deduplicatedMessages);
           setConversationTitle(conversation.title);
           setStreamingContent('');
-          console.log(`Loaded conversation ${chatId} with ${formattedMessages.length} messages`);
+          console.log(`Loaded conversation ${chatId} with ${deduplicatedMessages.length} deduplicated messages`);
         } else {
           // Conversation not found, redirect to /chat
           router.push('/chat');
@@ -230,38 +251,29 @@ export default function ChatPage() {
         router.push('/chat');
       } finally {
         setIsLoadingConversation(false);
+        isLoadingConversationRef.current = false;
       }
     };
 
     loadConversationFromUrl();
   }, [chatId, fullApiKey, loadConversation, router, getConversationById]);
 
-  // Update title when conversation ID changes
+  // Listen for conversation history updates to refresh title only if it matches current chatId
   useEffect(() => {
-    const updateTitle = async () => {
-      if (currentConversationId) {
+    const handleHistoryUpdate = async (e: Event) => {
+      // Only update title if the updated conversation matches the current chatId from URL
+      if (!chatId) return;
+      
+      const customEvent = e as CustomEvent;
+      const updatedConversation = customEvent.detail?.conversation;
+      
+      // If the event includes conversation details and it matches current chatId, update title
+      if (updatedConversation && updatedConversation.id === chatId) {
+        setConversationTitle(updatedConversation.title);
+      } else if (customEvent.detail?.type === 'updated' && customEvent.detail?.id === chatId) {
+        // If it's an update event for current chatId, reload to get latest title
         try {
-          const conversation = await loadConversation(currentConversationId);
-          if (conversation) {
-            setConversationTitle(conversation.title);
-          }
-        } catch (err) {
-          console.error('Error loading conversation for title:', err);
-        }
-      } else {
-        setConversationTitle('New Chat');
-      }
-    };
-
-    updateTitle();
-  }, [currentConversationId, loadConversation]);
-
-  // Listen for conversation history updates to refresh title
-  useEffect(() => {
-    const handleHistoryUpdate = async () => {
-      if (currentConversationId) {
-        try {
-          const conversation = await loadConversation(currentConversationId);
+          const conversation = await loadConversation(chatId, fullApiKey);
           if (conversation) {
             setConversationTitle(conversation.title);
           }
@@ -275,7 +287,7 @@ export default function ChatPage() {
     return () => {
       window.removeEventListener('conversation-history-updated', handleHistoryUpdate);
     };
-  }, [currentConversationId, loadConversation]);
+  }, [chatId, fullApiKey, loadConversation]);
 
   // Listen for conversation load events from sidebar
   useEffect(() => {
@@ -345,7 +357,19 @@ export default function ChatPage() {
     let inputTokens = 0;
     let outputTokens = 0;
 
-    messages.forEach((msg) => {
+    // Deduplicate messages before calculating tokens to avoid double counting
+    const seenMessages = new Set<string>();
+    const deduplicatedMessages: Message[] = [];
+    
+    for (const msg of messages) {
+      const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
+      if (!seenMessages.has(messageKey)) {
+        seenMessages.add(messageKey);
+        deduplicatedMessages.push(msg);
+      }
+    }
+
+    deduplicatedMessages.forEach((msg) => {
       const tokens = estimateTokens(msg.content);
       if (msg.role === 'user') {
         inputTokens += tokens;
@@ -357,7 +381,11 @@ export default function ChatPage() {
     const systemMessage = "You are a helpful assistant. Format your responses using Markdown when appropriate. You can use features like **bold text**, *italics*, ### headings, `code blocks`, numbered and bulleted lists, and tables to make your answers more readable and structured.";
     inputTokens += estimateTokens(systemMessage);
 
-    if (streamingContent) {
+    // Only add streaming content if it's not already in messages (to avoid double counting)
+    const lastMessage = deduplicatedMessages[deduplicatedMessages.length - 1];
+    const isStreamingInMessages = lastMessage && lastMessage.role === 'assistant' && lastMessage.content === streamingContent;
+    
+    if (streamingContent && !isStreamingInMessages) {
       outputTokens += estimateTokens(streamingContent);
     }
 
@@ -652,8 +680,29 @@ export default function ChatPage() {
 
       // Save to API if saveChatHistory is enabled
       if (saveChatHistory && accumulatedContent) {
+        // Prevent multiple simultaneous saves
+        if (isSavingRef.current) {
+          console.log('Save already in progress, skipping...');
+          return;
+        }
+
         try {
-          const conversationMessages: ConversationMessage[] = updatedMessages.map(msg => ({
+          isSavingRef.current = true;
+          
+          // Deduplicate messages by ID or content+role combination
+          const seenMessages = new Set<string>();
+          const deduplicatedMessages: Message[] = [];
+          
+          for (const msg of updatedMessages) {
+            // Create a unique key for deduplication
+            const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
+            if (!seenMessages.has(messageKey)) {
+              seenMessages.add(messageKey);
+              deduplicatedMessages.push(msg);
+            }
+          }
+
+          const conversationMessages: ConversationMessage[] = deduplicatedMessages.map(msg => ({
             role: msg.role,
             content: msg.content,
             id: msg.id,
@@ -680,6 +729,8 @@ export default function ChatPage() {
               duration: 5000
             }
           );
+        } finally {
+          isSavingRef.current = false;
         }
       }
     } catch (err: unknown) {
