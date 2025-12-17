@@ -102,7 +102,7 @@ export default function ChatPage() {
   // Cognito authentication
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isLoading: _authLoading } = useCognitoAuth();
-  const { error, warning, info } = useNotification();
+  const { error, warning } = useNotification();
   const router = useRouter();
   const pathname = usePathname();
   const { 
@@ -637,7 +637,7 @@ export default function ChatPage() {
             'Authentication Required',
             'Please verify your API key to continue chatting.',
             {
-              actionLabel: 'Go to Admin',
+              actionLabel: 'Go to Api Keys',
               actionUrl: '/api-keys',
               duration: 10000
             }

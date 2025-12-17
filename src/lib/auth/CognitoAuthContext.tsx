@@ -75,7 +75,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       }
     } catch (error) {
       // Check if this is an expected error (e.g., NotAuthorizedException after password reset)
-      const errorName = error && typeof error === 'object' && 'name' in error ? (error as any).name : '';
+      const errorName = error && typeof error === 'object' && 'name' in error ? (error as { name?: string }).name : '';
       // Only log unexpected errors - NotAuthorizedException is expected when tokens are invalid
       if (errorName !== 'NotAuthorizedException') {
         console.error('Error initializing auth:', error);
@@ -96,14 +96,14 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         setApiKeys(activeKeys);
         
         // Auto-select first API key if no key is already selected
-        await autoSelectFirstApiKey(token, activeKeys);
+        await autoSelectFirstApiKey(token);
       }
     } catch (error) {
       console.error('Error fetching API keys:', error);
     }
   };
 
-  const autoSelectFirstApiKey = async (token: string, userApiKeys?: ApiKey[]) => {
+  const autoSelectFirstApiKey = async (token: string) => {
     try {
       // Check if we already have a valid API key selected
       const storedApiKey = sessionStorage.getItem('verified_api_key');
@@ -138,9 +138,9 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           // Show user-friendly notification using the global notification system
           warning(
             'API Key Verification Required',
-            'Your API key needs to be verified before you can use Chat or Test. Please go to the Admin page and click "Select" on your preferred API key.',
+            'Your API key needs to be verified before you can use Chat or Test. Please go to the Api Keys page and click "Select" on your preferred API key.',
             {
-              actionLabel: 'Go to Admin',
+              actionLabel: 'Go to Api Keys',
               actionUrl: '/api-keys',
               duration: 10000,
             }
@@ -194,10 +194,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Show informational notification using the global notification system
         info(
           'API Key Available',
-          'An API key is available but needs verification. Visit the Admin page to verify it and enable Chat/Test features.',
+          'An API key is available but needs verification. Visit the Api Keys page to verify it and enable Chat/Test features.',
           {
-            actionLabel: 'Go to Admin',
-            actionUrl: '/admin',
+            actionLabel: 'Go to Api Keys',
+            actionUrl: '/api-keys',
             duration: 8000,
           }
         );
@@ -212,10 +212,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Show welcome notification for first-time users using the global notification system
         info(
           'Welcome!',
-          'To get started with Chat and Test, please create your first API key in the Admin page.',
+          'To get started with Chat and Test, please create your first API key in the Api Keys page.',
           {
             actionLabel: 'Create API Key',
-            actionUrl: '/admin',
+            actionUrl: '/api-keys',
             duration: 10000,
           }
         );
@@ -226,10 +226,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       // Show error notification using the global notification system
       error(
         'API Key Setup Error',
-        'There was an issue setting up your API key. Please visit the Admin page to manually select one.',
+        'There was an issue setting up your API key. Please visit the Api Keys page to manually select one.',
         {
-          actionLabel: 'Go to Admin',
-          actionUrl: '/admin',
+          actionLabel: 'Go to Api Keys',
+          actionUrl: '/api-keys',
           duration: 10000,
         }
       );
