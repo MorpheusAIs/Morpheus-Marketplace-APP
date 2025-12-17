@@ -75,7 +75,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       }
     } catch (error) {
       // Check if this is an expected error (e.g., NotAuthorizedException after password reset)
-      const errorName = error && typeof error === 'object' && 'name' in error ? (error as any).name : '';
+      const errorName = error && typeof error === 'object' && 'name' in error ? (error as { name?: string }).name : '';
       // Only log unexpected errors - NotAuthorizedException is expected when tokens are invalid
       if (errorName !== 'NotAuthorizedException') {
         console.error('Error initializing auth:', error);
@@ -96,14 +96,14 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         setApiKeys(activeKeys);
         
         // Auto-select first API key if no key is already selected
-        await autoSelectFirstApiKey(token, activeKeys);
+        await autoSelectFirstApiKey(token);
       }
     } catch (error) {
       console.error('Error fetching API keys:', error);
     }
   };
 
-  const autoSelectFirstApiKey = async (token: string, userApiKeys?: ApiKey[]) => {
+  const autoSelectFirstApiKey = async (token: string) => {
     try {
       // Check if we already have a valid API key selected
       const storedApiKey = sessionStorage.getItem('verified_api_key');
