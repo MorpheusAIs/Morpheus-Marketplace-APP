@@ -637,7 +637,7 @@ export default function ChatPage() {
             'Authentication Required',
             'Please verify your API key to continue chatting.',
             {
-              actionLabel: 'Go to Admin',
+              actionLabel: 'Go to Api Keys',
               actionUrl: '/api-keys',
               duration: 10000
             }

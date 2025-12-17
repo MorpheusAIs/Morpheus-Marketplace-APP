@@ -140,7 +140,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
             'API Key Verification Required',
             'Your API key needs to be verified before you can use Chat or Test. Please go to the Admin page and click "Select" on your preferred API key.',
             {
-              actionLabel: 'Go to Admin',
+              actionLabel: 'Go to Api Keys',
               actionUrl: '/api-keys',
               duration: 10000,
             }
@@ -196,8 +196,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           'API Key Available',
           'An API key is available but needs verification. Visit the Admin page to verify it and enable Chat/Test features.',
           {
-            actionLabel: 'Go to Admin',
-            actionUrl: '/admin',
+            actionLabel: 'Go to Api Keys',
+            actionUrl: '/api-keys',
             duration: 8000,
           }
         );
@@ -212,10 +212,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Show welcome notification for first-time users using the global notification system
         info(
           'Welcome!',
-          'To get started with Chat and Test, please create your first API key in the Admin page.',
+          'To get started with Chat and Test, please create your first API key in the Api Keys page.',
           {
             actionLabel: 'Create API Key',
-            actionUrl: '/admin',
+            actionUrl: '/api-keys',
             duration: 10000,
           }
         );
@@ -226,10 +226,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       // Show error notification using the global notification system
       error(
         'API Key Setup Error',
-        'There was an issue setting up your API key. Please visit the Admin page to manually select one.',
+        'There was an issue setting up your API key. Please visit the Api Keys page to manually select one.',
         {
-          actionLabel: 'Go to Admin',
-          actionUrl: '/admin',
+          actionLabel: 'Go to Api Keys',
+          actionUrl: '/api-keys',
           duration: 10000,
         }
       );
