@@ -376,7 +376,7 @@ export function Sidebar({
                 <FontAwesomeIcon icon={faXTwitter} className="h-4 w-4" />
               </Link>
               <Link
-                href="https://discord.gg/kyVaxTHnvB"
+                href="https://discord.com/invite/Dc26EFb6JK"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
