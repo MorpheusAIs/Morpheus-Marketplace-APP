@@ -195,6 +195,14 @@ export function useConversationHistory() {
         // Optimize: remove from local state instead of refetching
         console.log(`Removing conversation ${customEvent.detail.id} from local state`);
         removeConversation(customEvent.detail.id);
+        // If we have very few conversations left (1 or 0), refresh from server to ensure accuracy
+        // This handles edge cases where the list might be out of sync
+        if (globalConversations.length <= 1) {
+          console.log('Few conversations remaining, refreshing from server to ensure accuracy');
+          refreshConversations(true).catch(err => {
+            console.warn('Error refreshing conversations after deletion:', err);
+          });
+        }
       } else if (customEvent?.detail?.type === 'created' && customEvent?.detail?.conversation) {
         // Optimize: add to local state instead of refetching
         console.log(`Adding conversation ${customEvent.detail.conversation.id} to local state`);

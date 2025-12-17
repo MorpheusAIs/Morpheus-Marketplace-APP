@@ -472,9 +472,9 @@ export default function ChatPage() {
 
   // Handle conversation deletion
   const handleDeleteConversation = async () => {
-    if (currentConversationId) {
+    if (chatId) {
       try {
-        await deleteConversationById(currentConversationId);
+        await deleteConversationById(chatId);
         router.push('/chat');
         setShowDeleteDialog(false);
       } catch (err) {
@@ -812,7 +812,7 @@ export default function ChatPage() {
             </h2>
             <p className="text-sm text-muted-foreground">API Key: {apiKeyPrefix}...</p>
           </div>
-          {currentConversationId && (
+          {chatId && (
             <Button
               variant="ghost"
               size="icon"
