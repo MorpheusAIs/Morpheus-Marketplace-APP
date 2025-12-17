@@ -201,8 +201,22 @@ export function useConversationHistory() {
         addConversation(customEvent.detail.conversation);
       } else if (customEvent?.detail?.type === 'updated' && customEvent?.detail?.conversation) {
         // Optimize: update in local state instead of refetching
-        console.log(`Updating conversation ${customEvent.detail.conversation.id} in local state`);
-        addConversation(customEvent.detail.conversation);
+        // Deduplicate messages in the updated conversation
+        const updatedConv = customEvent.detail.conversation;
+        if (updatedConv.messages && updatedConv.messages.length > 0) {
+          const seenMessages = new Set<string>();
+          const deduplicatedMessages = updatedConv.messages.filter((msg: { id?: string; role: string; content: string }) => {
+            const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
+            if (seenMessages.has(messageKey)) {
+              return false;
+            }
+            seenMessages.add(messageKey);
+            return true;
+          });
+          updatedConv.messages = deduplicatedMessages;
+        }
+        console.log(`Updating conversation ${updatedConv.id} in local state`);
+        addConversation(updatedConv);
       } else {
         // Full refresh for other cases (including plain Event without detail)
         console.log('Performing full refresh of conversations');
