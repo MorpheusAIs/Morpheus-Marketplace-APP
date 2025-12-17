@@ -564,6 +564,36 @@ export default function ChatPage() {
       });
 
       if (!res.ok) {
+        // Try to parse error response for specific error messages
+        let errorDetail = '';
+        try {
+          const errorBody = await res.json();
+          errorDetail = errorBody?.detail || '';
+        } catch {
+          // Ignore parse errors
+        }
+
+        // Check for automation disabled error (403 with specific message)
+        if (res.status === 403 && errorDetail.toLowerCase().includes('automation')) {
+          setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: '⚠️ Session automation is disabled. Please enable it in your Account settings to use Chat.'
+          }]);
+          warning(
+            'Automation Disabled',
+            'Session automation is disabled. Enable it in Account settings to chat.',
+            {
+              actionLabel: 'Go to Account',
+              actionUrl: '/account',
+              duration: 15000
+            }
+          );
+          setStreamingStatus('error');
+          return;
+        }
+
+        // Handle other auth errors (401 or 403 without automation message)
         if (res.status === 401 || res.status === 403) {
           setAuthError(true);
           setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
