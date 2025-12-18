@@ -326,24 +326,71 @@ export async function updateConversation(id: string, messages: ConversationMessa
 
     console.log(`Updated conversation ${id} metadata, now updating messages...`);
 
-    // Step 2: Replace messages by adding them via the messages endpoint
-    // Note: The API might need us to delete old messages first, but for now we'll add new ones
-    // If the API doesn't support replacing, we might need to delete and re-add
+    // Step 2: Only add NEW messages that don't already exist
+    // Fetch existing messages first to avoid duplicates, with fallback if fetch fails
     try {
-      // Try to add all messages with content (API might handle duplicates or replace)
-      for (const message of messagesWithContent) {
-        const messageResponse = await apiPost<ConversationMessage>(
-          API_URLS.chatMessages(id),
-          message,
-          key
+      let existingMessages: ConversationMessage[] = [];
+      let existingMessageKeys = new Set<string>();
+      
+      try {
+        // Get existing messages from the conversation with a timeout
+        const existingMessagesResponse = await apiGet<ConversationMessage[]>(
+          API_URLS.chatMessages(id), 
+          key,
+          { timeout: 10000 } // 10 second timeout
         );
         
-        if (messageResponse.error) {
-          console.warn(`Failed to add message to conversation ${id}:`, messageResponse.error);
-          // Continue with other messages even if one fails
+        if (existingMessagesResponse.error) {
+          console.warn(`Could not fetch existing messages for conversation ${id}:`, existingMessagesResponse.error);
+          // Continue without deduplication - API should handle duplicates
+        } else {
+          existingMessages = existingMessagesResponse.data || [];
+          
+          // Create a set of existing message keys for quick lookup
+          existingMessages.forEach(msg => {
+            const key = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
+            existingMessageKeys.add(key);
+          });
         }
+      } catch (fetchError) {
+        console.warn(`Error fetching existing messages for conversation ${id}, proceeding without deduplication:`, fetchError);
+        // Continue without deduplication - API should handle duplicates or we'll deduplicate on load
       }
-      console.log(`Successfully updated ${messagesWithContent.length} messages in conversation ${id}`);
+      
+      // Filter to only new messages that don't already exist (if we successfully fetched existing messages)
+      const newMessages = existingMessageKeys.size > 0
+        ? messagesWithContent.filter(msg => {
+            const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
+            return !existingMessageKeys.has(messageKey);
+          })
+        : messagesWithContent; // If we couldn't fetch existing messages, try to add all (API should handle duplicates)
+      
+      console.log(`Found ${existingMessages.length} existing messages, adding ${newMessages.length} new messages`);
+      
+      // Only add new messages that don't already exist
+      if (newMessages.length > 0) {
+        for (const message of newMessages) {
+          try {
+            const messageResponse = await apiPost<ConversationMessage>(
+              API_URLS.chatMessages(id),
+              message,
+              key,
+              { timeout: 10000 } // 10 second timeout per message
+            );
+            
+            if (messageResponse.error) {
+              console.warn(`Failed to add message to conversation ${id}:`, messageResponse.error);
+              // Continue with other messages even if one fails
+            }
+          } catch (messageError) {
+            console.warn(`Error adding message to conversation ${id}:`, messageError);
+            // Continue with other messages even if one fails
+          }
+        }
+        console.log(`Successfully added ${newMessages.length} new messages to conversation ${id}`);
+      } else {
+        console.log(`No new messages to add to conversation ${id} (all messages already exist)`);
+      }
     } catch (messagesError) {
       console.error(`Error updating messages in conversation ${id}:`, messagesError);
       // Don't throw - conversation metadata was updated

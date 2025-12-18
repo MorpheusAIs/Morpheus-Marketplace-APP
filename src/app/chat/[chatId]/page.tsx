@@ -6,6 +6,7 @@ import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
 import { useConversation } from '@/lib/ConversationContext';
 import { useConversationHistory } from '@/lib/hooks/use-conversation-history';
+import { updateConversation } from '@/lib/conversation-history';
 import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
 import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
@@ -108,7 +109,6 @@ export default function ChatPage() {
   const { 
     currentConversationId, 
     saveCurrentConversation, 
-    updateCurrentConversation,
     deleteConversationById,
     loadConversation
   } = useConversation();
@@ -532,6 +532,20 @@ export default function ChatPage() {
     abortControllerRef.current = abortController;
     
     try {
+      // Deduplicate messages before sending to API to prevent duplicate messages in request
+      const seenMessages = new Set<string>();
+      const deduplicatedMessages = messages
+        .filter(msg => msg.id !== streamingMessageId) // Remove streaming message
+        .filter(msg => {
+          // Create a unique key for deduplication
+          const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 100)}`;
+          if (seenMessages.has(messageKey)) {
+            return false; // Skip duplicate
+          }
+          seenMessages.add(messageKey);
+          return true;
+        });
+
       const requestBody = {
         model: selectedModel,
         messages: [
@@ -539,7 +553,7 @@ export default function ChatPage() {
             role: "system",
             content: "You are a helpful assistant. Format your responses using Markdown when appropriate. You can use features like **bold text**, *italics*, ### headings, `code blocks`, numbered and bulleted lists, and tables to make your answers more readable and structured."
           },
-          ...messages.filter(msg => msg.id !== streamingMessageId).map(msg => ({
+          ...deduplicatedMessages.map(msg => ({
             role: msg.role,
             content: msg.content
           })),
@@ -668,9 +682,18 @@ export default function ChatPage() {
       
       let updatedMessages: Message[] = [];
       setMessages(prev => {
-        updatedMessages = prev.map(msg => 
-          msg.id === streamingMessageId ? finalMessage : msg
-        );
+        // Update the streaming message and deduplicate to prevent duplicates in state
+        const seenMessages = new Set<string>();
+        updatedMessages = prev
+          .map(msg => msg.id === streamingMessageId ? finalMessage : msg)
+          .filter(msg => {
+            const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 100)}`;
+            if (seenMessages.has(messageKey)) {
+              return false; // Skip duplicate
+            }
+            seenMessages.add(messageKey);
+            return true;
+          });
         return updatedMessages;
       });
       
@@ -688,35 +711,67 @@ export default function ChatPage() {
         try {
           isSavingRef.current = true;
           
-          // Deduplicate messages by ID or content+role combination
-          const seenMessages = new Set<string>();
-          const deduplicatedMessages: Message[] = [];
-          
-          for (const msg of updatedMessages) {
-            // Create a unique key for deduplication
-            const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
-            if (!seenMessages.has(messageKey)) {
-              seenMessages.add(messageKey);
-              deduplicatedMessages.push(msg);
+          // Use chatId from URL params instead of currentConversationId from context
+          // This ensures we use the correct ID even if context is stale
+          if (!chatId) {
+            // No chatId in URL means this is a new conversation - save all messages
+            // Deduplicate messages by ID or content+role combination
+            const seenMessages = new Set<string>();
+            const deduplicatedMessages: Message[] = [];
+            
+            for (const msg of updatedMessages) {
+              // Create a unique key for deduplication
+              const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
+              if (!seenMessages.has(messageKey)) {
+                seenMessages.add(messageKey);
+                deduplicatedMessages.push(msg);
+              }
             }
-          }
 
-          const conversationMessages: ConversationMessage[] = deduplicatedMessages.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            id: msg.id,
-            sequence: msg.sequence,
-          }));
+            const conversationMessages: ConversationMessage[] = deduplicatedMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              id: msg.id,
+              sequence: msg.sequence,
+            }));
 
-          if (!currentConversationId) {
             const newId = await saveCurrentConversation(conversationMessages, fullApiKey);
             console.log('Saved new conversation:', newId);
             currentConversationIdRef.current = newId;
             // Navigate to the new conversation route
             router.push(`/chat/${newId}`);
           } else {
-            await updateCurrentConversation(conversationMessages, fullApiKey);
-            console.log('Updated conversation:', currentConversationId);
+            // chatId exists - only send the NEW messages (last user + assistant pair)
+            // This prevents duplicating existing messages that are already in the API
+            // The new messages are the last 2 messages in updatedMessages
+            const newMessages = updatedMessages.slice(-2); // Get last 2 messages (user + assistant)
+            
+            const conversationMessages: ConversationMessage[] = newMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              id: msg.id,
+              sequence: msg.sequence,
+            }));
+
+            console.log(`Updating conversation ${chatId} with ${conversationMessages.length} new messages`);
+            await updateConversation(chatId, conversationMessages, fullApiKey);
+            console.log('Updated conversation:', chatId);
+            
+            // Dispatch event to update conversation history
+            try {
+              const updatedConversation = await loadConversation(chatId, fullApiKey);
+              if (updatedConversation) {
+                window.dispatchEvent(new CustomEvent('conversation-history-updated', {
+                  detail: { type: 'updated', conversation: updatedConversation }
+                }));
+              }
+            } catch (err) {
+              console.warn('Could not fetch updated conversation for event dispatch:', err);
+              // Still dispatch a generic update event
+              window.dispatchEvent(new CustomEvent('conversation-history-updated', {
+                detail: { type: 'updated', id: chatId }
+              }));
+            }
           }
         } catch (saveError) {
           console.error('Error saving chat to API:', saveError);
