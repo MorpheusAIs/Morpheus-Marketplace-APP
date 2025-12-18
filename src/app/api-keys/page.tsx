@@ -384,6 +384,7 @@ export default function ApiKeysPage() {
         open={isCreateDialogOpen}
         onOpenChangeAction={setIsCreateDialogOpen}
         onCreateAction={handleCreateKey}
+        existingApiKeys={apiKeys}
       />
 
       <NewApiKeyModal

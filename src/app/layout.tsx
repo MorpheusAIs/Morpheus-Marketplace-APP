@@ -5,7 +5,7 @@ import { ConversationProvider } from '@/lib/ConversationContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
 import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
-import NotificationManager from '@/components/NotificationManager';
+import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
 import "./globals.css";
 
@@ -33,6 +33,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       {gtmId && <GoogleTagManager gtmId={gtmId} />}
+      <head>
+        <script
+          async
+          crossOrigin="anonymous"
+          src="https://tweakcn.com/live-preview.min.js"
+        />
+      </head>
       <body className={inter.className}>
         {gtmId && (
           <noscript>
@@ -48,7 +55,14 @@ export default function RootLayout({
           <CognitoAuthProvider>
             <ConversationProvider>
               <GTMProvider>
-                <NotificationManager />
+                <Toaster 
+                  position="top-right"
+                  expand={true}
+                  closeButton
+                  toastOptions={{
+                    className: 'custom-sonner-toast',
+                  }}
+                />
                 {children}
                 <BuildVersion />
               </GTMProvider>
