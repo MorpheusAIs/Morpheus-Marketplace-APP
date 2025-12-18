@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MessageSquare, CheckIcon, Settings, Trash2, Key, Loader2 } from 'lucide-react';
+import { MessageSquare, CheckIcon, Settings, Trash2, Key, Loader2, CopyIcon } from 'lucide-react';
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -44,6 +44,8 @@ import {
   Message,
   MessageContent,
   MessageResponse,
+  MessageActions,
+  MessageAction,
 } from '@/components/ai-elements/message';
 import {
   PromptInput,
@@ -100,7 +102,7 @@ export default function ChatPage() {
   // Cognito authentication
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isLoading: _authLoading } = useCognitoAuth();
-  const { error, warning } = useNotification();
+  const { error, warning, success } = useNotification();
   const router = useRouter();
   const params = useParams();
   const chatId = params?.chatId as string | undefined;
@@ -846,6 +848,17 @@ export default function ChatPage() {
     );
   }
 
+  // Copy message content to clipboard
+  const handleCopy = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      success('Copied!', 'Message copied to clipboard', { duration: 2000 });
+    } catch {
+      // Fallback for browsers that don't support clipboard API
+      error('Copy failed', 'Unable to copy to clipboard');
+    }
+  };
+
   if (isLoadingConversation) {
     return (
       <AuthenticatedLayout>
@@ -919,6 +932,17 @@ export default function ChatPage() {
                         <div className="whitespace-pre-wrap">{message.content}</div>
                       )}
                     </MessageContent>
+                    {isAssistantMessage && (message.content || (isLastMessage && streamingContent)) && (
+                      <MessageActions>
+                        <MessageAction
+                          label="Copy"
+                          onClick={() => handleCopy(message.content || streamingContent || "")}
+                          tooltip="Copy to clipboard"
+                        >
+                          <CopyIcon className="size-4" />
+                        </MessageAction>
+                      </MessageActions>
+                    )}
                   </Message>
                 );
               })
