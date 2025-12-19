@@ -275,7 +275,7 @@ export async function saveConversation(messages: ConversationMessage[], apiKey?:
 
 /**
  * Update an existing conversation
- * Updates the conversation title/metadata, then replaces all messages
+ * Only adds new messages to the conversation. The title is never changed after creation.
  */
 export async function updateConversation(id: string, messages: ConversationMessage[], apiKey?: string): Promise<void> {
   const key = apiKey || getApiKey();
@@ -301,36 +301,14 @@ export async function updateConversation(id: string, messages: ConversationMessa
     throw new Error('Cannot update conversation with empty messages');
   }
 
-  // Generate title from first user message (first 50 characters)
-  const firstUserMessage = messagesWithContent.find(msg => msg.role === 'user');
-  const title = firstUserMessage 
-    ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
-    : 'New Conversation';
-
   try {
     console.log(`Updating conversation ${id} with ${messages.length} messages`);
-    
-    // Step 1: Update conversation metadata (title)
-    const updateResponse = await apiPut<ApiConversation>(
-      API_URLS.chatDetail(id),
-      { title },
-      key
-    );
-    
-    if (updateResponse.error) {
-      if (updateResponse.status === 404) {
-        throw new Error(`Conversation with id ${id} not found`);
-      }
-      throw new Error(updateResponse.error || 'Failed to update conversation');
-    }
 
-    console.log(`Updated conversation ${id} metadata, now updating messages...`);
-
-    // Step 2: Only add NEW messages that don't already exist
+    // Only add NEW messages that don't already exist
     // Fetch existing messages first to avoid duplicates, with fallback if fetch fails
     try {
       let existingMessages: ConversationMessage[] = [];
-      let existingMessageKeys = new Set<string>();
+      const existingMessageKeys = new Set<string>();
       
       try {
         // Get existing messages from the conversation with a timeout
