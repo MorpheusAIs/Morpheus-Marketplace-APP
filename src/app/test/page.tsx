@@ -19,6 +19,7 @@ import { Check, RefreshCw, Send, Copy, Key } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { API_URLS } from "@/lib/api/config";
 import { getAllowedModelTypes, filterModelsByType, selectDefaultModel } from "@/lib/model-filter-utils";
+import { logModelName } from "@/lib/model-name-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { apiGet } from "@/lib/api/apiService";
@@ -382,6 +383,10 @@ export default function TestPage() {
       // Ensure session exists if automation is disabled
       await ensureSessionExists();
 
+      // Log model name for debugging
+      logModelName('sendRequest', selectedModel);
+
+      // Use model name exactly as returned from /v1/models endpoint
       const requestBody = {
         model: selectedModel,
         messages: [
@@ -412,8 +417,39 @@ export default function TestPage() {
 
       if (!response.ok) {
         // Handle error response
-        const errorMessage = data.detail || `HTTP ${response.status}`;
+        const errorMessage = data.detail || data.error?.message || `HTTP ${response.status}`;
         setResponseContent(`Error: ${errorMessage}`);
+        
+        // Handle model name errors (400 Bad Request)
+        if (response.status === 400) {
+          const isModelError = errorMessage.toLowerCase().includes('invalid model') || 
+                              errorMessage.toLowerCase().includes('model name') ||
+                              errorMessage.toLowerCase().includes('model=');
+          
+          if (isModelError) {
+            // Extract the model name the backend tried to use (if mentioned in error)
+            const backendModelMatch = errorMessage.match(/model=([^\s,}]+)/i);
+            const backendModelName = backendModelMatch ? backendModelMatch[1] : null;
+            
+            console.error('[Model Error] Backend inconsistency detected:', {
+              requestedModel: selectedModel,
+              backendAttemptedModel: backendModelName,
+              errorMessage: errorMessage,
+              fullError: data,
+              note: 'This model was returned from /v1/models but rejected by /v1/chat/completions'
+            });
+            
+            const errorMsg = backendModelName && backendModelName !== selectedModel
+              ? `The backend returned "${selectedModel}" in the models list but tried to use "${backendModelName}" when making the request. This is a backend configuration issue.`
+              : `The model "${selectedModel}" was returned from the models list but is not accepted by the chat endpoint. This is a backend configuration issue.`;
+            
+            showError(
+              "Model Configuration Error",
+              errorMsg,
+              { duration: 15000 }
+            );
+          }
+        }
         
         // Check for automation disabled error and show helpful message
         if (response.status === 403 && errorMessage.toLowerCase().includes('automation')) {
