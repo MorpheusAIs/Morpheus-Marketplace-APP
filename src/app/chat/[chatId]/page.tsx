@@ -10,6 +10,7 @@ import { updateConversation } from '@/lib/conversation-history';
 import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
 import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
+import { logModelName } from '@/lib/model-name-utils';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -416,6 +417,11 @@ export default function ChatPage() {
       const modelsArray = data.data || data;
       
       if (Array.isArray(modelsArray)) {
+        // Log all models for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Models Fetched]', modelsArray.map((m: ApiModelResponse) => m.id));
+        }
+        
         const llmModels = modelsArray
           .filter((model: ApiModelResponse) => (model.modelType || model.ModelType) === 'LLM')
           .map((model: ApiModelResponse) => ({
@@ -548,6 +554,10 @@ export default function ChatPage() {
           return true;
         });
 
+      // Log model name for debugging
+      logModelName('sendRequest', selectedModel);
+      
+      // Use model name exactly as returned from /v1/models endpoint
       const requestBody = {
         model: selectedModel,
         messages: [
@@ -581,11 +591,52 @@ export default function ChatPage() {
       if (!res.ok) {
         // Try to parse error response for specific error messages
         let errorDetail = '';
+        let errorMessage = '';
+        let errorBody: any = null;
         try {
-          const errorBody = await res.json();
-          errorDetail = errorBody?.detail || '';
+          errorBody = await res.json();
+          errorDetail = errorBody?.detail || errorBody?.error?.message || '';
+          errorMessage = errorBody?.error?.message || errorDetail || '';
         } catch {
           // Ignore parse errors
+        }
+
+        // Handle model name errors (400 Bad Request)
+        if (res.status === 400) {
+          const isModelError = errorMessage.toLowerCase().includes('invalid model') || 
+                              errorMessage.toLowerCase().includes('model name') ||
+                              errorMessage.toLowerCase().includes('model=');
+          
+          if (isModelError) {
+            // Extract the model name the backend tried to use (if mentioned in error)
+            const backendModelMatch = errorMessage.match(/model=([^\s,}]+)/i);
+            const backendModelName = backendModelMatch ? backendModelMatch[1] : null;
+            
+            console.error('[Model Error] Backend inconsistency detected:', {
+              requestedModel: selectedModel,
+              backendAttemptedModel: backendModelName,
+              errorMessage: errorMessage,
+              fullError: errorBody,
+              note: 'This model was returned from /v1/models but rejected by /v1/chat/completions'
+            });
+            
+            setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+            const errorContent = backendModelName && backendModelName !== selectedModel
+              ? `⚠️ Model error: The backend returned "${selectedModel}" in the models list but tried to use "${backendModelName}" when making the request. This appears to be a backend configuration issue. Please try a different model.`
+              : `⚠️ Model error: The model "${selectedModel}" was returned from the models list but is not accepted by the chat endpoint. This appears to be a backend configuration issue. Please try a different model.`;
+            
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: errorContent
+            }]);
+            warning(
+              'Model Configuration Error',
+              `The model "${selectedModel}" is listed as available but cannot be used. This is a backend issue - please try a different model or contact support.`,
+              { duration: 15000 }
+            );
+            setStreamingStatus('error');
+            return;
+          }
         }
 
         // Check for automation disabled error (403 with specific message)
