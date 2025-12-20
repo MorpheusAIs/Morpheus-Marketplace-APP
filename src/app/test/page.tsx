@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,9 @@ export default function TestPage() {
   const [allowedTypes] = useState<string[]>(getAllowedModelTypes());
   const [copiedCurl, setCopiedCurl] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
+  
+  // Ref to track if a request is in progress (more reliable than state for preventing race conditions)
+  const isRequestInProgressRef = useRef(false);
 
   // Load API key from sessionStorage
   useEffect(() => {
@@ -369,11 +372,19 @@ export default function TestPage() {
   };
 
   const handleSendRequest = async () => {
+    // Prevent duplicate submissions - check ref immediately (synchronous)
+    if (isRequestInProgressRef.current) {
+      console.warn('Request already in progress, ignoring duplicate submission');
+      return;
+    }
+
     if (!prompt.trim() || !selectedApiKey) {
       showError("Validation Error", "Please provide a prompt and ensure API key is set");
       return;
     }
 
+    // Set ref immediately to prevent concurrent calls
+    isRequestInProgressRef.current = true;
     setIsLoading(true);
     setResponseContent("");
     setServerResponse("");
@@ -480,6 +491,8 @@ export default function TestPage() {
       showError("Request Failed", errorMessage);
     } finally {
       setIsLoading(false);
+      // Reset ref to allow new requests
+      isRequestInProgressRef.current = false;
     }
   };
 
