@@ -29,12 +29,14 @@ import {
   Trash2,
   ChevronRight,
   SquarePen,
+  Loader2,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXTwitter } from "@fortawesome/free-brands-svg-icons";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { useConversationHistory } from "@/lib/hooks/use-conversation-history";
 import { useConversation } from "@/lib/ConversationContext";
+import { useActiveStreams } from "@/lib/StreamManagerContext";
 import { useNotification } from "@/lib/NotificationContext";
 import { NavUser } from "@/components/nav-user";
 import { DiscordIcon } from "@/components/discord-icon";
@@ -66,8 +68,17 @@ export function Sidebar({
     : null;
   const { conversations, isLoading: conversationsLoading, getConversationById, refresh } = useConversationHistory();
   const { loadConversation, deleteConversationById, startNewConversation } = useConversation();
+  const activeStreams = useActiveStreams();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [deleteKey, setDeleteKey] = useState(0);
+
+  // Helper function to check if a conversation has an active stream
+  const hasActiveStream = (conversationId: string) => {
+    return activeStreams.some(stream => stream.conversationId === conversationId);
+  };
+
+  // Check if there's a new conversation being created (stream with null conversationId)
+  const hasNewConversationStream = activeStreams.some(stream => !stream.conversationId);
 
   // Ensure conversation list is accurate when viewing a conversation
   // If we're viewing a conversation that's not in the list, refresh the list
@@ -243,12 +254,16 @@ export function Sidebar({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="w-full">
-                              <SidebarMenuButton 
+                              <SidebarMenuButton
                                 onClick={handleNewChat}
                                 disabled={!hasApiKeys}
                                 className={`text-sidebar-foreground/70 hover:text-white [&>svg]:text-sidebar-foreground/70 [&>svg]:hover:text-white ${!hasApiKeys ? "opacity-50 cursor-not-allowed" : ""}`}
                               >
-                                <SquarePen className="h-4 w-4" />
+                                {hasNewConversationStream ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                ) : (
+                                  <SquarePen className="h-4 w-4" />
+                                )}
                                 <span>New Chat</span>
                               </SidebarMenuButton>
                             </div>
@@ -283,8 +298,9 @@ export function Sidebar({
                               {conversations.map((chat) => {
                                 // Only mark as active if we're actually on that chat's route
                                 const isActive = currentChatIdFromRoute === chat.id;
-                                const truncatedTitle = chat.title.length > 40 
-                                  ? `${chat.title.substring(0, 40)}...` 
+                                const isStreaming = hasActiveStream(chat.id);
+                                const truncatedTitle = chat.title.length > 40
+                                  ? `${chat.title.substring(0, 40)}...`
                                   : chat.title;
                                 return (
                                   <SidebarMenuItem key={`${chat.id}-${deleteKey}`}>
@@ -293,6 +309,9 @@ export function Sidebar({
                                       onClick={() => handleChatSelect(chat.id)}
                                       className="group/chat-item conversation-history-item focus-visible:ring-0 focus-visible:ring-transparent !font-light"
                                     >
+                                      {isStreaming && (
+                                        <Loader2 className="h-3 w-3 animate-spin text-white flex-shrink-0" />
+                                      )}
                                       <span className={`flex-1 text-left min-w-0 overflow-hidden truncate transition-colors !font-light ${isActive ? 'text-green-500' : 'text-sidebar-foreground/70 hover:text-white'}`} title={chat.title}>
                                         {truncatedTitle}
                                       </span>
