@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
 import { useConversation } from '@/lib/ConversationContext';
+import { useStreamManager } from '@/lib/StreamManagerContext';
+import { STREAM_EVENTS } from '@/lib/stream-manager';
 import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
 import { RESILIENCE_CONFIG } from '@/lib/api/apiService';
@@ -115,13 +117,17 @@ export default function ChatPage() {
   const { error, warning, success } = useNotification();
   const router = useRouter();
   const pathname = usePathname();
-  const { 
-    currentConversationId, 
-    saveCurrentConversation, 
-    updateCurrentConversation,
+  const {
+    currentConversationId,
     deleteConversationById,
     loadConversation
   } = useConversation();
+  const {
+    startStream,
+    getStreamForConversation,
+    subscribeToStream,
+    abortStreamForConversation
+  } = useStreamManager();
   
   // API Key state (retrieved from sessionStorage)
   const [fullApiKey, setFullApiKey] = useState<string>('');
@@ -170,8 +176,8 @@ export default function ChatPage() {
   
   // Streaming state
   const [streamingContent, setStreamingContent] = useState<string>('');
-  const abortControllerRef = useRef<AbortController | null>(null);
   const currentConversationIdRef = useRef<string | null>(null);
+  const currentStreamIdRef = useRef<string | null>(null);
   
   // Token usage state
   const [tokenUsage, setTokenUsage] = useState<LanguageModelUsage>({
@@ -195,12 +201,118 @@ export default function ChatPage() {
   useEffect(() => {
     const storedApiKey = sessionStorage.getItem('verified_api_key');
     const storedPrefix = sessionStorage.getItem('verified_api_key_prefix');
-    
+
     if (storedApiKey && storedPrefix) {
       setFullApiKey(storedApiKey);
       setApiKeyPrefix(storedPrefix);
     }
   }, []);
+
+  // Listen for new conversation creation from StreamManager and navigate
+  useEffect(() => {
+    const handleNewConversationCreated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { conversationId } = customEvent.detail || {};
+
+      // Only navigate if this is the page that started the stream (has the stream ID)
+      if (conversationId && currentStreamIdRef.current) {
+        console.log(`[ChatPage] New conversation created: ${conversationId}, navigating...`);
+        // Per user preference, we stay on /chat and don't auto-navigate
+        // The user will click from sidebar when ready
+        // But we should clear the current stream ref since it completed
+        // Navigation will happen when user clicks sidebar
+      }
+    };
+
+    window.addEventListener(STREAM_EVENTS.NEW_CONVERSATION, handleNewConversationCreated);
+    return () => {
+      window.removeEventListener(STREAM_EVENTS.NEW_CONVERSATION, handleNewConversationCreated);
+    };
+  }, []);
+
+  // Restore stream state on mount for new conversations (null conversationId)
+  useEffect(() => {
+    // Check if there's an active stream for a new conversation
+    const existingStream = getStreamForConversation(null);
+
+    if (existingStream) {
+      console.log(`[ChatPage] Found existing stream for new conversation:`, existingStream.status);
+      currentStreamIdRef.current = existingStream.streamId;
+
+      // Restore streaming content if stream is in progress
+      if (existingStream.status === 'streaming' || existingStream.status === 'pending') {
+        setStreamingStatus(existingStream.status === 'pending' ? 'submitted' : 'streaming');
+        setStreamingContent(existingStream.accumulatedContent);
+        setIsLoading(true);
+        setConnectionStatus('streaming');
+
+        // Add the user message and streaming assistant message to UI
+        const userMsg: Message = {
+          role: 'user',
+          content: existingStream.userMessage.content,
+        };
+        const assistantMsg: Message = {
+          id: existingStream.assistantMessageId,
+          role: 'assistant',
+          content: existingStream.accumulatedContent,
+        };
+
+        setMessages(prev => {
+          // Only add if not already present
+          const hasUserMsg = prev.some(m => m.role === 'user' && m.content === userMsg.content);
+          if (hasUserMsg) {
+            // Just update the last assistant message
+            return prev.map((m, i) =>
+              i === prev.length - 1 && m.role === 'assistant'
+                ? { ...m, content: existingStream.accumulatedContent }
+                : m
+            );
+          }
+          return [...prev, userMsg, assistantMsg];
+        });
+      }
+
+      // Subscribe to stream updates
+      const unsubscribe = subscribeToStream(existingStream.streamId, {
+        onProgress: (content) => {
+          setStreamingContent(content);
+          setStreamingStatus('streaming');
+          setConnectionStatus('streaming');
+          setMessages(prev =>
+            prev.map((msg, i) =>
+              i === prev.length - 1 && msg.role === 'assistant'
+                ? { ...msg, content }
+                : msg
+            )
+          );
+        },
+        onComplete: (content) => {
+          setStreamingContent('');
+          setStreamingStatus('ready');
+          setConnectionStatus('idle');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
+          setMessages(prev =>
+            prev.map((msg, i) =>
+              i === prev.length - 1 && msg.role === 'assistant'
+                ? { ...msg, content }
+                : msg
+            )
+          );
+        },
+        onError: (error) => {
+          console.error('[ChatPage] Stream error:', error);
+          setStreamingContent('');
+          setStreamingStatus('error');
+          setConnectionStatus('error');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
+        },
+      });
+
+      return unsubscribe;
+    }
+  }, [getStreamForConversation, subscribeToStream]);
 
   // Update title when conversation ID changes
   useEffect(() => {
@@ -454,421 +566,140 @@ export default function ChatPage() {
     }
   };
 
-  /**
-   * Makes a chat request with timeout and retry support.
-   * Returns the response or null if all attempts fail.
-   */
-  const makeChatRequest = async (
-    requestBody: object,
-    abortSignal: AbortSignal,
-    attempt: number = 0
-  ): Promise<Response | null> => {
-    const maxRetries = RESILIENCE_CONFIG.MAX_RETRIES;
-    const timeout = RESILIENCE_CONFIG.CHAT_TIMEOUT_MS;
-    
-    try {
-      // Create a timeout controller
-      const timeoutController = new AbortController();
-      const timeoutId = setTimeout(() => {
-        timeoutController.abort();
-      }, timeout);
-      
-      // Combine the user's abort signal with our timeout
-      const combinedAbort = () => {
-        clearTimeout(timeoutId);
-        if (!timeoutController.signal.aborted) {
-          timeoutController.abort();
-        }
-      };
-      abortSignal.addEventListener('abort', combinedAbort);
-      
-      try {
-        const res = await fetch(API_URLS.chatCompletions(), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'accept': 'text/event-stream',
-            'Authorization': `Bearer ${fullApiKey}`
-          },
-          body: JSON.stringify(requestBody),
-          signal: timeoutController.signal
-        });
-        
-        clearTimeout(timeoutId);
-        return res;
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        
-        // Check if this was a user abort
-        if (abortSignal.aborted) {
-          throw fetchError; // Re-throw user aborts
-        }
-        
-        // Check if this was a timeout or network error (retryable)
-        const isRetryable = 
-          fetchError instanceof Error && 
-          (fetchError.name === 'AbortError' || 
-           fetchError.message.includes('timeout') ||
-           fetchError.message.includes('network') ||
-           fetchError.message.includes('fetch'));
-        
-        if (isRetryable && attempt < maxRetries) {
-          const delay = RESILIENCE_CONFIG.RETRY_DELAY_MS * Math.pow(RESILIENCE_CONFIG.RETRY_BACKOFF_MULTIPLIER, attempt);
-          console.log(`⚠️ Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`);
-          
-          setConnectionStatus('retrying');
-          setRetryCount(attempt + 1);
-          
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          // Check if aborted during delay
-          if (abortSignal.aborted) {
-            throw new Error('Request cancelled');
-          }
-          
-          setConnectionStatus('connecting');
-          return makeChatRequest(requestBody, abortSignal, attempt + 1);
-        }
-        
-        throw fetchError;
-      }
-    } catch (error) {
-      if (attempt >= maxRetries) {
-        console.error(`❌ All ${maxRetries + 1} attempts failed`);
-      }
-      throw error;
-    }
-  };
-
-  // Handle form submission with streaming
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSubmit = async (message: PromptInputMessage, _e: React.FormEvent) => {
+  // Handle form submission with streaming via StreamManager
+  const handleSubmit = useCallback(async (message: PromptInputMessage, _e: React.FormEvent) => {
     if (!message.text?.trim()) return;
-    
+    if (!fullApiKey) {
+      warning('API Key Required', 'Please set up your API key first.', { duration: 5000 });
+      return;
+    }
+
+    // Abort any existing stream
+    if (currentStreamIdRef.current) {
+      abortStreamForConversation(null);
+    }
+
     setIsLoading(true);
     setAuthError(false);
     setStreamingStatus('submitted');
     setConnectionStatus('connecting');
     setRetryCount(0);
-    
+
     const currentPrompt = message.text;
-    
+    const streamingMessageId = `assistant-${Date.now()}`;
+
     // Add user message to UI immediately
     const newUserMessage: Message = {
       role: 'user',
       content: currentPrompt,
     };
-    
-    setMessages(prev => [...prev, newUserMessage]);
-    
+
     // Add a temporary assistant message for streaming
-    const streamingMessageId = Date.now().toString();
     const streamingMessage: Message = {
       id: streamingMessageId,
       role: 'assistant',
       content: '',
     };
-    
-    setMessages(prev => [...prev, streamingMessage]);
+
+    setMessages(prev => [...prev, newUserMessage, streamingMessage]);
     setStreamingContent('');
-    
-    // Cancel any existing stream
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new abort controller for this stream
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-    
+
+    // Build message history (excluding the current user message and streaming message)
+    const messageHistory: ConversationMessage[] = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+      id: msg.id,
+      sequence: msg.sequence,
+    }));
+
+    // Log model name for debugging
+    logModelName('sendRequest', selectedModel);
+
     try {
-      // Log model name for debugging
-      logModelName('sendRequest', selectedModel);
-      
-      // Create the request body for the API with streaming enabled
-      // Use model name exactly as returned from /v1/models endpoint
-      const requestBody = {
+      // Start stream via StreamManager - it handles persistence and background streaming
+      const streamId = await startStream({
+        conversationId: null, // New conversation
+        userMessageContent: currentPrompt,
+        messageHistory,
         model: selectedModel,
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant. Format your responses using Markdown when appropriate. You can use features like **bold text**, *italics*, ### headings, `code blocks`, numbered and bulleted lists, and tables to make your answers more readable and structured."
-          },
-          ...messages.filter(msg => msg.id !== streamingMessageId).map(msg => ({
-            role: msg.role,
-            content: msg.content
-          })),
-          {
-            role: "user",
-            content: currentPrompt
-          }
-        ],
-        stream: true
-      };
-
-      // Make the streaming API call with retry support
-      const res = await makeChatRequest(requestBody, abortController.signal);
-      
-      if (!res) {
-        throw new Error('Failed to connect to AI provider after multiple attempts');
-      }
-
-      if (!res.ok) {
-        // Try to parse error response for specific error messages
-        let errorDetail = '';
-        let errorMessage = '';
-        let errorBody: ApiErrorResponse | null = null;
-        try {
-          errorBody = await res.json() as ApiErrorResponse;
-          errorDetail = errorBody?.detail || errorBody?.error?.message || '';
-          errorMessage = errorBody?.error?.message || errorDetail || '';
-        } catch {
-          // Ignore parse errors
-        }
-
-        // Handle model name errors (400 Bad Request)
-        if (res.status === 400) {
-          const isModelError = errorMessage.toLowerCase().includes('invalid model') || 
-                              errorMessage.toLowerCase().includes('model name') ||
-                              errorMessage.toLowerCase().includes('model=');
-          
-          if (isModelError) {
-            // Extract the model name the backend tried to use (if mentioned in error)
-            const backendModelMatch = errorMessage.match(/model=([^\s,}]+)/i);
-            const backendModelName = backendModelMatch ? backendModelMatch[1] : null;
-            
-            console.error('[Model Error] Backend inconsistency detected:', {
-              requestedModel: selectedModel,
-              backendAttemptedModel: backendModelName,
-              errorMessage: errorMessage,
-              fullError: errorBody,
-              note: 'This model was returned from /v1/models but rejected by /v1/chat/completions'
-            });
-            
-            setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-            const errorContent = backendModelName && backendModelName !== selectedModel
-              ? `⚠️ Model error: The backend returned "${selectedModel}" in the models list but tried to use "${backendModelName}" when making the request. This appears to be a backend configuration issue. Please try a different model.`
-              : `⚠️ Model error: The model "${selectedModel}" was returned from the models list but is not accepted by the chat endpoint. This appears to be a backend configuration issue. Please try a different model.`;
-            
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: errorContent
-            }]);
-            error(
-              'Model Configuration Error',
-              `The model "${selectedModel}" is listed as available but cannot be used. This is a backend issue - please try a different model or contact support.`,
-              { duration: 15000 }
-            );
-            setStreamingStatus('error');
-            setConnectionStatus('error');
-            return;
-          }
-        }
-
-        // Check for automation disabled error (403 with specific message)
-        if (res.status === 403 && errorDetail.toLowerCase().includes('automation')) {
-          setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: '⚠️ Session automation is disabled. Please enable it in your Account settings to use Chat.'
-          }]);
-          warning(
-            'Automation Disabled',
-            'Session automation is disabled. Enable it in Account settings to chat.',
-            {
-              actionLabel: 'Go to Account',
-              actionUrl: '/account',
-              duration: 15000
-            }
-          );
-          setStreamingStatus('error');
-          setConnectionStatus('error');
-          return;
-        }
-
-        // Handle other auth errors (401 or 403 without automation message)
-        if (res.status === 401 || res.status === 403) {
-          setAuthError(true);
-          setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: 'Authentication error: Please provide a valid API key or log in to get one.'
-          }]);
-          warning(
-            'Authentication Required',
-            'Please verify your API key to continue chatting.',
-            {
-              actionLabel: 'Go to Api Keys',
-              actionUrl: '/api-keys',
-              duration: 10000
-            }
-          );
-          setStreamingStatus('error');
-          setConnectionStatus('error');
-          return;
-        }
-        throw new Error(`API returned status ${res.status}`);
-      }
-
-      // Connection established, now streaming
-      setConnectionStatus('streaming');
-      setStreamingStatus('streaming');
-
-      // Read the stream
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedContent = '';
-
-      if (!reader) {
-        throw new Error('No reader available');
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              continue;
-            }
-            
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content;
-              
-              if (delta) {
-                accumulatedContent += delta;
-                setStreamingContent(accumulatedContent);
-                
-                // Update the message in real-time
-                setMessages(prev => prev.map(msg => 
-                  msg.id === streamingMessageId 
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                ));
-              }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (_e) {
-              // Ignore JSON parse errors for incomplete chunks
-            }
-          }
-        }
-      }
-
-      // Finalize the message
-      const finalMessage: Message = {
-        id: streamingMessageId,
-        role: 'assistant',
-        content: accumulatedContent,
-      };
-      
-      // Update messages state
-      let updatedMessages: Message[] = [];
-      setMessages(prev => {
-        updatedMessages = prev.map(msg => 
-          msg.id === streamingMessageId ? finalMessage : msg
-        );
-        return updatedMessages;
+        apiKey: fullApiKey,
       });
-      
-      setStreamingStatus('ready');
-      setConnectionStatus('idle');
-      setStreamingContent('');
 
-      // Save to API if saveChatHistory is enabled
-      if (saveChatHistory && accumulatedContent) {
-        try {
-          // Convert all messages (including the new ones) to ConversationMessage format
-          const conversationMessages: ConversationMessage[] = updatedMessages.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            id: msg.id,
-            sequence: msg.sequence,
-          }));
+      currentStreamIdRef.current = streamId;
+      setStreamingStatus('streaming');
+      setConnectionStatus('streaming');
 
-          // Check current conversation ID from state (not ref) to ensure we have the latest value
-          // If no current conversation ID, create a new one; otherwise update existing
-          if (!currentConversationId) {
-            // Create new conversation
-            const newId = await saveCurrentConversation(conversationMessages, fullApiKey);
-            console.log('Saved new conversation:', newId);
-            // Update ref immediately after saving
-            currentConversationIdRef.current = newId;
-            // Navigate to the new conversation route
-            router.push(`/chat/${newId}`);
-          } else {
-            // Update existing conversation
-            await updateCurrentConversation(conversationMessages, fullApiKey);
-            console.log('Updated conversation:', currentConversationId);
-          }
-        } catch (saveError) {
-          console.error('Error saving chat to API:', saveError);
-          const errorMessage = saveError instanceof Error ? saveError.message : 'Failed to save conversation';
-          warning(
-            'Save Failed',
-            `Could not save conversation: ${errorMessage}`,
-            {
-              duration: 5000
-            }
+      // Subscribe to stream updates
+      const unsubscribe = subscribeToStream(streamId, {
+        onProgress: (content) => {
+          setStreamingContent(content);
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === streamingMessageId
+                ? { ...msg, content }
+                : msg
+            )
           );
-        }
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        // Stream was cancelled, don't show error
-        setConnectionStatus('idle');
-        return;
-      }
-      
-      setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-      
-      console.error('Error:', err);
-      
-      // Provide more helpful error messages based on error type
-      let errorTitle = 'Message Failed';
-      let errorDescription = 'Failed to send your message. Please check your connection and try again.';
-      
-      if (err instanceof Error) {
-        if (err.message.includes('timeout')) {
-          errorTitle = 'Connection Timeout';
-          errorDescription = 'The request took too long. This may be due to high network latency or server load. Please try again.';
-        } else if (err.message.includes('network') || err.message.includes('fetch')) {
-          errorTitle = 'Network Error';
-          errorDescription = 'Unable to reach the server. Please check your internet connection and try again.';
-        } else if (err.message.includes('multiple attempts')) {
-          errorTitle = 'Connection Failed';
-          errorDescription = 'Could not establish connection after multiple attempts. The AI provider may be temporarily unavailable.';
-        }
-      }
-      
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `⚠️ ${errorDescription}`
-      }]);
-      
-      error(
-        errorTitle,
-        errorDescription,
-        {
-          duration: 8000
-        }
-      );
-      
+        },
+        onComplete: (content) => {
+          setStreamingContent('');
+          setStreamingStatus('ready');
+          setConnectionStatus('idle');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === streamingMessageId
+                ? { ...msg, content }
+                : msg
+            )
+          );
+          // Cleanup subscription on complete
+          unsubscribe();
+        },
+        onError: (err) => {
+          console.error('[ChatPage] Stream error:', err);
+          setStreamingContent('');
+          setStreamingStatus('error');
+          setConnectionStatus('error');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
+
+          // Remove the empty assistant message and show error
+          setMessages(prev => {
+            const filtered = prev.filter(msg => msg.id !== streamingMessageId);
+            return [...filtered, {
+              role: 'assistant',
+              content: `An error occurred: ${err.message}`,
+            }];
+          });
+
+          error(
+            'Message Failed',
+            'Failed to send your message. Please check your connection and try again.',
+            { duration: 8000 }
+          );
+
+          // Cleanup subscription on error
+          unsubscribe();
+        },
+      });
+    } catch (err) {
+      console.error('[ChatPage] Error starting stream:', err);
       setStreamingStatus('error');
       setConnectionStatus('error');
-    } finally {
       setIsLoading(false);
-      if (streamingStatus !== 'streaming') {
-        setStreamingStatus('ready');
-      }
+
+      // Remove the streaming message
+      setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+
+      error(
+        'Message Failed',
+        'Failed to start the message. Please try again.',
+        { duration: 8000 }
+      );
     }
-  };
+  }, [fullApiKey, messages, selectedModel, startStream, subscribeToStream, abortStreamForConversation, error, warning]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _truncateKey = (key: string) => {

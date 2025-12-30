@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { CognitoAuthProvider } from '@/lib/auth/CognitoAuthContext';
 import { ConversationProvider } from '@/lib/ConversationContext';
+import { StreamManagerProvider } from '@/lib/StreamManagerContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
 import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
@@ -54,18 +55,20 @@ export default function RootLayout({
         <NotificationProvider>
           <CognitoAuthProvider>
             <ConversationProvider>
-              <GTMProvider>
-                <Toaster 
-                  position="top-right"
-                  expand={true}
-                  closeButton
-                  toastOptions={{
-                    className: 'custom-sonner-toast',
-                  }}
-                />
-                {children}
-                <BuildVersion />
-              </GTMProvider>
+              <StreamManagerProvider>
+                <GTMProvider>
+                  <Toaster
+                    position="top-right"
+                    expand={true}
+                    closeButton
+                    toastOptions={{
+                      className: 'custom-sonner-toast',
+                    }}
+                  />
+                  {children}
+                  <BuildVersion />
+                </GTMProvider>
+              </StreamManagerProvider>
             </ConversationProvider>
           </CognitoAuthProvider>
         </NotificationProvider>

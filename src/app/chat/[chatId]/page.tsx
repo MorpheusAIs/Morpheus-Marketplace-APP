@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
 import { useConversation } from '@/lib/ConversationContext';
 import { useConversationHistory } from '@/lib/hooks/use-conversation-history';
-import { updateConversation } from '@/lib/conversation-history';
+import { useStreamManager } from '@/lib/StreamManagerContext';
+import { STREAM_EVENTS } from '@/lib/stream-manager';
 import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
 import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
@@ -109,12 +110,17 @@ export default function ChatPage() {
   const chatId = params?.chatId as string | undefined;
   
   const { getConversationById } = useConversationHistory();
-  const { 
-    currentConversationId, 
-    saveCurrentConversation, 
+  const {
+    currentConversationId,
     deleteConversationById,
     loadConversation
   } = useConversation();
+  const {
+    startStream,
+    getStreamForConversation,
+    subscribeToStream,
+    abortStreamForConversation
+  } = useStreamManager();
   
   // API Key state (retrieved from sessionStorage)
   const [fullApiKey, setFullApiKey] = useState<string>('');
@@ -160,10 +166,9 @@ export default function ChatPage() {
   
   // Streaming state
   const [streamingContent, setStreamingContent] = useState<string>('');
-  const abortControllerRef = useRef<AbortController | null>(null);
   const currentConversationIdRef = useRef<string | null>(null);
-  const isSavingRef = useRef<boolean>(false);
   const isLoadingConversationRef = useRef<boolean>(false);
+  const currentStreamIdRef = useRef<string | null>(null);
   
   // Token usage state
   const [tokenUsage, setTokenUsage] = useState<LanguageModelUsage>({
@@ -182,12 +187,94 @@ export default function ChatPage() {
   useEffect(() => {
     const storedApiKey = sessionStorage.getItem('verified_api_key');
     const storedPrefix = sessionStorage.getItem('verified_api_key_prefix');
-    
+
     if (storedApiKey && storedPrefix) {
       setFullApiKey(storedApiKey);
       setApiKeyPrefix(storedPrefix);
     }
   }, []);
+
+  // Restore stream state on mount and subscribe to updates
+  useEffect(() => {
+    if (!chatId) return;
+
+    // Check if there's an active stream for this conversation
+    const existingStream = getStreamForConversation(chatId);
+
+    if (existingStream) {
+      console.log(`[ChatPage] Found existing stream for conversation ${chatId}:`, existingStream.status);
+      currentStreamIdRef.current = existingStream.streamId;
+
+      // Restore streaming content if stream is in progress
+      if (existingStream.status === 'streaming' || existingStream.status === 'pending') {
+        setStreamingStatus(existingStream.status === 'pending' ? 'submitted' : 'streaming');
+        setStreamingContent(existingStream.accumulatedContent);
+        setIsLoading(true);
+
+        // Add the user message and streaming assistant message to UI
+        const userMsg: Message = {
+          role: 'user',
+          content: existingStream.userMessage.content,
+        };
+        const assistantMsg: Message = {
+          id: existingStream.assistantMessageId,
+          role: 'assistant',
+          content: existingStream.accumulatedContent,
+        };
+
+        setMessages(prev => {
+          // Only add if not already present
+          const hasUserMsg = prev.some(m => m.role === 'user' && m.content === userMsg.content);
+          if (hasUserMsg) {
+            // Just update the last assistant message
+            return prev.map((m, i) =>
+              i === prev.length - 1 && m.role === 'assistant'
+                ? { ...m, content: existingStream.accumulatedContent }
+                : m
+            );
+          }
+          return [...prev, userMsg, assistantMsg];
+        });
+      }
+
+      // Subscribe to stream updates
+      const unsubscribe = subscribeToStream(existingStream.streamId, {
+        onProgress: (content) => {
+          setStreamingContent(content);
+          setStreamingStatus('streaming');
+          setMessages(prev =>
+            prev.map((msg, i) =>
+              i === prev.length - 1 && msg.role === 'assistant'
+                ? { ...msg, content }
+                : msg
+            )
+          );
+        },
+        onComplete: (content) => {
+          setStreamingContent('');
+          setStreamingStatus('ready');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
+          setMessages(prev =>
+            prev.map((msg, i) =>
+              i === prev.length - 1 && msg.role === 'assistant'
+                ? { ...msg, content }
+                : msg
+            )
+          );
+        },
+        onError: (error) => {
+          console.error('[ChatPage] Stream error:', error);
+          setStreamingContent('');
+          setStreamingStatus('error');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
+        },
+      });
+
+      return unsubscribe;
+    }
+  }, [chatId, getStreamForConversation, subscribeToStream]);
 
   // Load conversation from URL on mount or when chatId changes
   useEffect(() => {
@@ -499,384 +586,144 @@ export default function ChatPage() {
     }
   };
 
-  // Handle form submission with streaming
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSubmit = async (message: PromptInputMessage, _e: React.FormEvent) => {
+  // Handle form submission with streaming via StreamManager
+  const handleSubmit = useCallback(async (message: PromptInputMessage, _e: React.FormEvent) => {
     if (!message.text?.trim()) return;
-    
+    if (!fullApiKey) {
+      warning('API Key Required', 'Please set up your API key first.', { duration: 5000 });
+      return;
+    }
+
+    // Abort any existing stream for this conversation
+    if (currentStreamIdRef.current) {
+      abortStreamForConversation(chatId || null);
+    }
+
     setIsLoading(true);
     setAuthError(false);
     setStreamingStatus('submitted');
-    
+
     const currentPrompt = message.text;
-    
+    const streamingMessageId = `assistant-${Date.now()}`;
+
     // Add user message to UI immediately
     const newUserMessage: Message = {
       role: 'user',
       content: currentPrompt,
     };
-    
-    setMessages(prev => [...prev, newUserMessage]);
-    
+
     // Add a temporary assistant message for streaming
-    const streamingMessageId = Date.now().toString();
     const streamingMessage: Message = {
       id: streamingMessageId,
       role: 'assistant',
       content: '',
     };
-    
-    setMessages(prev => [...prev, streamingMessage]);
+
+    setMessages(prev => [...prev, newUserMessage, streamingMessage]);
     setStreamingContent('');
-    setStreamingStatus('streaming');
-    
-    // Cancel any existing stream
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new abort controller for this stream
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-    
+
+    // Deduplicate messages to build history
+    const seenMessages = new Set<string>();
+    const messageHistory: ConversationMessage[] = messages
+      .filter(msg => {
+        const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 100)}`;
+        if (seenMessages.has(messageKey)) {
+          return false;
+        }
+        seenMessages.add(messageKey);
+        return true;
+      })
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        id: msg.id,
+        sequence: msg.sequence,
+      }));
+
+    // Log model name for debugging
+    logModelName('sendRequest', selectedModel);
+
     try {
-      // Deduplicate messages before sending to API to prevent duplicate messages in request
-      const seenMessages = new Set<string>();
-      const deduplicatedMessages = messages
-        .filter(msg => msg.id !== streamingMessageId) // Remove streaming message
-        .filter(msg => {
-          // Create a unique key for deduplication
-          const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 100)}`;
-          if (seenMessages.has(messageKey)) {
-            return false; // Skip duplicate
-          }
-          seenMessages.add(messageKey);
-          return true;
-        });
-
-      // Log model name for debugging
-      logModelName('sendRequest', selectedModel);
-      
-      // Use model name exactly as returned from /v1/models endpoint
-      const requestBody = {
+      // Start stream via StreamManager - it handles persistence and background streaming
+      const streamId = await startStream({
+        conversationId: chatId || null,
+        userMessageContent: currentPrompt,
+        messageHistory,
         model: selectedModel,
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant. Format your responses using Markdown when appropriate. You can use features like **bold text**, *italics*, ### headings, `code blocks`, numbered and bulleted lists, and tables to make your answers more readable and structured."
-          },
-          ...deduplicatedMessages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-          })),
-          {
-            role: "user",
-            content: currentPrompt
-          }
-        ],
-        stream: true
-      };
+        apiKey: fullApiKey,
+      });
 
-      const res = await fetch(API_URLS.chatCompletions(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'text/event-stream',
-          'Authorization': `Bearer ${fullApiKey}`
+      currentStreamIdRef.current = streamId;
+      setStreamingStatus('streaming');
+
+      // Subscribe to stream updates
+      const unsubscribe = subscribeToStream(streamId, {
+        onProgress: (content) => {
+          setStreamingContent(content);
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === streamingMessageId
+                ? { ...msg, content }
+                : msg
+            )
+          );
         },
-        body: JSON.stringify(requestBody),
-        signal: abortController.signal
-      });
+        onComplete: (content) => {
+          setStreamingContent('');
+          setStreamingStatus('ready');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === streamingMessageId
+                ? { ...msg, content }
+                : msg
+            )
+          );
+          // Cleanup subscription on complete
+          unsubscribe();
+        },
+        onError: (err) => {
+          console.error('[ChatPage] Stream error:', err);
+          setStreamingContent('');
+          setStreamingStatus('error');
+          setIsLoading(false);
+          currentStreamIdRef.current = null;
 
-      if (!res.ok) {
-        // Try to parse error response for specific error messages
-        let errorDetail = '';
-        let errorMessage = '';
-        let errorBody: any = null;
-        try {
-          errorBody = await res.json();
-          errorDetail = errorBody?.detail || errorBody?.error?.message || '';
-          errorMessage = errorBody?.error?.message || errorDetail || '';
-        } catch {
-          // Ignore parse errors
-        }
-
-        // Handle model name errors (400 Bad Request)
-        if (res.status === 400) {
-          const isModelError = errorMessage.toLowerCase().includes('invalid model') || 
-                              errorMessage.toLowerCase().includes('model name') ||
-                              errorMessage.toLowerCase().includes('model=');
-          
-          if (isModelError) {
-            // Extract the model name the backend tried to use (if mentioned in error)
-            const backendModelMatch = errorMessage.match(/model=([^\s,}]+)/i);
-            const backendModelName = backendModelMatch ? backendModelMatch[1] : null;
-            
-            console.error('[Model Error] Backend inconsistency detected:', {
-              requestedModel: selectedModel,
-              backendAttemptedModel: backendModelName,
-              errorMessage: errorMessage,
-              fullError: errorBody,
-              note: 'This model was returned from /v1/models but rejected by /v1/chat/completions'
-            });
-            
-            setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-            const errorContent = backendModelName && backendModelName !== selectedModel
-              ? `⚠️ Model error: The backend returned "${selectedModel}" in the models list but tried to use "${backendModelName}" when making the request. This appears to be a backend configuration issue. Please try a different model.`
-              : `⚠️ Model error: The model "${selectedModel}" was returned from the models list but is not accepted by the chat endpoint. This appears to be a backend configuration issue. Please try a different model.`;
-            
-            setMessages(prev => [...prev, {
+          // Remove the empty assistant message and show error
+          setMessages(prev => {
+            const filtered = prev.filter(msg => msg.id !== streamingMessageId);
+            return [...filtered, {
               role: 'assistant',
-              content: errorContent
-            }]);
-            warning(
-              'Model Configuration Error',
-              `The model "${selectedModel}" is listed as available but cannot be used. This is a backend issue - please try a different model or contact support.`,
-              { duration: 15000 }
-            );
-            setStreamingStatus('error');
-            return;
-          }
-        }
-
-        // Check for automation disabled error (403 with specific message)
-        if (res.status === 403 && errorDetail.toLowerCase().includes('automation')) {
-          setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: '⚠️ Session automation is disabled. Please enable it in your Account settings to use Chat.'
-          }]);
-          warning(
-            'Automation Disabled',
-            'Session automation is disabled. Enable it in Account settings to chat.',
-            {
-              actionLabel: 'Go to Account',
-              actionUrl: '/account',
-              duration: 15000
-            }
-          );
-          setStreamingStatus('error');
-          return;
-        }
-
-        // Handle other auth errors (401 or 403 without automation message)
-        if (res.status === 401 || res.status === 403) {
-          setAuthError(true);
-          setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: 'Authentication error: Please provide a valid API key or log in to get one.'
-          }]);
-          warning(
-            'Authentication Required',
-            'Please verify your API key to continue chatting.',
-            {
-              actionLabel: 'Go to Api Keys',
-              actionUrl: '/api-keys',
-              duration: 10000
-            }
-          );
-          setStreamingStatus('error');
-          return;
-        }
-        throw new Error(`API returned status ${res.status}`);
-      }
-
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedContent = '';
-
-      if (!reader) {
-        throw new Error('No reader available');
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              continue;
-            }
-            
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content;
-              
-              if (delta) {
-                accumulatedContent += delta;
-                setStreamingContent(accumulatedContent);
-                
-                setMessages(prev => prev.map(msg => 
-                  msg.id === streamingMessageId 
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                ));
-              }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (_e) {
-              // Ignore JSON parse errors for incomplete chunks
-            }
-          }
-        }
-      }
-
-      const finalMessage: Message = {
-        id: streamingMessageId,
-        role: 'assistant',
-        content: accumulatedContent,
-      };
-      
-      let updatedMessages: Message[] = [];
-      setMessages(prev => {
-        // Update the streaming message and deduplicate to prevent duplicates in state
-        const seenMessages = new Set<string>();
-        updatedMessages = prev
-          .map(msg => msg.id === streamingMessageId ? finalMessage : msg)
-          .filter(msg => {
-            const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 100)}`;
-            if (seenMessages.has(messageKey)) {
-              return false; // Skip duplicate
-            }
-            seenMessages.add(messageKey);
-            return true;
+              content: `An error occurred: ${err.message}`,
+            }];
           });
-        return updatedMessages;
-      });
-      
-      setStreamingStatus('ready');
-      setStreamingContent('');
 
-      // Save to API if saveChatHistory is enabled
-      if (saveChatHistory && accumulatedContent) {
-        // Prevent multiple simultaneous saves
-        if (isSavingRef.current) {
-          console.log('Save already in progress, skipping...');
-          return;
-        }
-
-        try {
-          isSavingRef.current = true;
-          
-          // Use chatId from URL params instead of currentConversationId from context
-          // This ensures we use the correct ID even if context is stale
-          if (!chatId) {
-            // No chatId in URL means this is a new conversation - save all messages
-            // Deduplicate messages by ID or content+role combination
-            const seenMessages = new Set<string>();
-            const deduplicatedMessages: Message[] = [];
-            
-            for (const msg of updatedMessages) {
-              // Create a unique key for deduplication
-              const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
-              if (!seenMessages.has(messageKey)) {
-                seenMessages.add(messageKey);
-                deduplicatedMessages.push(msg);
-              }
-            }
-
-            const conversationMessages: ConversationMessage[] = deduplicatedMessages.map(msg => ({
-              role: msg.role,
-              content: msg.content,
-              id: msg.id,
-              sequence: msg.sequence,
-            }));
-
-            const newId = await saveCurrentConversation(conversationMessages, fullApiKey);
-            console.log('Saved new conversation:', newId);
-            currentConversationIdRef.current = newId;
-            // Navigate to the new conversation route
-            router.push(`/chat/${newId}`);
-          } else {
-            // chatId exists - only send the NEW messages (last user + assistant pair)
-            // This prevents duplicating existing messages that are already in the API
-            // The new messages are the last 2 messages in updatedMessages
-            const newMessages = updatedMessages.slice(-2); // Get last 2 messages (user + assistant)
-
-            // Validate messages have content before attempting update
-            const validNewMessages = newMessages.filter(msg => msg.content && msg.content.trim().length > 0);
-            const hasUserMessage = validNewMessages.some(msg => msg.role === 'user');
-
-            if (validNewMessages.length === 0 || !hasUserMessage) {
-              console.log('No valid new messages to save, skipping update');
-            } else {
-              const conversationMessages: ConversationMessage[] = validNewMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content,
-                id: msg.id,
-                sequence: msg.sequence,
-              }));
-
-              console.log(`Updating conversation ${chatId} with ${conversationMessages.length} new messages`);
-              await updateConversation(chatId, conversationMessages, fullApiKey);
-              console.log('Updated conversation:', chatId);
-
-              // Dispatch event to update conversation history
-              try {
-                const updatedConversation = await loadConversation(chatId, fullApiKey);
-                if (updatedConversation) {
-                  window.dispatchEvent(new CustomEvent('conversation-history-updated', {
-                    detail: { type: 'updated', conversation: updatedConversation }
-                  }));
-                }
-              } catch (err) {
-                console.warn('Could not fetch updated conversation for event dispatch:', err);
-                // Still dispatch a generic update event
-                window.dispatchEvent(new CustomEvent('conversation-history-updated', {
-                  detail: { type: 'updated', id: chatId }
-                }));
-              }
-            }
-          }
-        } catch (saveError) {
-          console.error('Error saving chat to API:', saveError);
-          const errorMessage = saveError instanceof Error ? saveError.message : 'Failed to save conversation';
-          warning(
-            'Save Failed',
-            `Could not save conversation: ${errorMessage}`,
-            {
-              duration: 5000
-            }
+          error(
+            'Message Failed',
+            'Failed to send your message. Please check your connection and try again.',
+            { duration: 8000 }
           );
-        } finally {
-          isSavingRef.current = false;
-        }
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-      
+
+          // Cleanup subscription on error
+          unsubscribe();
+        },
+      });
+    } catch (err) {
+      console.error('[ChatPage] Error starting stream:', err);
+      setStreamingStatus('error');
+      setIsLoading(false);
+
+      // Remove the streaming message
       setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
-      
-      console.error('Error:', err);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'An error occurred while processing your request.'
-      }]);
-      
+
       error(
         'Message Failed',
-        'Failed to send your message. Please check your connection and try again.',
-        {
-          duration: 8000
-        }
+        'Failed to start the message. Please try again.',
+        { duration: 8000 }
       );
-      
-      setStreamingStatus('error');
-    } finally {
-      setIsLoading(false);
-      if (streamingStatus !== 'streaming') {
-        setStreamingStatus('ready');
-      }
     }
-  };
+  }, [chatId, fullApiKey, messages, selectedModel, startStream, subscribeToStream, abortStreamForConversation, error, warning]);
 
   // Show message if no API key
   if (!fullApiKey || !apiKeyPrefix) {
