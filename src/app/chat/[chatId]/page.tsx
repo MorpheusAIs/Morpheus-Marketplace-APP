@@ -798,32 +798,40 @@ export default function ChatPage() {
             // This prevents duplicating existing messages that are already in the API
             // The new messages are the last 2 messages in updatedMessages
             const newMessages = updatedMessages.slice(-2); // Get last 2 messages (user + assistant)
-            
-            const conversationMessages: ConversationMessage[] = newMessages.map(msg => ({
-              role: msg.role,
-              content: msg.content,
-              id: msg.id,
-              sequence: msg.sequence,
-            }));
 
-            console.log(`Updating conversation ${chatId} with ${conversationMessages.length} new messages`);
-            await updateConversation(chatId, conversationMessages, fullApiKey);
-            console.log('Updated conversation:', chatId);
-            
-            // Dispatch event to update conversation history
-            try {
-              const updatedConversation = await loadConversation(chatId, fullApiKey);
-              if (updatedConversation) {
+            // Validate messages have content before attempting update
+            const validNewMessages = newMessages.filter(msg => msg.content && msg.content.trim().length > 0);
+            const hasUserMessage = validNewMessages.some(msg => msg.role === 'user');
+
+            if (validNewMessages.length === 0 || !hasUserMessage) {
+              console.log('No valid new messages to save, skipping update');
+            } else {
+              const conversationMessages: ConversationMessage[] = validNewMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                id: msg.id,
+                sequence: msg.sequence,
+              }));
+
+              console.log(`Updating conversation ${chatId} with ${conversationMessages.length} new messages`);
+              await updateConversation(chatId, conversationMessages, fullApiKey);
+              console.log('Updated conversation:', chatId);
+
+              // Dispatch event to update conversation history
+              try {
+                const updatedConversation = await loadConversation(chatId, fullApiKey);
+                if (updatedConversation) {
+                  window.dispatchEvent(new CustomEvent('conversation-history-updated', {
+                    detail: { type: 'updated', conversation: updatedConversation }
+                  }));
+                }
+              } catch (err) {
+                console.warn('Could not fetch updated conversation for event dispatch:', err);
+                // Still dispatch a generic update event
                 window.dispatchEvent(new CustomEvent('conversation-history-updated', {
-                  detail: { type: 'updated', conversation: updatedConversation }
+                  detail: { type: 'updated', id: chatId }
                 }));
               }
-            } catch (err) {
-              console.warn('Could not fetch updated conversation for event dispatch:', err);
-              // Still dispatch a generic update event
-              window.dispatchEvent(new CustomEvent('conversation-history-updated', {
-                detail: { type: 'updated', id: chatId }
-              }));
             }
           }
         } catch (saveError) {

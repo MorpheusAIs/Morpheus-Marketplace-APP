@@ -298,7 +298,8 @@ export async function updateConversation(id: string, messages: ConversationMessa
   const hasUserMessage = messagesWithContent.some(msg => msg.role === 'user');
   
   if (messagesWithContent.length === 0 || !hasUserMessage) {
-    throw new Error('Cannot update conversation with empty messages');
+    console.log(`Skipping update for conversation ${id}: no valid messages with content`);
+    return; // Silent no-op - this is a valid scenario when messages are already synced
   }
 
   try {
