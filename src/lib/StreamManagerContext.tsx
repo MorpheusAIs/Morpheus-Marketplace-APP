@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   getStreamManager,
   type StreamState,
@@ -108,7 +108,8 @@ export function StreamManagerProvider({ children }: StreamManagerProviderProps) 
     getStreamManager().abortStreamForConversation(conversationId);
   }, []);
 
-  const value: StreamManagerContextType = {
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const value = useMemo<StreamManagerContextType>(() => ({
     startStream,
     getStreamState,
     getStreamForConversation,
@@ -117,7 +118,16 @@ export function StreamManagerProvider({ children }: StreamManagerProviderProps) 
     subscribeToStream,
     abortStream,
     abortStreamForConversation,
-  };
+  }), [
+    startStream,
+    getStreamState,
+    getStreamForConversation,
+    getActiveStreams,
+    hasActiveStream,
+    subscribeToStream,
+    abortStream,
+    abortStreamForConversation,
+  ]);
 
   return (
     <StreamManagerContext.Provider value={value}>

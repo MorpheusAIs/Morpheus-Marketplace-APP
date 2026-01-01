@@ -405,6 +405,9 @@ class StreamManager {
         throw new Error('No reader available');
       }
 
+      // Use array accumulation instead of string concatenation for O(n) performance
+      const contentChunks: string[] = [];
+
       // Process stream
       while (true) {
         const { done, value } = await reader.read();
@@ -426,7 +429,9 @@ class StreamManager {
               const delta = parsed.choices?.[0]?.delta?.content;
 
               if (delta) {
-                state.accumulatedContent += delta;
+                contentChunks.push(delta);
+                // Join chunks for accumulated content (O(n) total instead of O(n²))
+                state.accumulatedContent = contentChunks.join('');
 
                 // Notify subscribers
                 this.notifyProgress(state);

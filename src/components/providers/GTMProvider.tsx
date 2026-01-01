@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useGTMPageView } from '@/lib/hooks/useGTMPageView';
 import { 
   trackEvent, 
@@ -35,7 +35,8 @@ export const GTMProvider = ({ children }: GTMProviderProps) => {
   // Automatically track page views
   useGTMPageView();
 
-  const contextValue: GTMContextType = {
+  // Memoize context value - these are stable module-level functions
+  const contextValue = useMemo<GTMContextType>(() => ({
     trackEvent,
     trackAuth,
     trackApiKey,
@@ -44,7 +45,7 @@ export const GTMProvider = ({ children }: GTMProviderProps) => {
     trackDocumentation,
     trackButtonClick,
     trackFormSubmission,
-  };
+  }), []);
 
   return (
     <GTMContext.Provider value={contextValue}>
