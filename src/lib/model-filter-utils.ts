@@ -33,16 +33,18 @@ export function getAllowedModelTypes(): string[] {
  */
 export function getAvailableModelTypes(models: Array<{ModelType?: string}>, allowedTypes?: string[]): string[] {
   const allowed = allowedTypes || getAllowedModelTypes();
-  
+  // Convert to Set for O(1) lookup instead of O(n) includes()
+  const allowedSet = new Set(allowed);
+
   const uniqueTypes = new Set<string>();
-  
+
   models.forEach(model => {
     const modelType = model.ModelType?.toUpperCase();
-    if (modelType && allowed.includes(modelType)) {
+    if (modelType && allowedSet.has(modelType)) {
       uniqueTypes.add(modelType);
     }
   });
-  
+
   return Array.from(uniqueTypes).sort();
 }
 
@@ -54,18 +56,20 @@ export function getAvailableModelTypes(models: Array<{ModelType?: string}>, allo
  * @returns Filtered array of models
  */
 export function filterModelsByType<T extends {ModelType?: string}>(
-  models: T[], 
+  models: T[],
   additionalFilter: string = 'all',
   allowedTypes?: string[]
 ): T[] {
   const allowed = allowedTypes || getAllowedModelTypes();
-  
+  // Convert to Set for O(1) lookup instead of O(n) includes()
+  const allowedSet = new Set(allowed);
+
   // First filter by allowed types from environment
   let filtered = models.filter(model => {
     const modelType = model.ModelType?.toUpperCase() || 'UNKNOWN';
-    return allowed.includes(modelType);
+    return allowedSet.has(modelType);
   });
-  
+
   // Apply additional filter if not 'all'
   if (additionalFilter !== 'all') {
     const filterType = additionalFilter.toUpperCase();
@@ -74,7 +78,7 @@ export function filterModelsByType<T extends {ModelType?: string}>(
       return modelType === filterType;
     });
   }
-  
+
   return filtered;
 }
 

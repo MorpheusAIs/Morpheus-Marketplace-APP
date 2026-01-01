@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -109,35 +109,36 @@ export function Sidebar({
     return saveChatHistory;
   });
 
-  const handleLogout = () => {
+  // Memoize event handlers with useCallback to prevent unnecessary re-renders
+  const handleLogout = useCallback(() => {
     logout();
     router.push("/signin");
-  };
+  }, [logout, router]);
 
-  const handleAccountClick = () => {
+  const handleAccountClick = useCallback(() => {
     router.push("/account");
-  };
+  }, [router]);
 
-  const handleSaveChatHistoryChange = (checked: boolean) => {
+  const handleSaveChatHistoryChange = useCallback((checked: boolean) => {
     setLocalSaveChatHistory(checked);
     localStorage.setItem("save_chat_history", checked.toString());
     onSaveChatHistoryChange?.(checked);
-  };
+  }, [onSaveChatHistoryChange]);
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     startNewConversation();
     onNewChat?.();
     // Navigate to chat route if not already there
     if (!isChatRoute) {
       router.push('/chat');
     }
-  };
+  }, [startNewConversation, onNewChat, isChatRoute, router]);
 
-  const handleChatSelect = async (chatId: string) => {
+  const handleChatSelect = useCallback(async (chatId: string) => {
     try {
       // First check if conversation is already preloaded in state
       const preloadedConversation = getConversationById(chatId);
-      
+
       if (preloadedConversation && preloadedConversation.messages && preloadedConversation.messages.length > 0) {
         // Use preloaded conversation - just navigate, no need to fetch
         console.log(`Using preloaded conversation ${chatId} with ${preloadedConversation.messages.length} messages`);
@@ -163,9 +164,9 @@ export function Sidebar({
       );
       console.error('Error loading conversation:', err);
     }
-  };
+  }, [getConversationById, onChatSelect, router, loadConversation, error]);
 
-  const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
+  const handleDeleteChat = useCallback(async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (window.confirm('Are you sure you want to delete this conversation?')) {
@@ -185,7 +186,7 @@ export function Sidebar({
         console.error('Error deleting conversation:', err);
       }
     }
-  };
+  }, [deleteConversationById, error]);
 
   return (
     <ShadcnSidebar collapsible="offcanvas" variant="sidebar" className="border-r border-sidebar-border">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, AlertTriangle, Info } from 'lucide-react';
 
@@ -149,7 +149,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     });
   }, [showNotification]);
 
-  const value = {
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const value = useMemo(() => ({
     notification: null, // Keep for backward compatibility but not used
     showNotification,
     dismissNotification,
@@ -157,7 +158,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     error,
     warning,
     info,
-  };
+  }), [showNotification, dismissNotification, success, error, warning, info]);
 
   return (
     <NotificationContext.Provider value={value}>

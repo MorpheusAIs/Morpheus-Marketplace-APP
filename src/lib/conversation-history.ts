@@ -92,7 +92,7 @@ export async function getConversations(apiKey?: string): Promise<Conversation[]>
 
 /**
  * Get a specific conversation by ID with messages
- * Always fetches messages separately since they're not included in the detail response
+ * Fetches conversation details and messages in parallel for better performance
  */
 export async function getConversation(id: string, apiKey?: string): Promise<Conversation | null> {
   const key = apiKey || getApiKey();
@@ -105,9 +105,12 @@ export async function getConversation(id: string, apiKey?: string): Promise<Conv
   }
 
   try {
-    // First get the conversation details
-    const conversationResponse = await apiGet<ApiConversation>(API_URLS.chatDetail(id), key);
-    
+    // Fetch conversation details and messages in parallel for better performance
+    const [conversationResponse, messagesResponse] = await Promise.all([
+      apiGet<ApiConversation>(API_URLS.chatDetail(id), key),
+      apiGet<ConversationMessage[]>(API_URLS.chatMessages(id), key)
+    ]);
+
     if (conversationResponse.error || !conversationResponse.data) {
       if (conversationResponse.status === 404) {
         return null;
@@ -116,51 +119,15 @@ export async function getConversation(id: string, apiKey?: string): Promise<Conv
     }
 
     const conversation = conversationResponse.data;
-    console.log(`Fetched conversation ${id}:`, {
-      hasMessages: !!conversation.messages,
-      messageCount: conversation.messages?.length || conversation.message_count || 0,
-      title: conversation.title
-    });
 
-    // Always fetch messages separately since the API doesn't include them in detail responses
-    // Check if we already have messages, but still fetch to ensure we have the latest
-    if (!conversation.messages || conversation.messages.length === 0 || conversation.message_count !== conversation.messages.length) {
-      console.log(`Fetching messages from messages endpoint for conversation ${id}...`);
-      try {
-        const messagesResponse = await apiGet<ConversationMessage[]>(API_URLS.chatMessages(id), key);
-        console.log(`Messages endpoint response:`, {
-          hasData: !!messagesResponse.data,
-          isArray: Array.isArray(messagesResponse.data),
-          count: Array.isArray(messagesResponse.data) ? messagesResponse.data.length : 0,
-          error: messagesResponse.error,
-          status: messagesResponse.status
-        });
-        
-        if (messagesResponse.data && Array.isArray(messagesResponse.data)) {
-          conversation.messages = messagesResponse.data;
-          console.log(`Successfully loaded ${messagesResponse.data.length} messages for conversation ${id}`);
-        } else if (messagesResponse.error) {
-          console.warn('Messages endpoint returned error:', messagesResponse.error);
-          // Don't set empty array if there was an error - keep whatever we have
-          if (!conversation.messages) {
-            conversation.messages = [];
-          }
-        } else {
-          console.warn('Messages endpoint returned unexpected format:', messagesResponse.data);
-          if (!conversation.messages) {
-            conversation.messages = [];
-          }
-        }
-      } catch (messagesError) {
-        console.warn('Could not fetch messages separately:', messagesError);
-        // Only set empty array if we don't have any messages
-        if (!conversation.messages) {
-          conversation.messages = [];
-        }
-      }
-    } else {
-      console.log(`Conversation ${id} already has ${conversation.messages.length} messages`);
+    // Use messages from parallel fetch
+    if (messagesResponse.data && Array.isArray(messagesResponse.data)) {
+      conversation.messages = messagesResponse.data;
+    } else if (!conversation.messages) {
+      conversation.messages = [];
     }
+
+    console.log(`Fetched conversation ${id} with ${conversation.messages?.length || 0} messages (parallel fetch)`);
 
     return normalizeConversation(conversation);
   } catch (error) {
@@ -217,55 +184,29 @@ export async function saveConversation(messages: ConversationMessage[], apiKey?:
     }
 
     const conversationId = createResponse.data.id;
-    console.log(`Created conversation ${conversationId}, now adding ${messages.length} messages...`);
+    console.log(`Created conversation ${conversationId}, now adding ${messagesWithContent.length} messages in parallel...`);
 
-    // Step 2: Add messages separately via the messages endpoint
+    // Step 2: Add messages in parallel via the messages endpoint
     const messagesUrl = API_URLS.chatMessages(conversationId);
-    console.log(`Adding messages to: ${messagesUrl}`);
-    
-    let successCount = 0;
-    let failCount = 0;
-    
+
     try {
-      // Only add messages with content
-      const messagesToAdd = messagesWithContent;
-      for (let i = 0; i < messagesToAdd.length; i++) {
-        const message = messagesToAdd[i];
-        console.log(`Adding message ${i + 1}/${messages.length}:`, {
-          role: message.role,
-          contentLength: message.content?.length || 0,
-          hasId: !!message.id,
-          hasSequence: message.sequence !== undefined
-        });
-        
-        const messageResponse = await apiPost<ConversationMessage>(
-          messagesUrl,
-          message,
-          key
-        );
-        
-        console.log(`Message ${i + 1} response:`, {
-          status: messageResponse.status,
-          hasError: !!messageResponse.error,
-          error: messageResponse.error,
-          hasData: !!messageResponse.data
-        });
-        
-        if (messageResponse.error) {
-          console.error(`Failed to add message ${i + 1} to conversation ${conversationId}:`, messageResponse.error);
-          failCount++;
-          // Continue with other messages even if one fails
-        } else {
-          successCount++;
-        }
-      }
-      console.log(`Message addition complete: ${successCount} succeeded, ${failCount} failed out of ${messagesToAdd.length} total`);
+      // Add all messages in parallel for better performance
+      const messagePromises = messagesWithContent.map((message, i) =>
+        apiPost<ConversationMessage>(messagesUrl, message, key)
+          .then(response => ({ index: i, success: !response.error, error: response.error }))
+          .catch(err => ({ index: i, success: false, error: err.message }))
+      );
+
+      const results = await Promise.all(messagePromises);
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      console.log(`Message addition complete: ${successCount} succeeded, ${failCount} failed out of ${messagesWithContent.length} total (parallel)`);
     } catch (messagesError) {
       console.error(`Error adding messages to conversation ${conversationId}:`, messagesError);
       // Don't throw - conversation was created, messages can be added later
-      // But log the error for debugging
     }
-    
+
     return conversationId;
   } catch (error) {
     console.error('Error saving conversation to API:', error);
@@ -346,27 +287,22 @@ export async function updateConversation(id: string, messages: ConversationMessa
       
       console.log(`Found ${existingMessages.length} existing messages, adding ${newMessages.length} new messages`);
       
-      // Only add new messages that don't already exist
+      // Only add new messages that don't already exist - batch in parallel
       if (newMessages.length > 0) {
-        for (const message of newMessages) {
-          try {
-            const messageResponse = await apiPost<ConversationMessage>(
-              API_URLS.chatMessages(id),
-              message,
-              key,
-              { timeout: 10000 } // 10 second timeout per message
-            );
-            
-            if (messageResponse.error) {
-              console.warn(`Failed to add message to conversation ${id}:`, messageResponse.error);
-              // Continue with other messages even if one fails
-            }
-          } catch (messageError) {
-            console.warn(`Error adding message to conversation ${id}:`, messageError);
-            // Continue with other messages even if one fails
-          }
-        }
-        console.log(`Successfully added ${newMessages.length} new messages to conversation ${id}`);
+        const messagePromises = newMessages.map(message =>
+          apiPost<ConversationMessage>(
+            API_URLS.chatMessages(id),
+            message,
+            key,
+            { timeout: 10000 }
+          )
+            .then(response => ({ success: !response.error, error: response.error }))
+            .catch(err => ({ success: false, error: err.message }))
+        );
+
+        const results = await Promise.all(messagePromises);
+        const successCount = results.filter(r => r.success).length;
+        console.log(`Added ${successCount}/${newMessages.length} new messages to conversation ${id} (parallel)`);
       } else {
         console.log(`No new messages to add to conversation ${id} (all messages already exist)`);
       }

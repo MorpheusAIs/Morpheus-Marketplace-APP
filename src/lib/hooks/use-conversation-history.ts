@@ -48,16 +48,16 @@ export function useConversationHistory() {
 
     try {
       const loaded = await getConversations();
-      // Merge with existing conversations to preserve preloaded messages
-      const updated = [...loaded];
-      // Preserve messages from preloaded conversations
-      globalConversations.forEach(prevConv => {
-        const index = updated.findIndex(c => c.id === prevConv.id);
-        if (index >= 0 && prevConv.messages && prevConv.messages.length > 0) {
-          // Keep the preloaded messages if they exist
-          updated[index] = prevConv;
-        }
-      });
+      // Merge with existing conversations using Map for O(1) lookups
+      // Preserve preloaded messages from existing conversations
+      const existingWithMessages = new Map(
+        globalConversations
+          .filter(c => c.messages && c.messages.length > 0)
+          .map(c => [c.id, c])
+      );
+      const updated = loaded.map(conv =>
+        existingWithMessages.has(conv.id) ? existingWithMessages.get(conv.id)! : conv
+      );
       globalConversations = updated;
       setConversations(updated);
     } catch (err) {
@@ -90,10 +90,10 @@ export function useConversationHistory() {
 
       // Get list of conversations
       const conversationList = await getConversations(apiKey);
-      
-      // Preload the 5 most recent conversations, up to 20 total
-      // Start with 5, but allow up to 20 if available
-      const conversationsToPreload = conversationList.slice(0, Math.min(20, conversationList.length));
+
+      // Preload only the 5 most recent conversations for better performance
+      // This reduces startup API calls from 40+ to ~10
+      const conversationsToPreload = conversationList.slice(0, Math.min(5, conversationList.length));
       
       console.log(`Preloading ${conversationsToPreload.length} conversations...`);
       
@@ -110,23 +110,16 @@ export function useConversationHistory() {
       });
 
       const preloaded = await Promise.all(preloadedPromises);
-      
-      // Update conversations with preloaded data
-      const updated = [...globalConversations];
+
+      // Update conversations with preloaded data using Map for O(1) lookups
+      const conversationMap = new Map(globalConversations.map(c => [c.id, c]));
       preloaded.forEach(preloadedConv => {
         if (preloadedConv && preloadedConv.messages && preloadedConv.messages.length > 0) {
-          const index = updated.findIndex(c => c.id === preloadedConv.id);
-          if (index >= 0) {
-            // Update existing conversation with preloaded messages
-            updated[index] = preloadedConv;
-          } else {
-            // Add new conversation if not in list yet
-            updated.push(preloadedConv);
-          }
+          conversationMap.set(preloadedConv.id, preloadedConv);
         }
       });
-      // Sort by updatedAt descending
-      globalConversations = updated.sort((a, b) => b.updatedAt - a.updatedAt);
+      // Convert back to sorted array
+      globalConversations = Array.from(conversationMap.values()).sort((a, b) => b.updatedAt - a.updatedAt);
       setConversations(globalConversations);
 
       hasPreloadedRef.current = true;

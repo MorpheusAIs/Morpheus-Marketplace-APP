@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useReducer } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useNotification } from '@/lib/NotificationContext';
@@ -110,6 +110,102 @@ type ApiErrorResponse = {
   };
 };
 
+// Consolidated chat state for useReducer - groups related states that change together
+type ChatState = {
+  isLoading: boolean;
+  streamingStatus: 'ready' | 'submitted' | 'streaming' | 'error';
+  connectionStatus: ConnectionStatus;
+  retryCount: number;
+  streamingContent: string;
+  showDeleteDialog: boolean;
+  showModelSelector: boolean;
+  showSettingsDialog: boolean;
+};
+
+type ChatAction =
+  | { type: 'START_LOADING' }
+  | { type: 'SET_STREAMING'; status: 'ready' | 'submitted' | 'streaming' | 'error' }
+  | { type: 'SET_CONNECTION'; status: ConnectionStatus; retryCount?: number }
+  | { type: 'SET_STREAMING_CONTENT'; content: string }
+  | { type: 'STREAM_COMPLETE' }
+  | { type: 'STREAM_ERROR' }
+  | { type: 'TOGGLE_DELETE_DIALOG'; show: boolean }
+  | { type: 'TOGGLE_MODEL_SELECTOR'; show: boolean }
+  | { type: 'TOGGLE_SETTINGS_DIALOG'; show: boolean }
+  | { type: 'RESET_STREAM' };
+
+const initialChatState: ChatState = {
+  isLoading: false,
+  streamingStatus: 'ready',
+  connectionStatus: 'idle',
+  retryCount: 0,
+  streamingContent: '',
+  showDeleteDialog: false,
+  showModelSelector: false,
+  showSettingsDialog: false,
+};
+
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  switch (action.type) {
+    case 'START_LOADING':
+      return {
+        ...state,
+        isLoading: true,
+        streamingStatus: 'submitted',
+        connectionStatus: 'connecting',
+        retryCount: 0,
+        streamingContent: '',
+      };
+    case 'SET_STREAMING':
+      return { ...state, streamingStatus: action.status };
+    case 'SET_CONNECTION':
+      return {
+        ...state,
+        connectionStatus: action.status,
+        retryCount: action.retryCount ?? state.retryCount,
+      };
+    case 'SET_STREAMING_CONTENT':
+      return {
+        ...state,
+        streamingContent: action.content,
+        streamingStatus: 'streaming',
+        connectionStatus: 'streaming',
+      };
+    case 'STREAM_COMPLETE':
+      return {
+        ...state,
+        streamingContent: '',
+        streamingStatus: 'ready',
+        connectionStatus: 'idle',
+        isLoading: false,
+      };
+    case 'STREAM_ERROR':
+      return {
+        ...state,
+        streamingContent: '',
+        streamingStatus: 'error',
+        connectionStatus: 'error',
+        isLoading: false,
+      };
+    case 'TOGGLE_DELETE_DIALOG':
+      return { ...state, showDeleteDialog: action.show };
+    case 'TOGGLE_MODEL_SELECTOR':
+      return { ...state, showModelSelector: action.show };
+    case 'TOGGLE_SETTINGS_DIALOG':
+      return { ...state, showSettingsDialog: action.show };
+    case 'RESET_STREAM':
+      return {
+        ...state,
+        streamingContent: '',
+        streamingStatus: 'ready',
+        connectionStatus: 'idle',
+        isLoading: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function ChatPage() {
   // Cognito authentication
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -132,12 +228,11 @@ export default function ChatPage() {
   // API Key state (retrieved from sessionStorage)
   const [fullApiKey, setFullApiKey] = useState<string>('');
   const [apiKeyPrefix, setApiKeyPrefix] = useState<string>('');
-  
-  // Delete confirmation dialog state
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
-  // Chat state
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Consolidated chat state using useReducer for better performance
+  const [chatState, dispatch] = useReducer(chatReducer, initialChatState);
+  const { isLoading, streamingStatus, connectionStatus, retryCount, streamingContent, showDeleteDialog, showModelSelector, showSettingsDialog } = chatState;
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_authError, setAuthError] = useState(false);
   const [saveChatHistory, setSaveChatHistory] = useState(() => {
@@ -147,11 +242,6 @@ export default function ChatPage() {
     }
     return true;
   });
-  const [streamingStatus, setStreamingStatus] = useState<'ready' | 'submitted' | 'streaming' | 'error'>('ready');
-  
-  // Connection status for high-latency feedback
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
-  const [retryCount, setRetryCount] = useState(0);
   
   // Model state
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -169,13 +259,8 @@ export default function ChatPage() {
   // Chat history state - using localStorage now
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationTitle, setConversationTitle] = useState<string>('New Chat');
-  
-  // Chat settings modal state
-  const [showModelSelector, setShowModelSelector] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  
-  // Streaming state
-  const [streamingContent, setStreamingContent] = useState<string>('');
+
+  // Refs for stream tracking
   const currentConversationIdRef = useRef<string | null>(null);
   const currentStreamIdRef = useRef<string | null>(null);
   
@@ -187,13 +272,27 @@ export default function ChatPage() {
   });
   const [maxTokens, setMaxTokens] = useState<number>(128_000); // Default fallback
 
+  // Memoize unique sorted models to avoid re-computing on every render
+  const uniqueSortedModels = useMemo(() => {
+    const uniqueModelsMap = new Map<string, Model>();
+    filteredModels.forEach((model) => {
+      if (!uniqueModelsMap.has(model.id)) {
+        uniqueModelsMap.set(model.id, model);
+      }
+    });
+    return Array.from(uniqueModelsMap.values()).sort((a, b) => a.id.localeCompare(b.id));
+  }, [filteredModels]);
+
+  // Memoize static model types array to avoid creating new reference each render
+  const modelTypes = useMemo(() => [{ value: 'LLM', label: 'LLM' }], []);
+
   // Sync ref with context value and clear messages when starting new conversation
   useEffect(() => {
     currentConversationIdRef.current = currentConversationId;
     // When conversation ID becomes null (new conversation started), ensure messages are cleared
     if (!currentConversationId) {
       setMessages([]);
-      setStreamingContent('');
+      dispatch({ type: 'RESET_STREAM' });
     }
   }, [currentConversationId]);
 
@@ -241,10 +340,10 @@ export default function ChatPage() {
 
       // Restore streaming content if stream is in progress
       if (existingStream.status === 'streaming' || existingStream.status === 'pending') {
-        setStreamingStatus(existingStream.status === 'pending' ? 'submitted' : 'streaming');
-        setStreamingContent(existingStream.accumulatedContent);
-        setIsLoading(true);
-        setConnectionStatus('streaming');
+        dispatch({
+          type: existingStream.status === 'pending' ? 'START_LOADING' : 'SET_STREAMING_CONTENT',
+          ...(existingStream.status === 'streaming' ? { content: existingStream.accumulatedContent } : {}),
+        } as ChatAction);
 
         // Add the user message and streaming assistant message to UI
         const userMsg: Message = {
@@ -275,9 +374,7 @@ export default function ChatPage() {
       // Subscribe to stream updates
       const unsubscribe = subscribeToStream(existingStream.streamId, {
         onProgress: (content) => {
-          setStreamingContent(content);
-          setStreamingStatus('streaming');
-          setConnectionStatus('streaming');
+          dispatch({ type: 'SET_STREAMING_CONTENT', content });
           setMessages(prev =>
             prev.map((msg, i) =>
               i === prev.length - 1 && msg.role === 'assistant'
@@ -287,10 +384,7 @@ export default function ChatPage() {
           );
         },
         onComplete: (content) => {
-          setStreamingContent('');
-          setStreamingStatus('ready');
-          setConnectionStatus('idle');
-          setIsLoading(false);
+          dispatch({ type: 'STREAM_COMPLETE' });
           currentStreamIdRef.current = null;
           setMessages(prev =>
             prev.map((msg, i) =>
@@ -300,12 +394,9 @@ export default function ChatPage() {
             )
           );
         },
-        onError: (error) => {
-          console.error('[ChatPage] Stream error:', error);
-          setStreamingContent('');
-          setStreamingStatus('error');
-          setConnectionStatus('error');
-          setIsLoading(false);
+        onError: (err) => {
+          console.error('[ChatPage] Stream error:', err);
+          dispatch({ type: 'STREAM_ERROR' });
           currentStreamIdRef.current = null;
         },
       });
@@ -372,7 +463,7 @@ export default function ChatPage() {
         router.push('/chat');
       }
       setMessages([]);
-      setStreamingContent('');
+      dispatch({ type: 'RESET_STREAM' });
       // Clear the ref immediately when starting a new conversation
       currentConversationIdRef.current = null;
     };
@@ -551,7 +642,7 @@ export default function ChatPage() {
       try {
         await deleteConversationById(currentConversationId);
         router.push('/chat');
-        setShowDeleteDialog(false);
+        dispatch({ type: 'TOGGLE_DELETE_DIALOG', show: false });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete conversation';
         error(
@@ -579,11 +670,8 @@ export default function ChatPage() {
       abortStreamForConversation(null);
     }
 
-    setIsLoading(true);
+    dispatch({ type: 'START_LOADING' });
     setAuthError(false);
-    setStreamingStatus('submitted');
-    setConnectionStatus('connecting');
-    setRetryCount(0);
 
     const currentPrompt = message.text;
     const streamingMessageId = `assistant-${Date.now()}`;
@@ -602,7 +690,6 @@ export default function ChatPage() {
     };
 
     setMessages(prev => [...prev, newUserMessage, streamingMessage]);
-    setStreamingContent('');
 
     // Build message history (excluding the current user message and streaming message)
     const messageHistory: ConversationMessage[] = messages.map(msg => ({
@@ -626,13 +713,13 @@ export default function ChatPage() {
       });
 
       currentStreamIdRef.current = streamId;
-      setStreamingStatus('streaming');
-      setConnectionStatus('streaming');
+      dispatch({ type: 'SET_STREAMING', status: 'streaming' });
+      dispatch({ type: 'SET_CONNECTION', status: 'streaming' });
 
       // Subscribe to stream updates
       const unsubscribe = subscribeToStream(streamId, {
         onProgress: (content) => {
-          setStreamingContent(content);
+          dispatch({ type: 'SET_STREAMING_CONTENT', content });
           setMessages(prev =>
             prev.map(msg =>
               msg.id === streamingMessageId
@@ -642,10 +729,7 @@ export default function ChatPage() {
           );
         },
         onComplete: (content) => {
-          setStreamingContent('');
-          setStreamingStatus('ready');
-          setConnectionStatus('idle');
-          setIsLoading(false);
+          dispatch({ type: 'STREAM_COMPLETE' });
           currentStreamIdRef.current = null;
           setMessages(prev =>
             prev.map(msg =>
@@ -659,10 +743,7 @@ export default function ChatPage() {
         },
         onError: (err) => {
           console.error('[ChatPage] Stream error:', err);
-          setStreamingContent('');
-          setStreamingStatus('error');
-          setConnectionStatus('error');
-          setIsLoading(false);
+          dispatch({ type: 'STREAM_ERROR' });
           currentStreamIdRef.current = null;
 
           // Remove the empty assistant message and show error
@@ -686,9 +767,7 @@ export default function ChatPage() {
       });
     } catch (err) {
       console.error('[ChatPage] Error starting stream:', err);
-      setStreamingStatus('error');
-      setConnectionStatus('error');
-      setIsLoading(false);
+      dispatch({ type: 'STREAM_ERROR' });
 
       // Remove the streaming message
       setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
@@ -779,7 +858,7 @@ export default function ChatPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowDeleteDialog(true)}
+              onClick={() => dispatch({ type: 'TOGGLE_DELETE_DIALOG', show: true })}
               className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
               title="Delete conversation"
             >
@@ -885,10 +964,10 @@ export default function ChatPage() {
             </PromptInputBody>
             <PromptInputFooter>
               <PromptInputTools>
-                <PromptInputButton onClick={() => setShowSettingsDialog(true)}>
+                <PromptInputButton onClick={() => dispatch({ type: 'TOGGLE_SETTINGS_DIALOG', show: true })}>
                   <Settings className="h-4 w-4" />
                 </PromptInputButton>
-                <ModelSelector open={showModelSelector} onOpenChange={setShowModelSelector}>
+                <ModelSelector open={showModelSelector} onOpenChange={(open) => dispatch({ type: 'TOGGLE_MODEL_SELECTOR', show: open })}>
                   <ModelSelectorTrigger asChild>
                     <PromptInputButton>
                       <span className="text-sm">{selectedModel}</span>
@@ -898,38 +977,23 @@ export default function ChatPage() {
                     <ModelSelectorInput placeholder="Search models..." />
                     <ModelSelectorList className="max-h-[500px]">
                       <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                      {(() => {
-                        // Deduplicate models by id
-                        const uniqueModelsMap = new Map<string, Model>();
-                        filteredModels.forEach((model) => {
-                          if (!uniqueModelsMap.has(model.id)) {
-                            uniqueModelsMap.set(model.id, model);
-                          }
-                        });
-                        
-                        // Convert to array and sort alphabetically by id
-                        const uniqueModels = Array.from(uniqueModelsMap.values())
-                          .sort((a, b) => a.id.localeCompare(b.id));
-
-                        // Render models directly (no grouping needed)
-                        return uniqueModels.map((model) => (
-                          <ModelSelectorItem
-                            key={model.id}
-                            onSelect={() => {
-                              setSelectedModel(model.id);
-                              setShowModelSelector(false);
-                            }}
-                            value={model.id}
-                          >
-                            <ModelSelectorName>{model.id}</ModelSelectorName>
-                            {selectedModel === model.id ? (
-                              <CheckIcon className="ml-auto size-4" />
-                            ) : (
-                              <div className="ml-auto size-4" />
-                            )}
-                          </ModelSelectorItem>
-                        ));
-                      })()}
+                      {uniqueSortedModels.map((model) => (
+                        <ModelSelectorItem
+                          key={model.id}
+                          onSelect={() => {
+                            setSelectedModel(model.id);
+                            dispatch({ type: 'TOGGLE_MODEL_SELECTOR', show: false });
+                          }}
+                          value={model.id}
+                        >
+                          <ModelSelectorName>{model.id}</ModelSelectorName>
+                          {selectedModel === model.id ? (
+                            <CheckIcon className="ml-auto size-4" />
+                          ) : (
+                            <div className="ml-auto size-4" />
+                          )}
+                        </ModelSelectorItem>
+                      ))}
                     </ModelSelectorList>
                   </ModelSelectorContent>
                 </ModelSelector>
@@ -941,17 +1005,17 @@ export default function ChatPage() {
         {/* Chat Settings Dialog */}
         <ChatSettingsDialog
           open={showSettingsDialog}
-          onOpenChange={setShowSettingsDialog}
+          onOpenChange={(open) => dispatch({ type: 'TOGGLE_SETTINGS_DIALOG', show: open })}
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
           models={filteredModels}
-          modelTypes={[{ value: 'LLM', label: 'LLM' }]}
+          modelTypes={modelTypes}
           selectedModelType="LLM"
           onModelTypeChange={handleModelTypeFilterChange}
         />
 
         {/* Delete Confirmation Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialog open={showDeleteDialog} onOpenChange={(open) => dispatch({ type: 'TOGGLE_DELETE_DIALOG', show: open })}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
