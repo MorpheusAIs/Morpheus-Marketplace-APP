@@ -217,10 +217,9 @@ export default function ChatPage() {
       // Only navigate if this is the page that started the stream (has the stream ID)
       if (conversationId && currentStreamIdRef.current) {
         console.log(`[ChatPage] New conversation created: ${conversationId}, navigating...`);
-        // Per user preference, we stay on /chat and don't auto-navigate
-        // The user will click from sidebar when ready
-        // But we should clear the current stream ref since it completed
-        // Navigation will happen when user clicks sidebar
+        // Navigate to the new conversation so subsequent messages go to the same conversation
+        // This prevents the bug where each message creates a new conversation
+        router.push(`/chat/${conversationId}`);
       }
     };
 
@@ -228,7 +227,7 @@ export default function ChatPage() {
     return () => {
       window.removeEventListener(STREAM_EVENTS.NEW_CONVERSATION, handleNewConversationCreated);
     };
-  }, []);
+  }, [router]);
 
   // Restore stream state on mount for new conversations (null conversationId)
   useEffect(() => {
