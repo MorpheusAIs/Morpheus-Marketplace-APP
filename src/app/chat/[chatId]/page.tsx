@@ -285,6 +285,16 @@ export default function ChatPage() {
         return;
       }
 
+      // Check if there's an active stream for this conversation
+      // If so, don't overwrite the streaming state - the stream restore effect handles it
+      const activeStream = getStreamForConversation(chatId);
+      if (activeStream && (activeStream.status === 'streaming' || activeStream.status === 'pending')) {
+        console.log(`Conversation ${chatId} has active stream, skipping load to preserve streaming state`);
+        setIsLoadingConversation(false);
+        isLoadingConversationRef.current = false;
+        return;
+      }
+
       // Prevent multiple simultaneous loads
       if (isLoadingConversationRef.current) {
         console.log('Conversation load already in progress, skipping...');
@@ -296,7 +306,7 @@ export default function ChatPage() {
       try {
         // First check if conversation is already preloaded
         const preloadedConversation = getConversationById(chatId);
-        
+
         let conversation;
         if (preloadedConversation && preloadedConversation.messages && preloadedConversation.messages.length > 0) {
           // Use preloaded conversation
@@ -312,7 +322,7 @@ export default function ChatPage() {
           // Deduplicate messages when loading
           const seenMessages = new Set<string>();
           const deduplicatedMessages: Message[] = [];
-          
+
           (conversation.messages || []).forEach((msg: ConversationMessage) => {
             const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
             if (!seenMessages.has(messageKey)) {
@@ -345,7 +355,7 @@ export default function ChatPage() {
     };
 
     loadConversationFromUrl();
-  }, [chatId, fullApiKey, loadConversation, router, getConversationById]);
+  }, [chatId, fullApiKey, loadConversation, router, getConversationById, getStreamForConversation]);
 
   // Listen for conversation history updates to refresh title only if it matches current chatId
   useEffect(() => {
