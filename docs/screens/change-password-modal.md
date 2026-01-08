@@ -135,8 +135,8 @@ export function ChangePasswordModal({
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters long");
+    if (newPassword.length < 15) {
+      setError("New password must be at least 15 characters long");
       return;
     }
 

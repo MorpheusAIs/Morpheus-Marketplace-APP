@@ -27,8 +27,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   // Password validation function to match Cognito password policy
   const validatePassword = (password: string): string | null => {
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
+    if (password.length < 15) {
+      return 'Password must be at least 15 characters long';
     }
     if (!/[A-Z]/.test(password)) {
       return 'Password must contain at least one uppercase letter';
@@ -38,9 +38,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
     if (!/[0-9]/.test(password)) {
       return 'Password must contain at least one number';
-    }
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      return 'Password must contain at least one special character';
     }
     return null;
   };
@@ -295,11 +292,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={8}
+                  minLength={15}
                   autoComplete="new-password"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
-                  placeholder="Min 8 chars, upper/lower/number/symbol"
+                  placeholder="Min 15 chars, upper/lower/number"
               />
             </div>
 
@@ -447,10 +444,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={8}
+                  minLength={15}
                   autoComplete="new-password"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-                  placeholder="Min 8 chars, upper/lower/number/symbol"
+                  placeholder="Min 15 chars, upper/lower/number"
               />
             </div>
 
