@@ -232,7 +232,7 @@ export default function AccountSettingsPage() {
                   <div className="flex items-center mt-1">
                     <CheckCircle className="h-4 w-4 text-green-500 mr-2 shrink-0" />
                     <span className="text-green-500 text-xs md:text-sm">
-                      Ready for Chat and Test Functionality
+                      Ready for Test Functionality
                     </span>
                   </div>
                 </>

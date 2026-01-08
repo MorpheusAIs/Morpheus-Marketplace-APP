@@ -132,7 +132,7 @@ export default function ApiKeysPage() {
       }
       setPendingDefaultKeyId(null);
     } else {
-      success("API Key Verified", "Your API key has been verified. You can now use Chat and Test features.");
+      success("API Key Verified", "Your API key has been verified. You can now use the Test feature.");
     }
   };
 

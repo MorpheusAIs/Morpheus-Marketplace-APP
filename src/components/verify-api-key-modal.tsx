@@ -85,7 +85,7 @@ export function VerifyApiKeyModal({
         </p>
         <p className="text-sm text-muted-foreground mt-2">
           To ensure the security of your data, we need you to verify the full API key to
-          enable Chat and Test functionality.
+          enable Test functionality.
         </p>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
