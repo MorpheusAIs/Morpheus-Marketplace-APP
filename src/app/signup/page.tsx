@@ -36,8 +36,8 @@ export default function SignUpPage() {
 
   // Password validation function to match Cognito password policy
   const validatePassword = (password: string): string | null => {
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
+    if (password.length < 15) {
+      return 'Password must be at least 15 characters long';
     }
     if (!/[A-Z]/.test(password)) {
       return 'Password must contain at least one uppercase letter';
@@ -47,9 +47,6 @@ export default function SignUpPage() {
     }
     if (!/[0-9]/.test(password)) {
       return 'Password must contain at least one number';
-    }
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      return 'Password must contain at least one special character';
     }
     return null;
   };
@@ -124,6 +121,7 @@ export default function SignUpPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 bg-input text-input-foreground border-border"
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -138,6 +136,7 @@ export default function SignUpPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pr-10 bg-input text-input-foreground border-border"
+                      autoComplete="new-password"
                       required
                     />
                     <Button
@@ -152,9 +151,9 @@ export default function SignUpPage() {
                   </div>
                   {password && (
                     <div className="text-xs text-muted-foreground space-y-1 mt-2">
-                      <div className={`flex items-center gap-2 ${password.length >= 8 ? 'text-green-500' : ''}`}>
-                        <span>{password.length >= 8 ? '✓' : '○'}</span>
-                        <span>At least 8 characters</span>
+                      <div className={`flex items-center gap-2 ${password.length >= 15 ? 'text-green-500' : ''}`}>
+                        <span>{password.length >= 15 ? '✓' : '○'}</span>
+                        <span>At least 15 characters</span>
                       </div>
                       <div className={`flex items-center gap-2 ${/[A-Z]/.test(password) ? 'text-green-500' : ''}`}>
                         <span>{/[A-Z]/.test(password) ? '✓' : '○'}</span>
@@ -167,10 +166,6 @@ export default function SignUpPage() {
                       <div className={`flex items-center gap-2 ${/[0-9]/.test(password) ? 'text-green-500' : ''}`}>
                         <span>{/[0-9]/.test(password) ? '✓' : '○'}</span>
                         <span>One number</span>
-                      </div>
-                      <div className={`flex items-center gap-2 ${/[^A-Za-z0-9]/.test(password) ? 'text-green-500' : ''}`}>
-                        <span>{/[^A-Za-z0-9]/.test(password) ? '✓' : '○'}</span>
-                        <span>One special character</span>
                       </div>
                     </div>
                   )}
@@ -185,6 +180,7 @@ export default function SignUpPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pr-10 bg-input text-input-foreground border-border"
+                      autoComplete="new-password"
                       required
                     />
                     <Button

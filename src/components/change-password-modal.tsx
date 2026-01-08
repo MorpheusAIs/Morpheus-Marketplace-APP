@@ -60,8 +60,8 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
       return;
     }
 
-    if (newPassword.length < 8) {
-      setErrorMessage("New password must be at least 8 characters long");
+    if (newPassword.length < 15) {
+      setErrorMessage("New password must be at least 15 characters long");
       return;
     }
 
@@ -116,6 +116,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
                   setPreviousPassword(e.target.value);
                   setErrorMessage("");
                 }}
+                autoComplete="current-password"
                 className="pr-10"
               />
               <Button
@@ -147,6 +148,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
                   setNewPassword(e.target.value);
                   setErrorMessage("");
                 }}
+                autoComplete="new-password"
                 className="pr-10"
               />
               <Button
@@ -178,6 +180,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
                   setConfirmPassword(e.target.value);
                   setErrorMessage("");
                 }}
+                autoComplete="new-password"
                 className="pr-10"
               />
               <Button
