@@ -219,12 +219,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
                 placeholder="name@host.com"
               />
             </div>
-            
+
             <div>
               <label className="block text-white text-sm mb-1">Password</label>
               <input
@@ -232,6 +233,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
                 placeholder="Password"
@@ -279,12 +281,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
                   placeholder="name@host.com"
               />
             </div>
-              
+
             <div>
               <label className="block text-white text-sm mb-1">Password</label>
               <input
@@ -293,6 +296,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
+                  autoComplete="new-password"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
                   placeholder="Min 8 chars, upper/lower/number/symbol"
@@ -306,6 +310,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  autoComplete="new-password"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
                   placeholder="Confirm Password"
@@ -388,6 +393,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
                   placeholder="name@host.com"
@@ -442,6 +448,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
                   minLength={8}
+                  autoComplete="new-password"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
                   placeholder="Min 8 chars, upper/lower/number/symbol"
               />
@@ -454,6 +461,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  autoComplete="new-password"
                   className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
                   placeholder="Confirm New Password"
               />

@@ -116,6 +116,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
                   setPreviousPassword(e.target.value);
                   setErrorMessage("");
                 }}
+                autoComplete="current-password"
                 className="pr-10"
               />
               <Button
@@ -147,6 +148,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
                   setNewPassword(e.target.value);
                   setErrorMessage("");
                 }}
+                autoComplete="new-password"
                 className="pr-10"
               />
               <Button
@@ -178,6 +180,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
                   setConfirmPassword(e.target.value);
                   setErrorMessage("");
                 }}
+                autoComplete="new-password"
                 className="pr-10"
               />
               <Button

@@ -124,6 +124,7 @@ export default function SignUpPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 bg-input text-input-foreground border-border"
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -138,6 +139,7 @@ export default function SignUpPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pr-10 bg-input text-input-foreground border-border"
+                      autoComplete="new-password"
                       required
                     />
                     <Button
@@ -185,6 +187,7 @@ export default function SignUpPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pr-10 bg-input text-input-foreground border-border"
+                      autoComplete="new-password"
                       required
                     />
                     <Button
