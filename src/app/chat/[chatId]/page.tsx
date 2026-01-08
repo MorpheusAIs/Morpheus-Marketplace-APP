@@ -277,6 +277,9 @@ export default function ChatPage() {
   }, [chatId, getStreamForConversation, subscribeToStream]);
 
   // Load conversation from URL on mount or when chatId changes
+  // Note: We intentionally exclude getConversationById from dependencies because it changes
+  // whenever the conversations list updates (e.g., after stream completion). Including it
+  // would cause unwanted reloads that overwrite local message state.
   useEffect(() => {
     const loadConversationFromUrl = async () => {
       if (!chatId || !fullApiKey) {
@@ -285,11 +288,11 @@ export default function ChatPage() {
         return;
       }
 
-      // Check if there's an active stream for this conversation
+      // Check if there's an active or recently completed stream for this conversation
       // If so, don't overwrite the streaming state - the stream restore effect handles it
       const activeStream = getStreamForConversation(chatId);
-      if (activeStream && (activeStream.status === 'streaming' || activeStream.status === 'pending')) {
-        console.log(`Conversation ${chatId} has active stream, skipping load to preserve streaming state`);
+      if (activeStream && (activeStream.status === 'streaming' || activeStream.status === 'pending' || activeStream.status === 'completed')) {
+        console.log(`Conversation ${chatId} has stream (status: ${activeStream.status}), skipping load to preserve state`);
         setIsLoadingConversation(false);
         isLoadingConversationRef.current = false;
         return;
@@ -355,38 +358,33 @@ export default function ChatPage() {
     };
 
     loadConversationFromUrl();
-  }, [chatId, fullApiKey, loadConversation, router, getConversationById, getStreamForConversation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId, fullApiKey, loadConversation, router, getStreamForConversation]);
 
   // Listen for conversation history updates to refresh title only if it matches current chatId
+  // Note: We only update the title from the event detail, NOT reload the conversation.
+  // Reloading causes a race condition where the API may not have persisted the assistant
+  // message yet, causing messages to disappear after streaming completes.
   useEffect(() => {
-    const handleHistoryUpdate = async (e: Event) => {
-      // Only update title if the updated conversation matches the current chatId from URL
+    const handleHistoryUpdate = (e: Event) => {
       if (!chatId) return;
-      
+
       const customEvent = e as CustomEvent;
       const updatedConversation = customEvent.detail?.conversation;
-      
-      // If the event includes conversation details and it matches current chatId, update title
-      if (updatedConversation && updatedConversation.id === chatId) {
+
+      // Only update title if the event includes conversation details that match current chatId
+      if (updatedConversation && updatedConversation.id === chatId && updatedConversation.title) {
         setConversationTitle(updatedConversation.title);
-      } else if (customEvent.detail?.type === 'updated' && customEvent.detail?.id === chatId) {
-        // If it's an update event for current chatId, reload to get latest title
-        try {
-          const conversation = await loadConversation(chatId, fullApiKey);
-          if (conversation) {
-            setConversationTitle(conversation.title);
-          }
-        } catch (err) {
-          console.error('Error loading conversation for title update:', err);
-        }
       }
+      // Removed: loadConversation call that was causing messages to disappear
+      // The stream completion handler already has the final content in local state
     };
 
     window.addEventListener('conversation-history-updated', handleHistoryUpdate);
     return () => {
       window.removeEventListener('conversation-history-updated', handleHistoryUpdate);
     };
-  }, [chatId, fullApiKey, loadConversation]);
+  }, [chatId]);
 
   // Listen for conversation load events from sidebar
   useEffect(() => {
