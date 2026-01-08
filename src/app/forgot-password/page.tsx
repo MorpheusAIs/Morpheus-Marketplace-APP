@@ -46,8 +46,8 @@ function ForgotPasswordContent() {
 
   // Password validation function to match Cognito password policy
   const validatePassword = (password: string): string | null => {
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
+    if (password.length < 15) {
+      return 'Password must be at least 15 characters long';
     }
     if (!/[A-Z]/.test(password)) {
       return 'Password must contain at least one uppercase letter';
@@ -57,9 +57,6 @@ function ForgotPasswordContent() {
     }
     if (!/[0-9]/.test(password)) {
       return 'Password must contain at least one number';
-    }
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      return 'Password must contain at least one special character';
     }
     return null;
   };
@@ -228,7 +225,7 @@ function ForgotPasswordContent() {
                       <Input
                         id="newPassword"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Min 8 chars, upper/lower/number/symbol"
+                        placeholder="Min 15 chars, upper/lower/number"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="pr-10 bg-input text-input-foreground border-border"

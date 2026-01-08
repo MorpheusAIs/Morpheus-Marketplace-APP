@@ -60,8 +60,8 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
       return;
     }
 
-    if (newPassword.length < 8) {
-      setErrorMessage("New password must be at least 8 characters long");
+    if (newPassword.length < 15) {
+      setErrorMessage("New password must be at least 15 characters long");
       return;
     }
 
