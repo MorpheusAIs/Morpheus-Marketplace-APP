@@ -177,6 +177,7 @@ function ForgotPasswordContent() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 bg-input text-input-foreground border-border"
+                        autoComplete="email"
                         required
                       />
                     </div>
@@ -231,6 +232,7 @@ function ForgotPasswordContent() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="pr-10 bg-input text-input-foreground border-border"
+                        autoComplete="new-password"
                         required
                       />
                       <Button
@@ -254,6 +256,7 @@ function ForgotPasswordContent() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="pr-10 bg-input text-input-foreground border-border"
+                        autoComplete="new-password"
                         required
                       />
                       <Button
