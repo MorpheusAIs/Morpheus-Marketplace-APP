@@ -5,6 +5,7 @@ import { CognitoDirectAuth } from './cognito-direct-auth';
 import { API_URLS } from '@/lib/api/config';
 import { apiGet } from '@/lib/api/apiService';
 import { useNotification } from '@/lib/NotificationContext';
+import { safeJsonParseOrNull } from '@/lib/utils/safe-json';
 import { CognitoUser } from '@/lib/types/cognito';
 
 interface ApiKey {
@@ -128,7 +129,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       });
 
       if (decryptedResponse.ok) {
-        const decryptedData = await decryptedResponse.json();
+        // Safely parse response to prevent deep recursion attacks
+        const responseText = await decryptedResponse.text();
+        const decryptedData = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+        if (!decryptedData) {
+          throw new Error('Failed to parse response or response exceeds maximum depth');
+        }
         
         // Check if the response contains an error (even with 200 OK status)
         if (decryptedData.error || decryptedData.error_code) {

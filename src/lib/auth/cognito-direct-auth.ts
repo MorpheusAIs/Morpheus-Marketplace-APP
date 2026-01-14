@@ -12,6 +12,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { cognitoConfig } from './cognito-config';
 import { CognitoTokens } from '@/lib/types/cognito';
+import { safeJsonParseOrNull } from '@/lib/utils/safe-json';
 
 // Lazy initialization of Cognito client to avoid build-time errors
 let cognitoClient: CognitoIdentityProviderClient | null = null;
@@ -186,7 +187,12 @@ export class CognitoDirectAuth {
   static isTokenExpired(token: string): boolean {
     try {
       const payload = token.split('.')[1];
-      const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      const decodedPayload = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      // JWT tokens are small and controlled, but use safe parser for defense-in-depth
+      const decoded = safeJsonParseOrNull(decodedPayload, { maxDepth: 10, maxSize: 8192 }); // 8KB max for JWT
+      if (!decoded) {
+        return true; // Assume expired if we can't parse
+      }
       const exp = decoded.exp * 1000; // Convert to milliseconds
       return Date.now() >= exp;
     } catch {
@@ -238,7 +244,12 @@ export class CognitoDirectAuth {
   } {
     try {
       const payload = idToken.split('.')[1];
-      const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      const decodedPayload = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      // JWT tokens are small and controlled, but use safe parser for defense-in-depth
+      const decoded = safeJsonParseOrNull(decodedPayload, { maxDepth: 10, maxSize: 8192 }); // 8KB max for JWT
+      if (!decoded) {
+        throw new Error('Failed to parse JWT token');
+      }
       
       return {
         sub: decoded.sub,
@@ -278,7 +289,12 @@ export class CognitoDirectAuth {
       throw new Error(`Token exchange failed: ${errorText}`);
     }
 
-    const data = await response.json();
+    // Safely parse response to prevent deep recursion attacks
+    const responseText = await response.text();
+    const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+    if (!data) {
+      throw new Error('Failed to parse response or response exceeds maximum depth');
+    }
 
     return {
       accessToken: data.access_token,
