@@ -23,6 +23,7 @@ import { logModelName } from "@/lib/model-name-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { apiGet } from "@/lib/api/apiService";
+import { validateJsonDepth, safeJsonParseOrNull } from "@/lib/utils/safe-json";
 
 interface Model {
   id: string;
@@ -144,7 +145,12 @@ export default function TestPage() {
         throw new Error(`API returned status ${response.status}`);
       }
       
-      const data = await response.json();
+      // Safely parse response to prevent deep recursion attacks
+      const responseText = await response.text();
+      const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+      if (!data) {
+        throw new Error('Failed to parse response or response exceeds maximum depth');
+      }
       
       // Handle the API response format: {"object":"list","data":[...]}
       const modelsArray = data.data || data;
@@ -279,7 +285,12 @@ export default function TestPage() {
         return false;
       }
 
-      const data: SessionPingResponse = await response.json();
+      // Safely parse response to prevent deep recursion attacks
+      const responseText = await response.text();
+      const data = safeJsonParseOrNull<SessionPingResponse>(responseText, { maxDepth: 100 });
+      if (!data) {
+        return false;
+      }
       return data.status === 'alive';
     } catch (err) {
       console.error('Error checking active session:', err);
@@ -310,6 +321,13 @@ export default function TestPage() {
       failover: false
     };
 
+    // Validate request body depth before stringifying to prevent deep recursion attacks
+    try {
+      validateJsonDepth(requestBody, { maxDepth: 100 });
+    } catch (error) {
+      throw new Error(`Invalid request data: ${error instanceof Error ? error.message : 'Data exceeds maximum depth'}`);
+    }
+
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
@@ -321,12 +339,19 @@ export default function TestPage() {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
+      // Safely parse error response to prevent deep recursion attacks
+      const errorText = await response.text().catch(() => '');
+      const errorData = errorText ? safeJsonParseOrNull(errorText) ?? { detail: `HTTP ${response.status}` } : { detail: `HTTP ${response.status}` };
       const errorDetail = errorData.detail || `HTTP ${response.status}`;
       throw new Error(errorDetail);
     }
 
-    const data: SessionCreateResponse = await response.json();
+    // Safely parse response to prevent deep recursion attacks
+    const responseText = await response.text();
+    const data = safeJsonParseOrNull<SessionCreateResponse>(responseText, { maxDepth: 100 });
+    if (!data) {
+      throw new Error('Failed to parse response or response exceeds maximum depth');
+    }
     console.log('Session created successfully:', data.session_id);
     return true;
   };
@@ -402,6 +427,15 @@ export default function TestPage() {
         stream: false
       };
 
+      // Validate request body depth before stringifying to prevent deep recursion attacks
+      try {
+        validateJsonDepth(requestBody, { maxDepth: 100 });
+      } catch (error) {
+        showError("Validation Error", `Invalid request data: ${error instanceof Error ? error.message : 'Data exceeds maximum depth'}`);
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch(API_URLS.chatCompletions(), {
         method: 'POST',
         headers: {
@@ -412,7 +446,14 @@ export default function TestPage() {
         body: JSON.stringify(requestBody)
       });
 
-      const data = await response.json();
+      // Safely parse response to prevent deep recursion attacks
+      const responseText = await response.text();
+      const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+      if (!data) {
+        showError("Parse Error", "Failed to parse response or response exceeds maximum depth");
+        setIsLoading(false);
+        return;
+      }
       setServerResponse(JSON.stringify(data, null, 2));
 
       if (!response.ok) {
