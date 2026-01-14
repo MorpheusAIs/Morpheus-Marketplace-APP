@@ -20,6 +20,21 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Exclude morpheus-billing directory from Next.js build (it's a separate Vite app)
+  webpack: (config, { isServer }) => {
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: [
+        ...(Array.isArray(config.watchOptions?.ignored) ? config.watchOptions.ignored : []),
+        '**/morpheus-billing/**',
+      ],
+    };
+    return config;
+  },
+  // Exclude morpheus-billing from output file tracing
+  outputFileTracingExcludes: {
+    '*': ['./morpheus-billing/**/*'],
+  },
 };
 
 export default nextConfig;
