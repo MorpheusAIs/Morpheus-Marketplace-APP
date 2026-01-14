@@ -11,6 +11,7 @@ import type { ConversationMessage } from '@/lib/conversation-history';
 import { API_URLS } from '@/lib/api/config';
 import { RESILIENCE_CONFIG } from '@/lib/api/apiService';
 import { getAllowedModelTypes, filterModelsByType, getFilterOptions, selectDefaultModel } from '@/lib/model-filter-utils';
+import { safeJsonParseOrNull } from '@/lib/utils/safe-json';
 import { logModelName } from '@/lib/model-name-utils';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { Button } from '@/components/ui/button';
@@ -475,7 +476,12 @@ export default function ChatPage() {
         throw new Error(`API returned status ${response.status}`);
       }
       
-      const data = await response.json();
+      // Safely parse response to prevent deep recursion attacks
+      const responseText = await response.text();
+      const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+      if (!data) {
+        throw new Error('Failed to parse response or response exceeds maximum depth');
+      }
       
       // Handle the API response format: {"object":"list","data":[...]}
       const modelsArray = data.data || data;

@@ -8,6 +8,7 @@
 import { API_URLS } from './api/config';
 import { saveConversation, updateConversation, getConversation } from './conversation-history';
 import type { ConversationMessage, Conversation } from './conversation-history';
+import { validateJsonDepth, safeJsonParseOrNull } from './utils/safe-json';
 
 export type StreamStatus = 'pending' | 'streaming' | 'completed' | 'error';
 
@@ -381,6 +382,14 @@ class StreamManager {
         stream: true
       };
 
+      // Validate request body depth before stringifying to prevent deep recursion attacks
+      try {
+        validateJsonDepth(requestBody, { maxDepth: 100 });
+      } catch (error) {
+        console.error('Request body validation failed:', error);
+        throw new Error(`Invalid request data: ${error instanceof Error ? error.message : 'Data exceeds maximum depth'}`);
+      }
+
       const response = await fetch(API_URLS.chatCompletions(), {
         method: 'POST',
         headers: {
@@ -393,7 +402,9 @@ class StreamManager {
       });
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
+        // Safely parse error response to prevent deep recursion attacks
+        const errorText = await response.text().catch(() => '');
+        const errorBody = errorText ? safeJsonParseOrNull(errorText) ?? {} : {};
         const errorMessage = errorBody?.error?.message || errorBody?.detail || `API returned status ${response.status}`;
         throw new Error(errorMessage);
       }
@@ -422,14 +433,17 @@ class StreamManager {
             }
 
             try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content;
+              // Use safe JSON parser to prevent deep recursion attacks
+              const parsed = safeJsonParseOrNull(data, { maxDepth: 50 }); // Lower depth for stream chunks
+              if (parsed) {
+                const delta = parsed.choices?.[0]?.delta?.content;
 
-              if (delta) {
-                state.accumulatedContent += delta;
+                if (delta) {
+                  state.accumulatedContent += delta;
 
-                // Notify subscribers
-                this.notifyProgress(state);
+                  // Notify subscribers
+                  this.notifyProgress(state);
+                }
               }
             } catch {
               // Ignore JSON parse errors for incomplete chunks

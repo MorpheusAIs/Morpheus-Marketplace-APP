@@ -1,5 +1,7 @@
 'use client';
 
+import { safeJsonParse, safeJsonParseOrNull, validateJsonDepth } from '../utils/safe-json';
+
 export interface ApiResponse<T> {
   data: T | null;
   error: string | null;
@@ -133,7 +135,7 @@ export async function apiRequest<T = any>(
       console.log('Request Headers:', headers);
       if (body) {
         try {
-          console.log('Request Body:', typeof body === 'string' ? JSON.parse(body) : body);
+          console.log('Request Body:', typeof body === 'string' ? safeJsonParseOrNull(body) : body);
         } catch {
           console.log('Request Body: [non-JSON data]');
         }
@@ -168,7 +170,11 @@ export async function apiRequest<T = any>(
         responseText = await response.text();
         if (responseText) {
           try {
-            responseData = JSON.parse(responseText);
+            // Use safe JSON parser to prevent deep recursion attacks
+            responseData = safeJsonParse(responseText, {
+              maxDepth: 100,
+              maxSize: 10 * 1024 * 1024, // 10MB
+            });
           } catch (e) {
             console.error('Error parsing JSON response:', e);
             console.log('Raw response text:', responseText.substring(0, 500));
@@ -197,7 +203,7 @@ export async function apiRequest<T = any>(
           url,
           method,
           headers: headers as Record<string, string>,
-          body: body ? (typeof body === 'string' ? (() => { try { return JSON.parse(body); } catch { return body; } })() : body) : undefined,
+          body: body ? (typeof body === 'string' ? safeJsonParseOrNull(body) ?? body : body) : undefined,
         },
         response: {
           headers: responseHeaders,
@@ -231,7 +237,7 @@ export async function apiRequest<T = any>(
             url,
             method,
             headers: headers as Record<string, string>,
-            body: body ? (typeof body === 'string' ? (() => { try { return JSON.parse(body); } catch { return body; } })() : body) : undefined,
+            body: body ? (typeof body === 'string' ? safeJsonParseOrNull(body) ?? body : body) : undefined,
           },
           response: {
             headers: {},
@@ -260,7 +266,7 @@ export async function apiRequest<T = any>(
           url,
           method,
           headers: headers as Record<string, string>,
-          body: body ? (typeof body === 'string' ? (() => { try { return JSON.parse(body); } catch { return body; } })() : body) : undefined,
+          body: body ? (typeof body === 'string' ? safeJsonParseOrNull(body) ?? body : body) : undefined,
         },
         response: {
           headers: {},
@@ -280,7 +286,7 @@ export async function apiRequest<T = any>(
       url,
       method,
       headers: headers as Record<string, string>,
-      body: body ? (typeof body === 'string' ? (() => { try { return JSON.parse(body); } catch { return body; } })() : body) : undefined,
+      body: body ? (typeof body === 'string' ? safeJsonParseOrNull(body) ?? body : body) : undefined,
     },
     response: {
       headers: {},
@@ -304,6 +310,14 @@ export const apiGet = <T>(url: string, token?: string, config?: ApiRequestConfig
 };
 
 export const apiPost = <T>(url: string, data: any, token?: string, config?: ApiRequestConfig) => {
+  // Validate input data depth before stringifying to prevent deep recursion attacks
+  try {
+    validateJsonDepth(data, { maxDepth: 100 });
+  } catch (error) {
+    console.error('Input data validation failed:', error);
+    throw new Error(`Invalid request data: ${error instanceof Error ? error.message : 'Data exceeds maximum depth'}`);
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -324,6 +338,14 @@ export const apiPost = <T>(url: string, data: any, token?: string, config?: ApiR
 };
 
 export const apiPut = <T>(url: string, data: any, token?: string, config?: ApiRequestConfig) => {
+  // Validate input data depth before stringifying to prevent deep recursion attacks
+  try {
+    validateJsonDepth(data, { maxDepth: 100 });
+  } catch (error) {
+    console.error('Input data validation failed:', error);
+    throw new Error(`Invalid request data: ${error instanceof Error ? error.message : 'Data exceeds maximum depth'}`);
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
