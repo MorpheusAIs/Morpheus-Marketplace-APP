@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface FundingSectionProps {
   currentBalance: string;
@@ -49,10 +50,7 @@ interface CoinbaseCharge {
   timeline: Array<{ status: string; time: string }>;
 }
 
-interface ChargeStatus {
-  status: string;
-  payments: Array<unknown>;
-}
+
 
 const POLLING_INTERVAL = 5000;
 
@@ -82,6 +80,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
         setChargeStatus(status);
 
         if (status === 'COMPLETED' || status === 'RESOLVED') {
+          // Add a loading state here instead of jumping straight to success
+          // Or keep it simple but ensure UI reflects progress
           setFlowState('crypto_success');
           if (onBalanceUpdate) {
             onBalanceUpdate(parseFloat(depositAmount));
@@ -168,7 +168,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
       // Use the API client path relative to base or proxy
       // The previous code used '/api/coinbase/charge' which might be wrong if not implemented in Next.js API routes
       // If this is supposed to call the backend directly via proxy:
-      const response = await fetch('/api/v1/billing/payment/crypto/charge', {
+      const response = await fetch('/api/coinbase/charge', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -180,6 +180,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
           // userId is handled by backend auth context usually, but if this is an unauthenticated endpoint:
           // userId: userId || 'anonymous', 
           description: `Morpheus AI Credits - $${depositAmount}`,
+          userId: userId,
         }),
       });
 
@@ -190,9 +191,18 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
       }
 
       const chargeData = data.charge as CoinbaseCharge;
+      
+      // Ensure we have addresses
+      if (!chargeData.addresses || Object.keys(chargeData.addresses).length === 0) {
+        // Sometimes addresses are inside 'data' property if response structure varies
+        // or check metadata. Usually pricing.local or pricing.settlement has details
+        console.warn('No addresses found in charge data:', chargeData);
+      }
+
       setCharge(chargeData);
 
       const expiresAt = new Date(chargeData.expires_at);
+
       const now = new Date();
       const secondsLeft = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
       setTimeLeft(secondsLeft);
@@ -218,6 +228,11 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   const openHostedCheckout = () => {
     if (charge?.hosted_url) {
       window.open(charge.hosted_url, '_blank');
+      // Show waiting toast
+      toast.info("Waiting for payment confirmation...", {
+        duration: 10000,
+        description: "Please complete the payment in the Coinbase window."
+      });
     }
   };
 
@@ -377,15 +392,20 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             </div>
           </div>
 
-          {chargeStatus === 'PENDING' && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-600">
+          {chargeStatus === 'PENDING' ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 animate-pulse">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Payment detected, awaiting confirmations...</span>
+              <span className="text-sm">Processing payment... Please wait.</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-500">
+              <Info className="h-4 w-4" />
+              <span className="text-sm">Awaiting payment detection...</span>
             </div>
           )}
 
           <div className="bg-muted/50 p-4 rounded-lg border flex flex-col items-center space-y-4">
-            {primaryAddress && (
+            {primaryAddress ? (
               <>
                 <div className="bg-white p-2 rounded-lg">
                   <img
@@ -410,6 +430,12 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                   </div>
                 </div>
               </>
+            ) : (
+              <div className="text-center p-4">
+                <p className="text-sm text-muted-foreground">
+                  Click the button below to complete your payment via Coinbase Commerce.
+                </p>
+              </div>
             )}
           </div>
 
@@ -426,7 +452,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
           <div className="space-y-2">
             <Button
               variant="default"
-              className="w-full bg-[#0052FF] hover:bg-[#0040CC]"
+              className="w-full bg-[#0052FF] hover:bg-[#0040CC] text-white font-medium focus:ring-0 focus-visible:ring-0"
               onClick={openHostedCheckout}
             >
               <ExternalLink className="mr-2 h-4 w-4" />

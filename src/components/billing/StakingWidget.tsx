@@ -1,15 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Wallet, ExternalLink, RefreshCcw, Loader2, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Wallet, ExternalLink, RefreshCcw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { WalletStatusResponse } from '@/types/billing';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useSignMessage, useDisconnect } from 'wagmi';
 import { useGenerateWalletNonce, useLinkWallet, useUnlinkWallet } from '@/lib/hooks/use-billing';
-import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 interface StakingWidgetProps {
@@ -26,7 +25,6 @@ export function StakingWidget({
   stakingBalance,
   dailyAllowance,
   isLoading,
-  onConnectWallet,
   onRefreshStatus,
 }: StakingWidgetProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -38,14 +36,28 @@ export function StakingWidget({
   const { signMessageAsync } = useSignMessage();
   const { disconnect } = useDisconnect();
   
-  // Mutation hooks
   const generateNonce = useGenerateWalletNonce();
   const linkWallet = useLinkWallet();
   const unlinkWallet = useUnlinkWallet();
-  const queryClient = useQueryClient();
 
   const hasWallet = walletStatus?.has_wallets ?? false;
   const walletCount = walletStatus?.wallet_count ?? 0;
+  
+  // Helper to convert BigInt wei to MOR string (avoiding scientific notation)
+  const weiToMorString = React.useCallback((wei: bigint | string): string => {
+    const weiBigInt = typeof wei === 'string' ? BigInt(wei) : wei;
+    const weiString = weiBigInt.toString();
+    
+    // If the number is small enough, use Number division
+    if (weiString.length <= 15) {
+      return (Number(weiBigInt) / 1e18).toString();
+    }
+    
+    // For large numbers, manually insert decimal point 18 places from the right
+    const integerPart = weiString.slice(0, -18) || '0';
+    const decimalPart = weiString.slice(-18).padStart(18, '0').replace(/0+$/, '');
+    return decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+  }, []);
   
   // Calculate total staked from stakers array if available, otherwise use total_staked
   const totalStaked = React.useMemo(() => {
@@ -54,11 +66,12 @@ export function StakingWidget({
       const totalWei = walletStatus.stakers.reduce((sum, staker) => {
         return sum + BigInt(staker.staked || '0');
       }, BigInt(0));
-      return (Number(totalWei) / 1e18).toString();
+      // Use helper function to convert BigInt to MOR string
+      return weiToMorString(totalWei);
     }
-    // Fallback to total_staked if available
+    // Fallback to total_staked if available (keep as string, will be formatted by formatMORAmount)
     return walletStatus?.total_staked ?? '0';
-  }, [walletStatus]);
+  }, [walletStatus, weiToMorString]);
 
   // Check if the currently connected wallet is already linked
   const isCurrentWalletLinked = React.useMemo(() => {
@@ -66,11 +79,11 @@ export function StakingWidget({
     return walletStatus.wallets.some(w => w.wallet_address.toLowerCase() === address.toLowerCase());
   }, [walletStatus, address]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     if (onRefreshStatus) {
       setIsRefreshing(true);
       try {
-        await onRefreshStatus();
+        onRefreshStatus();
         toast.success('Staking status refreshed');
       } catch (error) {
         console.error('Refresh failed:', error);
@@ -151,6 +164,47 @@ export function StakingWidget({
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
+  // Helper to format MOR amount from wei (18 decimals)
+  const formatMORAmount = (amount: string | undefined | null): string => {
+    if (!amount) return '0.00';
+    try {
+      // Check if the string contains scientific notation
+      if (amount.includes('e') || amount.includes('E')) {
+        // If it's in scientific notation, parse and divide
+        // Note: This may lose precision for very large numbers
+        const numAmount = parseFloat(amount);
+        return (numAmount / 1e18).toFixed(2);
+      }
+      
+      // Check if it's a very long number string (likely in wei format)
+      // Wei values are typically 18+ digits
+      if (amount.length > 15 && /^\d+$/.test(amount)) {
+        // Use BigInt for precise conversion from wei string
+        const morString = weiToMorString(amount);
+        return parseFloat(morString).toFixed(2);
+      }
+      
+      // Check if it's a large number when parsed (likely in wei)
+      const numAmount = parseFloat(amount);
+      if (numAmount > 1e10 && !isNaN(numAmount)) {
+        // Try to convert as wei using the original string
+        try {
+          const morString = weiToMorString(amount);
+          return parseFloat(morString).toFixed(2);
+        } catch {
+          // Fallback: divide the parsed number
+          return (numAmount / 1e18).toFixed(2);
+        }
+      }
+      
+      // Otherwise, it's already converted, just format it
+      return numAmount.toFixed(2);
+    } catch (error) {
+      console.error('Error formatting MOR amount:', error, amount);
+      return '0.00';
+    }
+  };
+
   return (
     <Card className="border-green-500/20">
       <CardHeader>
@@ -192,7 +246,7 @@ export function StakingWidget({
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Total Staked:</span>
                     <span className="text-sm font-medium text-foreground">
-                      {parseFloat(totalStaked).toFixed(2)} MOR
+                      {formatMORAmount(totalStaked)} MOR
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -228,12 +282,12 @@ export function StakingWidget({
                             );
                             // Use staker info if available, otherwise fallback to wallet.staked_amount
                             const stakedAmount = stakerInfo 
-                              ? (Number(BigInt(stakerInfo.staked)) / 1e18).toString()
+                              ? weiToMorString(stakerInfo.staked)
                               : wallet.staked_amount;
                               
                             return stakedAmount ? (
                               <span className="text-[10px] text-green-500">
-                                {parseFloat(stakedAmount).toFixed(2)} MOR
+                                {formatMORAmount(stakedAmount)} MOR
                               </span>
                             ) : null;
                           })()}
