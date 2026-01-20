@@ -56,15 +56,28 @@ interface CoinbaseChargeResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: CreateChargeRequest = await request.json();
-    const { amount, currency = 'USD', userId, description } = body;
-
-    if (!amount || !userId) {
+    let body: CreateChargeRequest;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
       return NextResponse.json(
-        { error: 'Missing required fields: amount and userId are required' },
+        { error: 'Invalid request body' },
         { status: 400 }
       );
     }
+    
+    const { amount, currency = 'USD', userId, description } = body;
+
+    if (!amount) {
+      return NextResponse.json(
+        { error: 'Missing required field: amount is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Use a fallback for userId if not provided (anonymous payment)
+    const effectiveUserId = userId || 'anonymous';
 
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount < 1) {
@@ -92,7 +105,7 @@ export async function POST(request: NextRequest) {
         currency: currency,
       },
       metadata: {
-        userId: userId,
+        userId: effectiveUserId,
       },
       redirect_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=cancelled`,
@@ -108,20 +121,30 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(chargePayload),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Coinbase Commerce API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData,
-      });
+    const responseText = await response.text();
+    let chargeData: CoinbaseChargeResponse;
+    
+    try {
+      chargeData = JSON.parse(responseText);
+    } catch {
+      console.error('Coinbase Commerce API returned non-JSON:', responseText.substring(0, 200));
       return NextResponse.json(
-        { error: 'Failed to create payment charge', details: errorData },
-        { status: response.status }
+        { error: 'Payment service returned invalid response' },
+        { status: 502 }
       );
     }
 
-    const chargeData: CoinbaseChargeResponse = await response.json();
+    if (!response.ok) {
+      console.error('Coinbase Commerce API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: chargeData,
+      });
+      return NextResponse.json(
+        { error: 'Failed to create payment charge', details: chargeData },
+        { status: response.status }
+      );
+    }
 
     return NextResponse.json({
       success: true,

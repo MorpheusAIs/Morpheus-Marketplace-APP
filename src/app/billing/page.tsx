@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DollarSign, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { StatCard } from '@/components/billing/StatCard';
@@ -9,10 +9,7 @@ import { StakingWidget } from '@/components/billing/StakingWidget';
 import { useBillingBalance, useWalletStatus } from '@/lib/hooks/use-billing';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
-
 export default function BillingPage() {
-  const { user } = useCognitoAuth();
   const { data: balance, isLoading: isLoadingBalance, error: balanceError, refetch: refetchBalance } = useBillingBalance();
   const { data: walletStatus, isLoading: isLoadingWallet, refetch: refetchWallet } = useWalletStatus();
 
@@ -30,7 +27,8 @@ export default function BillingPage() {
     ]);
   };
 
-  const handleBalanceUpdate = async () => {
+  const handleBalanceUpdate = async (amount: number) => {
+    // Refetch balance after simulated payment
     await refetchBalance();
   };
 
@@ -45,8 +43,8 @@ export default function BillingPage() {
           </p>
         </div>
 
-        {/* Error Alert - only show if we have an error AND no data */}
-        {balanceError && !balance && (
+        {/* Error Alert */}
+        {balanceError && (
           <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-4">
             <AlertCircle className="h-5 w-5 text-red-500" />
             <div>
@@ -105,7 +103,6 @@ export default function BillingPage() {
                 currentBalance={balance?.total_available ?? '0'}
                 isLoading={isLoadingBalance}
                 onBalanceUpdate={handleBalanceUpdate}
-                userId={user?.sub}
               />
             )}
           </div>

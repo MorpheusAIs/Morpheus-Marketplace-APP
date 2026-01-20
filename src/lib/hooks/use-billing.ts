@@ -34,25 +34,17 @@ export function useBillingBalance(options?: {
   refetchInterval?: number;
   enabled?: boolean;
 }): UseQueryResult<BalanceResponse, Error> {
-  const { getValidToken, isAuthenticated } = useCognitoAuth();
+  const { getValidToken } = useCognitoAuth();
 
   return useQuery({
     queryKey: ['billing', 'balance'],
     queryFn: async () => {
-      // Return default/empty state if not authenticated yet, to avoid error flash
-      if (!isAuthenticated) return { paid: { posted_balance: '0', pending_holds: '0', available: '0' }, staking: { daily_amount: '0', refresh_date: null, available: '0' }, total_available: '0' };
-      
       const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
       return getBalance(token);
     },
-    refetchInterval: options?.refetchInterval ?? 30000,
+    refetchInterval: options?.refetchInterval ?? 30000, // Refresh every 30s by default
     enabled: options?.enabled ?? true,
-    retry: (failureCount, error) => {
-      // Don't retry if it's an auth error
-      if (error.message === 'Not authenticated') return false;
-      return failureCount < 3;
-    }
   });
 }
 
@@ -153,13 +145,8 @@ export function useWalletStatus(options?: {
       if (!token) throw new Error('Not authenticated');
       return getWalletStatus(token);
     },
-    refetchInterval: options?.refetchInterval ?? 60000,
+    refetchInterval: options?.refetchInterval ?? 60000, // Refresh every 60s by default
     enabled: options?.enabled ?? true,
-    retry: (failureCount, error) => {
-      // Don't retry if it's an auth error
-      if (error.message === 'Not authenticated') return false;
-      return failureCount < 3;
-    }
   });
 }
 
