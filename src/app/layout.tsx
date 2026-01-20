@@ -4,6 +4,7 @@ import { CognitoAuthProvider } from '@/lib/auth/CognitoAuthContext';
 import { ConversationProvider } from '@/lib/ConversationContext';
 import { StreamManagerProvider } from '@/lib/StreamManagerContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
 import { Toaster } from 'sonner';
@@ -52,26 +53,28 @@ export default function RootLayout({
             ></iframe>
           </noscript>
         )}
-        <NotificationProvider>
-          <CognitoAuthProvider>
-            <ConversationProvider>
-              <StreamManagerProvider>
-                <GTMProvider>
-                  <Toaster
-                    position="top-right"
-                    expand={true}
-                    closeButton
-                    toastOptions={{
-                      className: 'custom-sonner-toast',
-                    }}
-                  />
-                  {children}
-                  <BuildVersion />
-                </GTMProvider>
-              </StreamManagerProvider>
-            </ConversationProvider>
-          </CognitoAuthProvider>
-        </NotificationProvider>
+        <QueryProvider>
+          <NotificationProvider>
+            <CognitoAuthProvider>
+              <ConversationProvider>
+                <StreamManagerProvider>
+                  <GTMProvider>
+                    <Toaster
+                      position="top-right"
+                      expand={true}
+                      closeButton
+                      toastOptions={{
+                        className: 'custom-sonner-toast',
+                      }}
+                    />
+                    {children}
+                    <BuildVersion />
+                  </GTMProvider>
+                </StreamManagerProvider>
+              </ConversationProvider>
+            </CognitoAuthProvider>
+          </NotificationProvider>
+        </QueryProvider>
         {gaId && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>

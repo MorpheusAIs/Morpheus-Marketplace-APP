@@ -1,0 +1,306 @@
+/**
+ * Billing utility functions for data aggregation, date formatting, and CSV export
+ */
+
+import type {
+  UsageEntryResponse,
+  DailyAggregation,
+  APIKeyDB,
+  TimeRange,
+  CustomDateRange,
+  DailyStats,
+} from '@/types/billing';
+
+// ========== Date Utilities ==========
+
+/**
+ * Manually parse ISO date string to avoid timezone shifting
+ * Critical for accurate daily aggregations
+ */
+export function parseISODateManually(isoString: string): Date {
+  const parts = isoString.split('T')[0].split('-');
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  }
+  return new Date(isoString);
+}
+
+/**
+ * Format date as MM/DD for chart displays
+ */
+export function formatChartDate(dateString: string): string {
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    return `${parseInt(parts[1])}/${parseInt(parts[2])}`;
+  }
+  return dateString;
+}
+
+/**
+ * Get date range based on time range selection
+ */
+export function getDateRangeForTimeRange(
+  timeRange: TimeRange,
+  customRange?: CustomDateRange
+): { start: Date; end: Date } {
+  const now = Date.now();
+  let start: Date;
+  let end = new Date(now);
+
+  if (timeRange === 'custom' && customRange) {
+    start = new Date(customRange.start);
+    // Add one day to end date to include the full day
+    end = new Date(new Date(customRange.end).getTime() + 24 * 60 * 60 * 1000 - 1);
+  } else {
+    switch (timeRange) {
+      case '24h':
+        start = new Date(now - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        start = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        start = new Date(now - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        start = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    }
+  }
+
+  return { start, end };
+}
+
+// ========== Data Aggregation ==========
+
+/**
+ * Aggregate usage entries by date
+ */
+export function aggregateUsageByDate(
+  entries: UsageEntryResponse[]
+): DailyAggregation[] {
+  const grouped: Record<string, DailyAggregation> = {};
+
+  entries.forEach((entry) => {
+    const date = entry.created_at.split('T')[0]; // Get YYYY-MM-DD
+
+    if (!grouped[date]) {
+      grouped[date] = {
+        date,
+        input_tokens: 0,
+        output_tokens: 0,
+        total_tokens: 0,
+        cost: 0,
+        cost_staking: 0,
+        cost_balance: 0,
+      };
+    }
+
+    grouped[date].input_tokens += entry.tokens_input ?? 0;
+    grouped[date].output_tokens += entry.tokens_output ?? 0;
+    grouped[date].total_tokens += entry.tokens_total ?? 0;
+    grouped[date].cost += parseFloat(entry.amount_total);
+    grouped[date].cost_staking += parseFloat(entry.amount_staking);
+    grouped[date].cost_balance += parseFloat(entry.amount_paid);
+  });
+
+  // Fill gaps if needed
+  const dates = Object.keys(grouped).sort();
+  if (dates.length > 1) {
+    const startDate = new Date(dates[0]);
+    const endDate = new Date(dates[dates.length - 1]);
+    
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      if (!grouped[dateStr]) {
+        grouped[dateStr] = {
+          date: dateStr,
+          input_tokens: 0,
+          output_tokens: 0,
+          total_tokens: 0,
+          cost: 0,
+          cost_staking: 0,
+          cost_balance: 0,
+        };
+      }
+    }
+  }
+
+  return Object.values(grouped).sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+}
+
+/**
+ * Aggregate usage by API key
+ */
+export function aggregateUsageByKey(
+  entries: UsageEntryResponse[],
+  apiKeys: APIKeyDB[]
+): Record<string, { tokens: number; cost: number; name: string }> {
+  const grouped: Record<string, { tokens: number; cost: number; name: string }> = {};
+
+  // Initialize with all keys
+  apiKeys.forEach((key) => {
+    grouped[key.id.toString()] = {
+      tokens: 0,
+      cost: 0,
+      name: key.name || key.key_prefix,
+    };
+  });
+
+  // Aggregate data
+  entries.forEach((entry) => {
+    const keyId = entry.request_id?.split('_')[0] || 'unknown'; // Extract key from request_id if available
+    
+    if (!grouped[keyId]) {
+      grouped[keyId] = {
+        tokens: 0,
+        cost: 0,
+        name: 'Unknown Key',
+      };
+    }
+
+    grouped[keyId].tokens += entry.tokens_total ?? 0;
+    grouped[keyId].cost += parseFloat(entry.amount_total);
+  });
+
+  return grouped;
+}
+
+/**
+ * Aggregate usage by model
+ */
+export function aggregateUsageByModel(
+  entries: UsageEntryResponse[]
+): Record<string, { tokens: number; cost: number }> {
+  const grouped: Record<string, { tokens: number; cost: number }> = {};
+
+  entries.forEach((entry) => {
+    const modelName = entry.model_name || 'Unknown Model';
+
+    if (!grouped[modelName]) {
+      grouped[modelName] = {
+        tokens: 0,
+        cost: 0,
+      };
+    }
+
+    grouped[modelName].tokens += entry.tokens_total ?? 0;
+    grouped[modelName].cost += parseFloat(entry.amount_total);
+  });
+
+  return grouped;
+}
+
+/**
+ * Calculate daily statistics (min, max, avg)
+ */
+export function calculateDailyStats(dailyData: DailyAggregation[]): {
+  cost: DailyStats;
+  inputs: DailyStats;
+  outputs: DailyStats;
+} | null {
+  if (dailyData.length === 0) return null;
+
+  const costs = dailyData.map((d) => d.cost);
+  const inputs = dailyData.map((d) => d.input_tokens);
+  const outputs = dailyData.map((d) => d.output_tokens);
+
+  const calculateStats = (arr: number[]): DailyStats => ({
+    min: Math.min(...arr),
+    max: Math.max(...arr),
+    avg: arr.reduce((a, b) => a + b, 0) / arr.length,
+  });
+
+  return {
+    cost: calculateStats(costs),
+    inputs: calculateStats(inputs),
+    outputs: calculateStats(outputs),
+  };
+}
+
+// ========== CSV Export ==========
+
+/**
+ * Generate CSV from usage entries
+ */
+export function generateUsageCSV(entries: UsageEntryResponse[]): string {
+  const headers = [
+    'Date',
+    'Model',
+    'Endpoint',
+    'Input Tokens',
+    'Output Tokens',
+    'Total Tokens',
+    'Cost (Staking)',
+    'Cost (Paid)',
+    'Total Cost',
+    'Request ID',
+  ];
+
+  const rows = entries.map((entry) => [
+    new Date(entry.created_at).toISOString(),
+    entry.model_name || '',
+    entry.endpoint || '',
+    entry.tokens_input?.toString() || '0',
+    entry.tokens_output?.toString() || '0',
+    entry.tokens_total?.toString() || '0',
+    entry.amount_staking,
+    entry.amount_paid,
+    entry.amount_total,
+    entry.request_id || '',
+  ]);
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+  ].join('\n');
+
+  return csvContent;
+}
+
+/**
+ * Download CSV file
+ */
+export function downloadCSV(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// ========== Formatting Utilities ==========
+
+/**
+ * Format currency amount
+ */
+export function formatCurrency(amount: string | number): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return `$${num.toFixed(2)}`;
+}
+
+/**
+ * Format large numbers with K/M suffix
+ */
+export function formatLargeNumber(num: number): string {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(2)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(2)}K`;
+  }
+  return num.toString();
+}
+
+/**
+ * Get readable key name from API key object
+ */
+export function getKeyName(keyId: string | number, apiKeys: APIKeyDB[]): string {
+  const key = apiKeys.find((k) => k.id.toString() === keyId.toString());
+  return key?.name || key?.key_prefix || 'Unknown Key';
+}
