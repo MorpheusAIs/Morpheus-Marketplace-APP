@@ -17,7 +17,7 @@ import {
   Legend,
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, TrendingUp, Filter } from 'lucide-react';
+import { Database, TrendingUp, Filter, AlertCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -26,48 +26,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatLargeNumber } from '@/lib/utils/billing-utils';
+import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
+import type { UsageEntryResponse, UsageListResponse } from '@/types/billing';
 
-// Mock data - will be replaced with real API data
-const MOCK_API_KEYS = [
-  { id: 'all', name: 'All API Keys' },
-  { id: 'prod-001', name: 'Production App' },
-  { id: 'dev-002', name: 'Development' },
-];
-
-const MOCK_DAILY_DATA = [
-  { date: '1/8', staking: 12.5, credit: 2.1, inputTokens: 2500000, outputTokens: 850000 },
-  { date: '1/9', staking: 15.2, credit: 3.4, inputTokens: 4200000, outputTokens: 1800000 },
-  { date: '1/10', staking: 11.8, credit: 1.9, inputTokens: 3100000, outputTokens: 900000 },
-  { date: '1/11', staking: 13.6, credit: 2.8, inputTokens: 3800000, outputTokens: 1500000 },
-  { date: '1/12', staking: 10.2, credit: 1.5, inputTokens: 2800000, outputTokens: 700000 },
-  { date: '1/13', staking: 18.4, credit: 35.8, inputTokens: 13044951, outputTokens: 4728099 },
-  { date: '1/14', staking: 14.7, credit: 3.2, inputTokens: 4900000, outputTokens: 2100000 },
-  { date: '1/15', staking: 12.1, credit: 2.3, inputTokens: 3200000, outputTokens: 1100000 },
-];
-
-const MOCK_SPEND_BY_KEY = [
-  { name: 'Production App', value: 91.29, color: '#00FF85' },
-  { name: 'Development', value: 52.32, color: '#20DC8E' },
-];
-
-const MOCK_SPEND_BY_MODEL = [
-  { name: 'Other', value: 98.5, color: '#3b82f6' },
-  { name: 'kimi-k2-thinking', value: 22.3, color: '#8b5cf6' },
-  { name: 'llama-3.2-3b', value: 15.8, color: '#00FF85' },
-  { name: 'venice-uncensored', value: 7.01, color: '#f59e0b' },
-];
-
-const MOCK_SPEND_BY_TOKEN_TYPE = [
-  { name: 'Input', value: 85.4, color: '#3b82f6' },
-  { name: 'Output', value: 58.21, color: '#8b5cf6' },
-];
-
-const COLORS = ['#00FF85', '#20DC8E', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
+const COLORS = ['#00FF85', '#20DC8E', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6'];
 
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: any[];
+  payload?: Array<{ color: string; name: string; value: number }>;
   label?: string;
   valueFormatter?: (value: number) => string;
 }
@@ -77,7 +45,7 @@ const CustomTooltip = ({ active, payload, label, valueFormatter }: CustomTooltip
     return (
       <div className="rounded-lg border bg-background p-3 shadow-lg">
         <p className="text-sm font-medium text-foreground">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index: number) => (
           <p key={index} className="text-sm text-muted-foreground">
             <span style={{ color: entry.color }}>{entry.name}: </span>
             {valueFormatter ? valueFormatter(entry.value) : entry.value}
@@ -89,34 +57,182 @@ const CustomTooltip = ({ active, payload, label, valueFormatter }: CustomTooltip
   return null;
 };
 
-export function BillingOverview() {
-  const [selectedKeyId, setSelectedKeyId] = useState('all');
+interface DailyData {
+  date: string;
+  staking: number;
+  credit: number;
+  inputTokens: number;
+  outputTokens: number;
+}
 
-  // Calculate totals
+interface SpendData {
+  name: string;
+  value: number;
+  color: string;
+  [key: string]: string | number;
+}
+
+function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
+  const grouped = items.reduce<Record<string, DailyData>>((acc, entry) => {
+    const date = new Date(entry.created_at).toLocaleDateString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+    });
+
+    if (!acc[date]) {
+      acc[date] = {
+        date,
+        staking: 0,
+        credit: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+      };
+    }
+
+    acc[date].staking += parseFloat(entry.amount_staking);
+    acc[date].credit += parseFloat(entry.amount_paid);
+    acc[date].inputTokens += entry.tokens_input ?? 0;
+    acc[date].outputTokens += entry.tokens_output ?? 0;
+
+    return acc;
+  }, {});
+
+  return Object.values(grouped).sort((a, b) => {
+    const [aMonth, aDay] = a.date.split('/').map(Number);
+    const [bMonth, bDay] = b.date.split('/').map(Number);
+    if (aMonth !== bMonth) return aMonth - bMonth;
+    return aDay - bDay;
+  });
+}
+
+function aggregateSpendByModel(items: UsageEntryResponse[]): SpendData[] {
+  const grouped = items.reduce<Record<string, number>>((acc, entry) => {
+    const modelName = entry.model_name || 'Unknown';
+    if (!acc[modelName]) {
+      acc[modelName] = 0;
+    }
+    acc[modelName] += parseFloat(entry.amount_total);
+    return acc;
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([name, value], index) => ({
+      name,
+      value,
+      color: COLORS[index % COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
+function aggregateTokenTypes(items: UsageEntryResponse[]): SpendData[] {
+  const totals = items.reduce(
+    (acc, entry) => {
+      acc.input += entry.tokens_input ?? 0;
+      acc.output += entry.tokens_output ?? 0;
+      return acc;
+    },
+    { input: 0, output: 0 }
+  );
+
+  return [
+    { name: 'Input Tokens', value: totals.input, color: '#3b82f6' },
+    { name: 'Output Tokens', value: totals.output, color: '#8b5cf6' },
+  ];
+}
+
+interface BillingOverviewProps {
+  usageData?: UsageListResponse | null;
+  isLoading?: boolean;
+  error?: Error | null;
+  timeRangeLabel?: string;
+}
+
+export function BillingOverview({ usageData, isLoading = false, error, timeRangeLabel = '7 Days' }: BillingOverviewProps) {
+  const [selectedKeyId, setSelectedKeyId] = useState('all');
+  const { apiKeys } = useCognitoAuth();
+
+  const apiKeyOptions = useMemo(() => {
+    const keys = [{ id: 'all', name: 'All API Keys' }];
+    if (apiKeys && Array.isArray(apiKeys)) {
+      apiKeys.forEach((key: { id?: number; key_prefix?: string; name?: string }) => {
+        keys.push({
+          id: key.id?.toString() || key.key_prefix || 'unknown',
+          name: key.name || `Key ${key.key_prefix || key.id}...`,
+        });
+      });
+    }
+    return keys;
+  }, [apiKeys]);
+
+  const filteredItems = useMemo(() => {
+    if (!usageData?.items) return [];
+    if (selectedKeyId === 'all') return usageData.items;
+    return usageData.items.filter((item: UsageEntryResponse & { api_key_id?: number }) => {
+      const itemKeyId = item.api_key_id?.toString();
+      return itemKeyId === selectedKeyId;
+    });
+  }, [usageData, selectedKeyId]);
+
+  const dailyData = useMemo(() => aggregateByDate(filteredItems), [filteredItems]);
+
+  const spendByModel = useMemo(() => aggregateSpendByModel(filteredItems), [filteredItems]);
+
+  const tokenTypeData = useMemo(() => aggregateTokenTypes(filteredItems), [filteredItems]);
+
+  const spendByKey = useMemo(() => {
+    if (!usageData?.items || !apiKeys) return [];
+
+    const grouped = usageData.items.reduce<Record<string, number>>((acc, entry: UsageEntryResponse & { api_key_id?: number }) => {
+      const keyId = entry.api_key_id?.toString() || 'unknown';
+      if (!acc[keyId]) {
+        acc[keyId] = 0;
+      }
+      acc[keyId] += parseFloat(entry.amount_total);
+      return acc;
+    }, {});
+
+    return Object.entries(grouped)
+      .map(([keyId, value], index) => {
+        const apiKey = Array.isArray(apiKeys)
+          ? apiKeys.find((k: { id?: number }) => k.id?.toString() === keyId)
+          : null;
+        return {
+          name: (apiKey as { name?: string } | null)?.name || `Key ${keyId}`,
+          value,
+          color: COLORS[index % COLORS.length],
+        };
+      })
+      .sort((a, b) => b.value - a.value);
+  }, [usageData, apiKeys]);
+
   const totalTokens = useMemo(() => {
-    return MOCK_DAILY_DATA.reduce(
-      (sum, day) => sum + day.inputTokens + day.outputTokens,
-      0
-    );
-  }, []);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + (item.tokens_total ?? 0), 0);
+  }, [filteredItems]);
 
   const totalCost = useMemo(() => {
-    return MOCK_DAILY_DATA.reduce((sum, day) => sum + day.staking + day.credit, 0);
-  }, []);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_total), 0);
+  }, [filteredItems]);
 
   const stakingTotal = useMemo(() => {
-    return MOCK_DAILY_DATA.reduce((sum, day) => sum + day.staking, 0);
-  }, []);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_staking), 0);
+  }, [filteredItems]);
 
   const creditTotal = useMemo(() => {
-    return MOCK_DAILY_DATA.reduce((sum, day) => sum + day.credit, 0);
-  }, []);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_paid), 0);
+  }, [filteredItems]);
 
-  // Calculate daily stats
   const dailyStats = useMemo(() => {
-    const costs = MOCK_DAILY_DATA.map((d) => d.staking + d.credit);
-    const inputs = MOCK_DAILY_DATA.map((d) => d.inputTokens);
-    const outputs = MOCK_DAILY_DATA.map((d) => d.outputTokens);
+    if (dailyData.length === 0) {
+      return {
+        cost: { avg: 0, min: 0, max: 0 },
+        inputs: { avg: 0, min: 0, max: 0 },
+        outputs: { avg: 0, min: 0, max: 0 },
+      };
+    }
+
+    const costs = dailyData.map((d) => d.staking + d.credit);
+    const inputs = dailyData.map((d) => d.inputTokens);
+    const outputs = dailyData.map((d) => d.outputTokens);
 
     return {
       cost: {
@@ -135,7 +251,42 @@ export function BillingOverview() {
         max: Math.max(...outputs),
       },
     };
-  }, []);
+  }, [dailyData]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-[280px] rounded-xl" />
+          <Skeleton className="h-[280px] rounded-xl" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Skeleton className="h-[350px] rounded-xl" />
+          <Skeleton className="h-[350px] rounded-xl" />
+          <Skeleton className="h-[350px] rounded-xl" />
+        </div>
+        <Skeleton className="h-[400px] rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-12">
+          <div className="text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+            <p className="text-sm font-medium text-foreground">Failed to load overview data</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {error.message || 'Please try refreshing the page'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasData = filteredItems.length > 0;
 
   return (
     <div className="space-y-6">
@@ -147,7 +298,7 @@ export function BillingOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Total Usage (7 Days)
+                  Total Usage ({timeRangeLabel})
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
                   {formatLargeNumber(totalTokens)}
@@ -164,23 +315,27 @@ export function BillingOverview() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Distribution by Key
               </p>
-              {MOCK_SPEND_BY_KEY.map((key, index) => (
-                <div key={key.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{key.name}</span>
-                    <span className="font-medium">{formatLargeNumber(totalTokens * 0.6)}</span>
+              {spendByKey.length > 0 ? (
+                spendByKey.slice(0, 3).map((key) => (
+                  <div key={key.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
+                      <span className="font-medium">{formatCurrency(key.value)}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${totalCost > 0 ? (key.value / totalCost) * 100 : 0}%`,
+                          backgroundColor: key.color,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${(key.value / totalCost) * 100}%`,
-                        backgroundColor: key.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">No usage data available</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -191,7 +346,7 @@ export function BillingOverview() {
             <div className="flex items-center justify-between">
               <div>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Estimated Cost (7 Days)
+                  Estimated Cost ({timeRangeLabel})
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
                   {formatCurrency(totalCost)}
@@ -219,20 +374,24 @@ export function BillingOverview() {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Distribution by Key
               </p>
-              {MOCK_SPEND_BY_KEY.map((key) => (
-                <div key={key.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{key.name}</span>
-                    <span className="font-medium text-orange-500">{formatCurrency(key.value)}</span>
+              {spendByKey.length > 0 ? (
+                spendByKey.slice(0, 3).map((key) => (
+                  <div key={key.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
+                      <span className="font-medium text-orange-500">{formatCurrency(key.value)}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-orange-500 transition-all"
+                        style={{ width: `${totalCost > 0 ? (key.value / totalCost) * 100 : 0}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-orange-500 transition-all"
-                      style={{ width: `${(key.value / totalCost) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">No usage data available</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -246,38 +405,46 @@ export function BillingOverview() {
             <CardTitle className="text-lg">Spend by API Key</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={MOCK_SPEND_BY_KEY}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {MOCK_SPEND_BY_KEY.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            {hasData && spendByKey.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={spendByKey}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {spendByKey.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatCurrency(Number(value) || 0)} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2">
+                  {spendByKey.map((entry) => (
+                    <div key={entry.name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="text-muted-foreground truncate max-w-[120px]">{entry.name}</span>
+                      </div>
+                      <span className="font-medium">{formatCurrency(entry.value)}</span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip formatter={(value: number | undefined) => value !== undefined ? formatCurrency(value) : ''} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-4 space-y-2">
-              {MOCK_SPEND_BY_KEY.map((entry) => (
-                <div key={entry.name} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: entry.color }}
-                    />
-                    <span className="text-muted-foreground">{entry.name}</span>
-                  </div>
-                  <span className="font-medium">{formatCurrency(entry.value)}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                No data available
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -287,38 +454,46 @@ export function BillingOverview() {
             <CardTitle className="text-lg">Spend by Model Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={MOCK_SPEND_BY_MODEL}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {MOCK_SPEND_BY_MODEL.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            {hasData && spendByModel.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={spendByModel}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {spendByModel.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatCurrency(Number(value) || 0)} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2">
+                  {spendByModel.slice(0, 5).map((entry) => (
+                    <div key={entry.name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="text-muted-foreground truncate max-w-[120px]">{entry.name}</span>
+                      </div>
+                      <span className="font-medium">{formatCurrency(entry.value)}</span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip formatter={(value: number | undefined) => value !== undefined ? formatCurrency(value) : ''} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-4 space-y-2">
-              {MOCK_SPEND_BY_MODEL.map((entry) => (
-                <div key={entry.name} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: entry.color }}
-                    />
-                    <span className="text-muted-foreground">{entry.name}</span>
-                  </div>
-                  <span className="font-medium">{formatCurrency(entry.value)}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                No data available
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -328,38 +503,46 @@ export function BillingOverview() {
             <CardTitle className="text-lg">Spend by Token Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={MOCK_SPEND_BY_TOKEN_TYPE}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {MOCK_SPEND_BY_TOKEN_TYPE.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            {hasData && tokenTypeData.some((d) => d.value > 0) ? (
+              <>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={tokenTypeData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {tokenTypeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatLargeNumber(Number(value) || 0)} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2">
+                  {tokenTypeData.map((entry) => (
+                    <div key={entry.name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="text-muted-foreground">{entry.name}</span>
+                      </div>
+                      <span className="font-medium">{formatLargeNumber(entry.value)}</span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip formatter={(value: number | undefined) => value !== undefined ? formatCurrency(value) : ''} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-4 space-y-2">
-              {MOCK_SPEND_BY_TOKEN_TYPE.map((entry) => (
-                <div key={entry.name} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: entry.color }}
-                    />
-                    <span className="text-muted-foreground">{entry.name}</span>
-                  </div>
-                  <span className="font-medium">{formatCurrency(entry.value)}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+                No data available
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -376,7 +559,7 @@ export function BillingOverview() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {MOCK_API_KEYS.map((key) => (
+              {apiKeyOptions.map((key) => (
                 <SelectItem key={key.id} value={key.id}>
                   {key.name}
                 </SelectItem>
@@ -462,51 +645,57 @@ export function BillingOverview() {
           <CardDescription>Staking credits vs. paid balance over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <AreaChart data={MOCK_DAILY_DATA}>
-              <defs>
-                <linearGradient id="colorStaking" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00FF85" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#00FF85" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="colorCredit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="date"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-              />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                tickFormatter={(value) => `$${value}`}
-              />
-              <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
-              <Legend />
-              <Area
-                type="monotone"
-                dataKey="staking"
-                name="Staked Spend"
-                stackId="1"
-                stroke="#00FF85"
-                fill="url(#colorStaking)"
-              />
-              <Area
-                type="monotone"
-                dataKey="credit"
-                name="Credit Spend"
-                stackId="1"
-                stroke="#f59e0b"
-                fill="url(#colorCredit)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {hasData && dailyData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <AreaChart data={dailyData}>
+                <defs>
+                  <linearGradient id="colorStaking" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00FF85" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#00FF85" stopOpacity={0.1} />
+                  </linearGradient>
+                  <linearGradient id="colorCredit" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="date"
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="staking"
+                  name="Staked Spend"
+                  stackId="1"
+                  stroke="#00FF85"
+                  fill="url(#colorStaking)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="credit"
+                  name="Credit Spend"
+                  stackId="1"
+                  stroke="#f59e0b"
+                  fill="url(#colorCredit)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[350px] text-muted-foreground text-sm">
+              No data available for the selected period
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -517,27 +706,33 @@ export function BillingOverview() {
           <CardDescription>Input and output tokens consumed daily</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={MOCK_DAILY_DATA}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="date"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-              />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                tickFormatter={(value) => formatLargeNumber(value)}
-              />
-              <Tooltip content={<CustomTooltip valueFormatter={formatLargeNumber} />} />
-              <Legend />
-              <Bar dataKey="inputTokens" name="Input" stackId="a" fill="#3b82f6" />
-              <Bar dataKey="outputTokens" name="Output" stackId="a" fill="#8b5cf6" />
-            </BarChart>
-          </ResponsiveContainer>
+          {hasData && dailyData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={dailyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="date"
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  tickFormatter={(value) => formatLargeNumber(value)}
+                />
+                <Tooltip content={<CustomTooltip valueFormatter={formatLargeNumber} />} />
+                <Legend />
+                <Bar dataKey="inputTokens" name="Input" stackId="a" fill="#3b82f6" />
+                <Bar dataKey="outputTokens" name="Output" stackId="a" fill="#8b5cf6" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[350px] text-muted-foreground text-sm">
+              No data available for the selected period
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -191,13 +191,31 @@ export async function apiRequest<T = any>(
       console.log('Response Headers:', responseHeaders);
       console.log('Response Body:', responseData || responseText?.substring(0, 200) || '(empty response)');
 
+      // Extract error message - handle various backend error formats
+      let errorMessage: string | null = null;
+      if (!response.ok) {
+        const detail = responseData?.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // FastAPI validation errors: [{ "msg": "...", "loc": [...] }]
+          errorMessage = detail.map((d: any) => d?.msg || d?.message || JSON.stringify(d)).join('; ');
+        } else if (detail && typeof detail === 'object') {
+          errorMessage = JSON.stringify(detail);
+        } else if (responseData?.error?.message) {
+          errorMessage = String(responseData.error.message);
+        } else if (responseData?.message) {
+          errorMessage = String(responseData.message);
+        } else {
+          errorMessage = `Error ${response.status}`;
+        }
+      } else if (parseError) {
+        errorMessage = `Invalid response format: ${parseError}`;
+      }
+
       const result: ApiResponse<T> = {
         data: response.ok ? responseData : null,
-        error: !response.ok
-          ? responseData?.detail || responseData?.error?.message || `Error ${response.status}`
-          : parseError
-            ? `Invalid response format: ${parseError}`
-            : null,
+        error: errorMessage,
         status: response.status,
         request: {
           url,

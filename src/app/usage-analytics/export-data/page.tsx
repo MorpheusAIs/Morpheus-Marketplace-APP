@@ -34,7 +34,7 @@ export default function ExportDataPage() {
   const { data: usageData, isLoading } = useBillingUsage({
     from: startDate.toISOString(),
     to: endDate.toISOString(),
-    limit: 1000,
+    limit: 100, // API max is 100
   });
 
   // Filter data based on search

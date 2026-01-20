@@ -18,12 +18,45 @@ import type {
 } from '@/types/billing';
 
 /**
+ * Helper to convert any error value to a string message
+ */
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object') {
+    // Handle FastAPI-style validation errors: { "detail": [{ "msg": "...", "loc": [...] }] }
+    if ('detail' in error) {
+      const detail = (error as { detail: unknown }).detail;
+      if (typeof detail === 'string') {
+        return detail;
+      }
+      if (Array.isArray(detail)) {
+        // Validation error array
+        return detail.map((d: any) => d?.msg || d?.message || JSON.stringify(d)).join('; ');
+      }
+      if (typeof detail === 'object' && detail !== null) {
+        // Nested object
+        return JSON.stringify(detail);
+      }
+    }
+    // Handle standard error objects
+    if ('message' in error && typeof (error as { message: unknown }).message === 'string') {
+      return (error as { message: string }).message;
+    }
+    // Fallback to JSON stringification
+    return JSON.stringify(error);
+  }
+  return String(error);
+}
+
+/**
  * Helper to unwrap API responses and handle errors
  */
 async function request<T>(promise: Promise<ApiResponse<T>>): Promise<T> {
   const response = await promise;
   if (response.error) {
-    throw new Error(response.error);
+    throw new Error(getErrorMessage(response.error));
   }
   if (!response.data && response.status !== 204) {
     // Some endpoints might return empty body on success (204 No Content), but mostly we expect data

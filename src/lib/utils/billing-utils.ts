@@ -277,10 +277,13 @@ export function downloadCSV(content: string, filename: string): void {
 // ========== Formatting Utilities ==========
 
 /**
- * Format currency amount
+ * Format currency amount - shows 4 decimals for small amounts < $0.01
  */
 export function formatCurrency(amount: string | number): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (Math.abs(num) < 0.01 && num !== 0) {
+    return `$${num.toFixed(4)}`;
+  }
   return `$${num.toFixed(2)}`;
 }
 

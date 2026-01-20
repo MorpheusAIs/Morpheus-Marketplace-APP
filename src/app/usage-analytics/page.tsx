@@ -7,6 +7,7 @@ import { StatCard } from '@/components/billing/StatCard';
 import { UsageCharts } from '@/components/billing/UsageCharts';
 import { BillingOverview } from '@/components/billing/BillingOverview';
 import { MonthlySpendingChart } from '@/components/billing/MonthlySpendingChart';
+import { TransactionHistoryTable } from '@/components/billing/TransactionHistoryTable';
 import { TimeRangeFilter } from '@/components/billing/TimeRangeFilter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBillingUsage } from '@/lib/hooks/use-billing';
@@ -19,14 +20,13 @@ import {
 } from '@/lib/utils/billing-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { TimeRange, CustomDateRange } from '@/types/billing';
 
 export default function UsageAnalyticsPage() {
   const router = useRouter();
   const { apiKeys } = useCognitoAuth();
-  const [timeRange, setTimeRange] = useState<TimeRange>('7d');
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [customRange, setCustomRange] = useState<CustomDateRange | undefined>();
 
   // Calculate date range for API call
@@ -42,7 +42,7 @@ export default function UsageAnalyticsPage() {
   } = useBillingUsage({
     from: dateRange.start.toISOString(),
     to: dateRange.end.toISOString(),
-    limit: 1000, // Get all data for the period
+    limit: 100, // API max is 100
   });
 
   // Aggregate data by date for charts
@@ -102,7 +102,9 @@ export default function UsageAnalyticsPage() {
             <div>
               <p className="text-sm font-medium text-foreground">Failed to load usage data</p>
               <p className="text-xs text-muted-foreground">
-                {error.message || 'Please try refreshing the page'}
+                {typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string'
+                  ? error.message
+                  : 'Please try refreshing the page'}
               </p>
             </div>
           </div>
@@ -166,14 +168,24 @@ export default function UsageAnalyticsPage() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="detailed">Detailed Analytics</TabsTrigger>
             <TabsTrigger value="monthly">Monthly Spending</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <BillingOverview />
+            <BillingOverview 
+              usageData={usageData}
+              isLoading={isLoading}
+              error={error instanceof Error ? error : error ? new Error(String(error)) : null}
+              timeRangeLabel={timeRange === '24h' ? '24 Hours' : timeRange === '7d' ? '7 Days' : timeRange === '30d' ? '30 Days' : 'Custom'}
+            />
           </TabsContent>
 
           <TabsContent value="monthly" className="space-y-6">
             <MonthlySpendingChart />
+          </TabsContent>
+
+          <TabsContent value="transactions" className="space-y-6">
+            <TransactionHistoryTable />
           </TabsContent>
 
           <TabsContent value="detailed" className="space-y-6">

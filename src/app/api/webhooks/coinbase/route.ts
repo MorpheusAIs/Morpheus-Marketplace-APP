@@ -78,24 +78,53 @@ async function handleChargeConfirmed(data: CoinbaseWebhookEvent['event']['data']
 
   console.log(`Payment confirmed for user ${userId}: ${currency} ${amount}`);
 
-  // TODO: Call your backend API to credit the user's account
-  // Example:
-  // await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/billing/credit`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     'X-Internal-Secret': process.env.INTERNAL_API_SECRET,
-  //   },
-  //   body: JSON.stringify({
-  //     userId,
-  //     amount,
-  //     currency,
-  //     chargeId: data.id,
-  //     chargeCode: data.code,
-  //     transactionId: payment?.transaction_id,
-  //     network: payment?.network,
-  //   }),
-  // });
+  try {
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+    if (!internalSecret || !apiBaseUrl) {
+      console.error('Missing configuration: INTERNAL_API_SECRET or NEXT_PUBLIC_API_BASE_URL');
+      return;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/api/v1/billing/credit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': internalSecret,
+      },
+      body: JSON.stringify({
+        userId,
+        amount,
+        currency,
+        chargeId: data.id,
+        chargeCode: data.code,
+        transactionId: payment?.transaction_id,
+        network: payment?.network,
+        paymentSource: 'coinbase_commerce',
+        metadata: {
+          coinbase_charge_id: data.id,
+          coinbase_charge_code: data.code,
+          payment_network: payment?.network,
+          transaction_hash: payment?.transaction_id,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to credit account: ${response.status} ${errorText}`);
+      throw new Error(`Backend API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Account credited successfully:', result);
+
+  } catch (error) {
+    console.error('Error crediting account:', error);
+    // Propagate error to return 500 to Coinbase for retry
+    throw error;
+  }
 }
 
 async function handleChargeFailed(data: CoinbaseWebhookEvent['event']['data']) {

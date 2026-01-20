@@ -77,7 +77,7 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
       return {
         month: MONTH_NAMES[i],
         monthNum: monthNum,
-        amount: monthData ? parseFloat(monthData.amount) : 0,
+        amount: monthData ? Math.abs(parseFloat(monthData.amount)) : 0,
         transactions: monthData?.transaction_count || 0,
       };
     });
