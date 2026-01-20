@@ -63,7 +63,7 @@ export default async function RootLayout({
                     <Toaster
                       position="top-right"
                       expand={true}
-                      closeButton
+                      closeButton={false}
                       toastOptions={{
                         className: 'custom-sonner-toast',
                       }}

@@ -286,7 +286,7 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
                   <Cell key={`cell-${index}`} fill={TOKEN_TYPE_COLORS[index % TOKEN_TYPE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatLargeNumber(value)} />
+              <Tooltip formatter={(value: number | undefined) => value !== undefined ? formatLargeNumber(value) : ''} />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
