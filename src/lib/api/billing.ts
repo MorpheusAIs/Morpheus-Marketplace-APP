@@ -3,7 +3,7 @@
  * Handles all billing-related API calls including balance, usage, transactions, and wallet management
  */
 
-import { apiGet, apiPost, apiDelete, buildApiUrl } from './client';
+import { apiGet, apiPost, apiDelete, buildApiUrl, type ApiResponse } from './client';
 import type {
   BalanceResponse,
   UsageListResponse,
@@ -17,6 +17,21 @@ import type {
   LedgerEntryTypeEnum,
 } from '@/types/billing';
 
+/**
+ * Helper to unwrap API responses and handle errors
+ */
+async function request<T>(promise: Promise<ApiResponse<T>>): Promise<T> {
+  const response = await promise;
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  if (!response.data && response.status !== 204) {
+    // Some endpoints might return empty body on success (204 No Content), but mostly we expect data
+    throw new Error('No data returned from API');
+  }
+  return response.data as T;
+}
+
 // ========== Balance API ==========
 
 /**
@@ -24,11 +39,7 @@ import type {
  */
 export async function getBalance(token: string): Promise<BalanceResponse> {
   const url = buildApiUrl('/billing/balance');
-  return apiGet<BalanceResponse>(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiGet<BalanceResponse>(url, token));
 }
 
 // ========== Usage API ==========
@@ -56,11 +67,7 @@ export async function getUsage(
   if (params?.model) queryParams.append('model', params.model);
 
   const url = buildApiUrl(`/billing/usage${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
-  return apiGet<UsageListResponse>(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiGet<UsageListResponse>(url, token));
 }
 
 export interface GetUsageForMonthParams {
@@ -85,11 +92,7 @@ export async function getUsageForMonth(
   if (params.offset) queryParams.append('offset', params.offset.toString());
 
   const url = buildApiUrl(`/billing/usage/month?${queryParams.toString()}`);
-  return apiGet<UsageListResponse>(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiGet<UsageListResponse>(url, token));
 }
 
 // ========== Transactions API ==========
@@ -117,11 +120,7 @@ export async function getTransactions(
   if (params?.to) queryParams.append('to', params.to);
 
   const url = buildApiUrl(`/billing/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
-  return apiGet<LedgerListResponse>(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiGet<LedgerListResponse>(url, token));
 }
 
 // ========== Spending API ==========
@@ -143,11 +142,7 @@ export async function getMonthlySpending(
   if (params?.mode) queryParams.append('mode', params.mode);
 
   const url = buildApiUrl(`/billing/spending${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
-  return apiGet<MonthlySpendingResponse>(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiGet<MonthlySpendingResponse>(url, token));
 }
 
 // ========== Wallet API ==========
@@ -157,23 +152,16 @@ export async function getMonthlySpending(
  */
 export async function getWalletStatus(token: string): Promise<WalletStatusResponse> {
   const url = buildApiUrl('/auth/wallet/');
-  return apiGet<WalletStatusResponse>(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiGet<WalletStatusResponse>(url, token));
 }
 
 /**
  * Generate nonce for wallet signature
  */
-export async function generateWalletNonce(token: string): Promise<NonceResponse> {
-  const url = buildApiUrl('/auth/wallet/nonce');
-  return apiPost<NonceResponse>(url, {}, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+export async function generateWalletNonce(token: string, walletAddress: string): Promise<NonceResponse> {
+  const url = buildApiUrl(`/auth/wallet/nonce/${walletAddress}`);
+  // Using POST as per OpenAPI spec
+  return request(apiPost<NonceResponse>(url, {}, token));
 }
 
 /**
@@ -184,11 +172,7 @@ export async function linkWallet(
   data: WalletLinkRequest
 ): Promise<WalletLinkResponse> {
   const url = buildApiUrl('/auth/wallet/link');
-  return apiPost<WalletLinkResponse>(url, data, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiPost<WalletLinkResponse>(url, data, token));
 }
 
 /**
@@ -199,11 +183,7 @@ export async function unlinkWallet(
   walletId: number
 ): Promise<{ message: string; wallet_address: string }> {
   const url = buildApiUrl(`/auth/wallet/${walletId}`);
-  return apiDelete<{ message: string; wallet_address: string }>(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  return request(apiDelete<{ message: string; wallet_address: string }>(url, token));
 }
 
 /**
@@ -213,7 +193,10 @@ export async function checkWalletAvailability(
   walletAddress: string
 ): Promise<{ wallet_address: string; is_available: boolean }> {
   const url = buildApiUrl(`/auth/wallet/check/${walletAddress}`);
-  return apiGet<{ wallet_address: string; is_available: boolean }>(url);
+  // This endpoint is likely public, but we can pass token if available/needed. 
+  // Based on previous code it didn't use token. 
+  // apiGet(url, undefined)
+  return request(apiGet<{ wallet_address: string; is_available: boolean }>(url));
 }
 
 // ========== Convenience API URLs ==========

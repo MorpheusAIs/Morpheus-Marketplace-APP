@@ -20,7 +20,11 @@ export default function BillingPage() {
   };
 
   const handleRefreshWallet = async () => {
-    await refetchWallet();
+    // Refetch both wallet status and balance when refreshing staking status
+    await Promise.all([
+      refetchWallet(),
+      refetchBalance()
+    ]);
   };
 
   const handleBalanceUpdate = async (amount: number) => {
@@ -63,25 +67,25 @@ export default function BillingPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <StatCard
               title="Total Available"
-              value={`$${parseFloat(balance.total_available).toFixed(2)}`}
+              value={`$${parseFloat(balance.total_available || '0').toFixed(2)}`}
               icon={DollarSign}
               description="Combined balance"
             />
             <StatCard
               title="Paid Balance"
-              value={`$${parseFloat(balance.paid.available).toFixed(2)}`}
+              value={`$${parseFloat(balance.paid?.available || '0').toFixed(2)}`}
               icon={TrendingUp}
-              description={`$${parseFloat(balance.paid.posted_balance).toFixed(2)} posted`}
+              description={`$${parseFloat(balance.paid?.posted_balance || '0').toFixed(2)} posted`}
             />
             <StatCard
               title="Staking Credits"
-              value={`$${parseFloat(balance.staking.available).toFixed(2)}`}
+              value={`$${parseFloat(balance.staking?.available || '0').toFixed(2)}`}
               icon={Clock}
-              description={`$${parseFloat(balance.staking.daily_amount).toFixed(2)} daily`}
+              description={`$${parseFloat(balance.staking?.daily_amount || '0').toFixed(2)} daily`}
             />
             <StatCard
               title="Pending Holds"
-              value={`$${parseFloat(balance.paid.pending_holds).toFixed(2)}`}
+              value={`$${parseFloat(balance.paid?.pending_holds || '0').toFixed(2)}`}
               icon={AlertCircle}
               description="Temporary holds"
             />
@@ -110,8 +114,8 @@ export default function BillingPage() {
             ) : (
               <StakingWidget
                 walletStatus={walletStatus}
-                stakingBalance={balance?.staking.available}
-                dailyAllowance={balance?.staking.daily_amount}
+                stakingBalance={balance?.staking?.available}
+                dailyAllowance={balance?.staking?.daily_amount}
                 isLoading={isLoadingWallet}
                 onConnectWallet={handleConnectWallet}
                 onRefreshStatus={handleRefreshWallet}

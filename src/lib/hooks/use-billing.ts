@@ -25,6 +25,7 @@ import type {
   LedgerListResponse,
   MonthlySpendingResponse,
   WalletStatusResponse,
+  WalletLinkRequest,
 } from '@/types/billing';
 
 // ========== Balance Hook ==========
@@ -33,12 +34,12 @@ export function useBillingBalance(options?: {
   refetchInterval?: number;
   enabled?: boolean;
 }): UseQueryResult<BalanceResponse, Error> {
-  const { getIdToken } = useCognitoAuth();
+  const { getValidToken } = useCognitoAuth();
 
   return useQuery({
     queryKey: ['billing', 'balance'],
     queryFn: async () => {
-      const token = await getIdToken();
+      const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
       return getBalance(token);
     },
@@ -55,12 +56,12 @@ export function useBillingUsage(
     enabled?: boolean;
   }
 ): UseQueryResult<UsageListResponse, Error> {
-  const { getIdToken } = useCognitoAuth();
+  const { getValidToken } = useCognitoAuth();
 
   return useQuery({
     queryKey: ['billing', 'usage', params],
     queryFn: async () => {
-      const token = await getIdToken();
+      const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
       return getUsage(token, params);
     },
@@ -74,12 +75,12 @@ export function useBillingUsageForMonth(
     enabled?: boolean;
   }
 ): UseQueryResult<UsageListResponse, Error> {
-  const { getIdToken } = useCognitoAuth();
+  const { getValidToken } = useCognitoAuth();
 
   return useQuery({
     queryKey: ['billing', 'usage', 'month', params],
     queryFn: async () => {
-      const token = await getIdToken();
+      const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
       return getUsageForMonth(token, params);
     },
@@ -95,12 +96,12 @@ export function useBillingTransactions(
     enabled?: boolean;
   }
 ): UseQueryResult<LedgerListResponse, Error> {
-  const { getIdToken } = useCognitoAuth();
+  const { getValidToken } = useCognitoAuth();
 
   return useQuery({
     queryKey: ['billing', 'transactions', params],
     queryFn: async () => {
-      const token = await getIdToken();
+      const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
       return getTransactions(token, params);
     },
@@ -116,12 +117,12 @@ export function useBillingSpending(
     enabled?: boolean;
   }
 ): UseQueryResult<MonthlySpendingResponse, Error> {
-  const { getIdToken } = useCognitoAuth();
+  const { getValidToken } = useCognitoAuth();
 
   return useQuery({
     queryKey: ['billing', 'spending', params],
     queryFn: async () => {
-      const token = await getIdToken();
+      const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
       return getMonthlySpending(token, params);
     },
@@ -135,16 +136,73 @@ export function useWalletStatus(options?: {
   refetchInterval?: number;
   enabled?: boolean;
 }): UseQueryResult<WalletStatusResponse, Error> {
-  const { getIdToken } = useCognitoAuth();
+  const { getValidToken } = useCognitoAuth();
 
   return useQuery({
     queryKey: ['wallet', 'status'],
     queryFn: async () => {
-      const token = await getIdToken();
+      const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
       return getWalletStatus(token);
     },
     refetchInterval: options?.refetchInterval ?? 60000, // Refresh every 60s by default
     enabled: options?.enabled ?? true,
+  });
+}
+
+// ========== Wallet Mutation Hooks ==========
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  generateWalletNonce,
+  linkWallet,
+  unlinkWallet,
+  checkWalletAvailability,
+} from '@/lib/api/billing';
+
+export function useGenerateWalletNonce() {
+  const { getValidToken } = useCognitoAuth();
+  
+  return useMutation({
+    mutationFn: async (walletAddress: string) => {
+      const token = await getValidToken();
+      if (!token) throw new Error('Not authenticated');
+      return generateWalletNonce(token, walletAddress);
+    }
+  });
+}
+
+export function useLinkWallet() {
+  const { getValidToken } = useCognitoAuth();
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: WalletLinkRequest) => {
+      const token = await getValidToken();
+      if (!token) throw new Error('Not authenticated');
+      return linkWallet(token, data);
+    },
+    onSuccess: () => {
+      // Invalidate wallet status to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+    }
+  });
+}
+
+export function useUnlinkWallet() {
+  const { getValidToken } = useCognitoAuth();
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (walletId: number) => {
+      const token = await getValidToken();
+      if (!token) throw new Error('Not authenticated');
+      return unlinkWallet(token, walletId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+    }
   });
 }

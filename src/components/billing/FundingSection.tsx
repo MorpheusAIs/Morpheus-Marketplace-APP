@@ -601,7 +601,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
           <CardTitle>Add Funds</CardTitle>
           <CardDescription>Choose a method to increase your credits</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
             className="w-full justify-between h-auto p-4"

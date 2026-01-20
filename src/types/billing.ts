@@ -133,6 +133,13 @@ export interface WalletStatusResponse {
   wallet_count: number;
   total_staked?: string;
   wallets?: WalletLinkResponse[];
+  stakers?: Array<{
+    id: string;
+    address: string;
+    staked: string;
+    lastStake: string;
+    projectName: string;
+  }>;
 }
 
 export interface NonceResponse {

@@ -9,6 +9,7 @@ import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
+import { headers } from 'next/headers';
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
