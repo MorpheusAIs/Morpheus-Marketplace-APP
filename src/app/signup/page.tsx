@@ -34,6 +34,12 @@ export default function SignUpPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // Email validation regex
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   // Password validation function to match Cognito password policy
   const validatePassword = (password: string): string | null => {
     if (password.length < 15) {
@@ -57,6 +63,11 @@ export default function SignUpPage() {
 
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
       setError("Please fill in all fields");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
       return;
     }
 

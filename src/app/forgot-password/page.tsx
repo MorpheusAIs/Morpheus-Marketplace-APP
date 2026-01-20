@@ -61,6 +61,12 @@ function ForgotPasswordContent() {
     return null;
   };
 
+  // Email validation regex
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -68,6 +74,11 @@ function ForgotPasswordContent() {
 
     if (!email.trim()) {
       setError("Please enter your email address");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
       return;
     }
 
