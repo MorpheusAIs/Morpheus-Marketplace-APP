@@ -81,9 +81,10 @@ export function StakingWidget({
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnectAnother = async () => {
     await open();
   };
+
 
   const handleLinkWallet = async () => {
     if (!address) return;
@@ -251,7 +252,7 @@ export function StakingWidget({
                     ))}
                     
                     <Button
-                      onClick={handleConnect}
+                      onClick={handleConnectAnother}
                       variant="outline"
                       className="w-full text-xs mt-2"
                       size="sm"
@@ -294,7 +295,7 @@ export function StakingWidget({
                 {/* Not connected to provider, but has wallets linked (add another) */}
                 {!isConnected && (
                   <Button
-                    onClick={handleConnect}
+                    onClick={handleConnectAnother}
                     variant="outline"
                     className="w-full text-xs"
                     size="sm"
@@ -302,6 +303,7 @@ export function StakingWidget({
                     Connect Another Wallet
                   </Button>
                 )}
+
 
                 <Alert className="bg-green-500/10 border-green-500/20 mt-2">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -354,7 +356,7 @@ export function StakingWidget({
                   </div>
                 ) : (
                   <Button
-                    onClick={handleConnect}
+                    onClick={handleConnectAnother}
                     className="w-full bg-green-500 hover:bg-green-600 text-black"
                   >
                     <Wallet className="mr-2 h-4 w-4" />
