@@ -25,6 +25,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   if (typeof window === 'undefined') return null;
   if (!isOpen) return null;
 
+  // Email validation regex
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   // Password validation function to match Cognito password policy
   const validatePassword = (password: string): string | null => {
     if (password.length < 15) {
@@ -47,6 +53,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setIsLoading(true);
     setError('');
 
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const tokens = await CognitoDirectAuth.signIn(email, password);
       const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
@@ -66,6 +78,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
 
     // Validate password
     const passwordError = validatePassword(password);
@@ -124,6 +142,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
 
     // Password reset functionality not yet implemented in CognitoDirectAuth
     setError('Password reset functionality is not available. Please contact support.');
