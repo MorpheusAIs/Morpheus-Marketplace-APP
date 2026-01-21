@@ -3,25 +3,37 @@ frontend:
   phases:
     preBuild:
       commands:
+        # Setup Node.js 22 (required by package.json engines)
         - nvm install 22
         - nvm use 22
         - echo "Node version:" && node -v
+        
+        # Setup pnpm (specified in package.json packageManager)
+        - corepack enable
+        - corepack prepare pnpm@9.15.0 --activate
+        - echo "pnpm version:" && pnpm -v
+        
         - echo "Starting preBuild phase..."
-        - npm ci --legacy-peer-deps
-        - echo "Checking current Tailwind installation:"
-        - npm list tailwindcss || true
-        - echo "Checking if tailwind.config.js exists:"
-        - ls -la tailwind.config.js
-        - echo "Checking if postcss.config.js exists:"
-        - ls -la postcss.config.js
+        
+        # Fetch secrets from Secrets Manager (not exposed in Amplify Console)
+        - echo "Fetching secrets from Secrets Manager..."
+        - export SECRETS=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_NAME" --query SecretString --output text --region us-east-2)
+        - export COINBASE_COMMERCE_API_KEY=$(echo $SECRETS | jq -r '.COINBASE_COMMERCE_API_KEY')
+        - export COINBASE_COMMERCE_API_SECRET=$(echo $SECRETS | jq -r '.COINBASE_COMMERCE_API_SECRET')
+        - export COINBASE_COMMERCE_WEBHOOK_SECRET=$(echo $SECRETS | jq -r '.COINBASE_COMMERCE_WEBHOOK_SECRET')
+        - export NEXT_PUBLIC_PROJECT_ID=$(echo $SECRETS | jq -r '.NEXT_PUBLIC_PROJECT_ID')
+        - echo "Secrets loaded successfully"
+        
+        # Install dependencies using pnpm
+        - pnpm install --frozen-lockfile
         - echo "Dependencies installed successfully"
     build:
       commands:
         - echo "Starting build phase..."
-        - echo "Generating build version..."
+        # Generate build version for cache busting and debugging
         - echo "export const BUILD_VERSION = '$(date +"%Y%m%d-%H%M")';" > src/lib/build-version.ts
         - cat src/lib/build-version.ts
-        - npm run build
+        - pnpm run build
         - echo "Build completed successfully"
   artifacts:
     baseDirectory: .next
@@ -30,4 +42,5 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+      - .pnpm-store/**/*
       - .next/cache/**/* 
