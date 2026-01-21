@@ -17,12 +17,20 @@ frontend:
         
         # Fetch secrets from Secrets Manager (not exposed in Amplify Console)
         - echo "Fetching secrets from Secrets Manager..."
+        - echo "SECRETS_NAME=$SECRETS_NAME"
         - export SECRETS=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_NAME" --query SecretString --output text --region us-east-2)
+        - echo "SECRETS retrieved, length=${#SECRETS}"
         # Parse JSON using Node.js (jq not available in Amplify build environment)
         - export COINBASE_COMMERCE_API_KEY=$(node -e "console.log(JSON.parse(process.env.SECRETS).COINBASE_COMMERCE_API_KEY)")
         - export COINBASE_COMMERCE_API_SECRET=$(node -e "console.log(JSON.parse(process.env.SECRETS).COINBASE_COMMERCE_API_SECRET)")
         - export COINBASE_COMMERCE_WEBHOOK_SECRET=$(node -e "console.log(JSON.parse(process.env.SECRETS).COINBASE_COMMERCE_WEBHOOK_SECRET)")
         - export NEXT_PUBLIC_PROJECT_ID=$(node -e "console.log(JSON.parse(process.env.SECRETS).NEXT_PUBLIC_PROJECT_ID)")
+        # Verify secrets were extracted (show first 4 chars + masked remainder)
+        - echo "Validating extracted secrets..."
+        - 'echo "COINBASE_COMMERCE_API_KEY: ${COINBASE_COMMERCE_API_KEY:0:4}****** (length: ${#COINBASE_COMMERCE_API_KEY})"'
+        - 'echo "COINBASE_COMMERCE_API_SECRET: ${COINBASE_COMMERCE_API_SECRET:0:4}****** (length: ${#COINBASE_COMMERCE_API_SECRET})"'
+        - 'echo "COINBASE_COMMERCE_WEBHOOK_SECRET: ${COINBASE_COMMERCE_WEBHOOK_SECRET:0:4}****** (length: ${#COINBASE_COMMERCE_WEBHOOK_SECRET})"'
+        - 'echo "NEXT_PUBLIC_PROJECT_ID: ${NEXT_PUBLIC_PROJECT_ID:0:4}****** (length: ${#NEXT_PUBLIC_PROJECT_ID})"'
         - echo "Secrets loaded successfully"
         
         # Install dependencies using pnpm
