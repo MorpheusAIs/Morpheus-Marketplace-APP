@@ -47,17 +47,23 @@ export function StakingWidget({
   const hasWallet = walletStatus?.has_wallets ?? false;
   const walletCount = walletStatus?.wallet_count ?? 0;
   
-  // Calculate total staked from stakers array if available, otherwise use total_staked
+  const formatMorAmount = (value: string | undefined): string => {
+    if (!value || value === '0') return '0';
+    const num = parseFloat(value);
+    if (num > 1e12) {
+      return (num / 1e18).toString();
+    }
+    return value;
+  };
+
   const totalStaked = React.useMemo(() => {
     if (walletStatus?.stakers && walletStatus.stakers.length > 0) {
-      // Sum up staked amounts from the stakers array (amount is in wei)
       const totalWei = walletStatus.stakers.reduce((sum, staker) => {
         return sum + BigInt(staker.staked || '0');
       }, BigInt(0));
       return (Number(totalWei) / 1e18).toString();
     }
-    // Fallback to total_staked if available
-    return walletStatus?.total_staked ?? '0';
+    return formatMorAmount(walletStatus?.total_staked);
   }, [walletStatus]);
 
   // Check if the currently connected wallet is already linked
@@ -222,16 +228,14 @@ export function StakingWidget({
                             {formatAddress(wallet.wallet_address)}
                           </code>
                           {(() => {
-                            // Find matching staker info for this wallet
                             const stakerInfo = walletStatus?.stakers?.find(
                               s => s.address.toLowerCase() === wallet.wallet_address.toLowerCase()
                             );
-                            // Use staker info if available, otherwise fallback to wallet.staked_amount
                             const stakedAmount = stakerInfo 
                               ? (Number(BigInt(stakerInfo.staked)) / 1e18).toString()
-                              : wallet.staked_amount;
+                              : formatMorAmount(wallet.staked_amount);
                               
-                            return stakedAmount ? (
+                            return stakedAmount && stakedAmount !== '0' ? (
                               <span className="text-[10px] text-green-500">
                                 {parseFloat(stakedAmount).toFixed(2)} MOR
                               </span>

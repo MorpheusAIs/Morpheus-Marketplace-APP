@@ -79,35 +79,24 @@ async function handleChargeConfirmed(data: CoinbaseWebhookEvent['event']['data']
   console.log(`Payment confirmed for user ${userId}: ${currency} ${amount}`);
 
   try {
-    const internalSecret = process.env.INTERNAL_API_SECRET;
+    const adminSecret = process.env.ADMIN_API_SECRET;
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-    if (!internalSecret || !apiBaseUrl) {
-      console.error('Missing configuration: INTERNAL_API_SECRET or NEXT_PUBLIC_API_BASE_URL');
+    if (!adminSecret || !apiBaseUrl) {
+      console.error('Missing configuration: ADMIN_API_SECRET or NEXT_PUBLIC_API_BASE_URL');
       return;
     }
 
-    const response = await fetch(`${apiBaseUrl}/api/v1/billing/credit`, {
+    const response = await fetch(`${apiBaseUrl}/api/v1/billing/credits/adjust`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Internal-Secret': internalSecret,
+        'X-Admin-Secret': adminSecret,
       },
       body: JSON.stringify({
-        userId,
-        amount,
-        currency,
-        chargeId: data.id,
-        chargeCode: data.code,
-        transactionId: payment?.transaction_id,
-        network: payment?.network,
-        paymentSource: 'coinbase_commerce',
-        metadata: {
-          coinbase_charge_id: data.id,
-          coinbase_charge_code: data.code,
-          payment_network: payment?.network,
-          transaction_hash: payment?.transaction_id,
-        },
+        user_id: userId,
+        amount_usd: parseFloat(amount),
+        description: `Coinbase payment: ${data.code} (${payment?.network || 'crypto'})`,
       }),
     });
 
@@ -122,7 +111,6 @@ async function handleChargeConfirmed(data: CoinbaseWebhookEvent['event']['data']
 
   } catch (error) {
     console.error('Error crediting account:', error);
-    // Propagate error to return 500 to Coinbase for retry
     throw error;
   }
 }
