@@ -81,6 +81,10 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
         const status = data.charge?.status || 'NEW';
         setChargeStatus(status);
 
+        if (data.charge) {
+          setCharge((prev) => (prev ? { ...prev, ...data.charge } : (data.charge as CoinbaseCharge)));
+        }
+
         if (status === 'COMPLETED' || status === 'RESOLVED') {
           setFlowState('crypto_success');
           if (onBalanceUpdate) {
@@ -165,20 +169,15 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     setError(null);
 
     try {
-      // Use the API client path relative to base or proxy
-      // The previous code used '/api/coinbase/charge' which might be wrong if not implemented in Next.js API routes
-      // If this is supposed to call the backend directly via proxy:
-      const response = await fetch('/api/v1/billing/payment/crypto/charge', {
+      const response = await fetch('/api/coinbase/charge', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          // Add auth token if available (using anonymous or userId for now as per previous logic)
         },
         body: JSON.stringify({
           amount: depositAmount,
           currency: 'USD',
-          // userId is handled by backend auth context usually, but if this is an unauthenticated endpoint:
-          // userId: userId || 'anonymous', 
+          userId: userId || 'anonymous',
           description: `Morpheus AI Credits - $${depositAmount}`,
         }),
       });
