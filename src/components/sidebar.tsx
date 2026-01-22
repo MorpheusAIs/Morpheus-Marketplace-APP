@@ -20,6 +20,8 @@ import {
   FlaskConical,
   FileText,
   ExternalLink,
+  DollarSign,
+  BarChart3,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXTwitter } from "@fortawesome/free-brands-svg-icons";
@@ -72,6 +74,34 @@ export function Sidebar() {
                   <Link href="/api-keys">
                     <Key className={`h-4 w-4 ${pathname === "/api-keys" ? "text-green-500" : ""}`} />
                     <span className={pathname === "/api-keys" ? "text-green-500" : ""}>API Keys</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Billing */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/billing"}
+                  className={pathname === "/billing" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                >
+                  <Link href="/billing">
+                    <DollarSign className={`h-4 w-4 ${pathname === "/billing" ? "text-green-500" : ""}`} />
+                    <span className={pathname === "/billing" ? "text-green-500" : ""}>Billing</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Usage Analytics */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/usage-analytics"}
+                  className={pathname === "/usage-analytics" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                >
+                  <Link href="/usage-analytics">
+                    <BarChart3 className={`h-4 w-4 ${pathname === "/usage-analytics" ? "text-green-500" : ""}`} />
+                    <span className={pathname === "/usage-analytics" ? "text-green-500" : ""}>Usage Analytics</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

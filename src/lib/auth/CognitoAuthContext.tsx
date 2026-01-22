@@ -32,6 +32,7 @@ interface CognitoAuthContextType {
   confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
   logout: () => void;
   refreshApiKeys: () => Promise<void>;
+  getValidToken: () => Promise<string | null>;
   socialLogin: (provider: 'Google' | 'GitHub' | 'X') => void;
 }
 
@@ -370,6 +371,14 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
+  const getValidToken = async () => {
+    const token = await CognitoDirectAuth.getValidAccessToken();
+    if (token && token !== accessToken) {
+      setAccessToken(token);
+    }
+    return token;
+  };
+
   const socialLogin = (provider: 'Google' | 'GitHub' | 'X') => {
     if (typeof window === 'undefined') return;
     
@@ -428,6 +437,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     confirmForgotPassword,
     logout,
     refreshApiKeys,
+    getValidToken,
     socialLogin,
   };
 

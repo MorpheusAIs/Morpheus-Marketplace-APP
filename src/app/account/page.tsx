@@ -57,9 +57,18 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     if (automationSettings !== null) {
       const sessionDurationChanged = Number(localSessionDuration) !== Number(automationSettings.session_duration);
-      // Handle null values - default to true per OpenAPI spec
+      
+      // Get default automation enabled from environment variable
+      const envDefaultEnabled = process.env.NEXT_PUBLIC_DEFAULT_AUTOMATION_ENABLED === 'true';
+      const isDevelopment = process.env.NEXT_PUBLIC_API_BASE_URL?.includes('dev') || 
+                            process.env.NEXT_PUBLIC_API_BASE_URL?.includes('localhost');
+      
+      // Determine the effective saved value (considering dev defaults)
+      const savedEnabled = (isDevelopment && envDefaultEnabled)
+        ? true
+        : (automationSettings.is_enabled ?? true);
+      
       const currentEnabled = localIsEnabled ?? true;
-      const savedEnabled = automationSettings.is_enabled ?? true;
       const isEnabledChanged = Boolean(currentEnabled) !== Boolean(savedEnabled);
       const isChanged = sessionDurationChanged || isEnabledChanged;
       setHasUnsavedChanges(isChanged);
@@ -81,8 +90,20 @@ export default function AccountSettingsPage() {
       if (response.data) {
         setAutomationSettings(response.data);
         setLocalSessionDuration(response.data.session_duration ?? 3600);
-        // Handle null values - default to true per OpenAPI spec
-        setLocalIsEnabled(response.data.is_enabled ?? true);
+        
+        // Get default automation enabled from environment variable
+        // Defaults to true for development, respects backend value otherwise
+        const envDefaultEnabled = process.env.NEXT_PUBLIC_DEFAULT_AUTOMATION_ENABLED === 'true';
+        const isDevelopment = process.env.NEXT_PUBLIC_API_BASE_URL?.includes('dev') || 
+                              process.env.NEXT_PUBLIC_API_BASE_URL?.includes('localhost');
+        
+        // If in development and env var is set to true, use that as default
+        // Otherwise, use backend value, defaulting to true if null
+        const defaultEnabled = (isDevelopment && envDefaultEnabled) 
+          ? true 
+          : (response.data.is_enabled ?? true);
+        
+        setLocalIsEnabled(defaultEnabled);
       }
     } catch (err) {
       console.error('Error loading automation settings:', err);
@@ -129,7 +150,18 @@ export default function AccountSettingsPage() {
   const handleCancel = () => {
     if (automationSettings) {
       setLocalSessionDuration(automationSettings.session_duration);
-      setLocalIsEnabled(automationSettings.is_enabled);
+      
+      // Get default automation enabled from environment variable
+      const envDefaultEnabled = process.env.NEXT_PUBLIC_DEFAULT_AUTOMATION_ENABLED === 'true';
+      const isDevelopment = process.env.NEXT_PUBLIC_API_BASE_URL?.includes('dev') || 
+                            process.env.NEXT_PUBLIC_API_BASE_URL?.includes('localhost');
+      
+      // Reset to effective saved value (considering dev defaults)
+      const effectiveEnabled = (isDevelopment && envDefaultEnabled)
+        ? true
+        : (automationSettings.is_enabled ?? true);
+      
+      setLocalIsEnabled(effectiveEnabled);
       setHasUnsavedChanges(false);
     }
   };

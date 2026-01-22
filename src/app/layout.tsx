@@ -4,10 +4,12 @@ import { CognitoAuthProvider } from '@/lib/auth/CognitoAuthContext';
 import { ConversationProvider } from '@/lib/ConversationContext';
 import { StreamManagerProvider } from '@/lib/StreamManagerContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
+import { headers } from 'next/headers';
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -52,26 +54,28 @@ export default function RootLayout({
             ></iframe>
           </noscript>
         )}
-        <NotificationProvider>
-          <CognitoAuthProvider>
-            <ConversationProvider>
-              <StreamManagerProvider>
-                <GTMProvider>
-                  <Toaster
-                    position="top-right"
-                    expand={true}
-                    closeButton
-                    toastOptions={{
-                      className: 'custom-sonner-toast',
-                    }}
-                  />
-                  {children}
-                  <BuildVersion />
-                </GTMProvider>
-              </StreamManagerProvider>
-            </ConversationProvider>
-          </CognitoAuthProvider>
-        </NotificationProvider>
+        <QueryProvider>
+          <NotificationProvider>
+            <CognitoAuthProvider>
+              <ConversationProvider>
+                <StreamManagerProvider>
+                  <GTMProvider>
+                    <Toaster
+                      position="top-right"
+                      expand={true}
+                      closeButton={false}
+                      toastOptions={{
+                        className: 'custom-sonner-toast',
+                      }}
+                    />
+                    {children}
+                    <BuildVersion />
+                  </GTMProvider>
+                </StreamManagerProvider>
+              </ConversationProvider>
+            </CognitoAuthProvider>
+          </NotificationProvider>
+        </QueryProvider>
         {gaId && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
