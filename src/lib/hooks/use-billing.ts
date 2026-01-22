@@ -62,6 +62,9 @@ export function useBillingUsage(
     queryKey: ['billing', 'usage', params],
     queryFn: async () => {
       const token = await getValidToken();
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useBillingUsage] Token status:', token ? 'Present' : 'Missing');
+      }
       if (!token) throw new Error('Not authenticated');
       return getUsage(token, params);
     },

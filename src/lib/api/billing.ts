@@ -54,15 +54,34 @@ function getErrorMessage(error: unknown): string {
  * Helper to unwrap API responses and handle errors
  */
 async function request<T>(promise: Promise<ApiResponse<T>>): Promise<T> {
-  const response = await promise;
-  if (response.error) {
-    throw new Error(getErrorMessage(response.error));
+  try {
+    const response = await promise;
+    
+    // Log success for debugging (remove in prod)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BillingAPI] Response:', { 
+        status: response.status, 
+        hasData: !!response.data,
+        error: response.error 
+      });
+    }
+
+    if (response.error) {
+      const errMsg = getErrorMessage(response.error);
+      console.error('[BillingAPI] Request failed:', errMsg);
+      throw new Error(errMsg);
+    }
+    
+    if (!response.data && response.status !== 204) {
+      console.error('[BillingAPI] No data returned from API', response);
+      throw new Error('No data returned from API');
+    }
+    
+    return response.data as T;
+  } catch (err) {
+    console.error('[BillingAPI] Network or parsing error:', err);
+    throw err;
   }
-  if (!response.data && response.status !== 204) {
-    // Some endpoints might return empty body on success (204 No Content), but mostly we expect data
-    throw new Error('No data returned from API');
-  }
-  return response.data as T;
 }
 
 // ========== Balance API ==========
@@ -100,6 +119,11 @@ export async function getUsage(
   if (params?.model) queryParams.append('model', params.model);
 
   const url = buildApiUrl(`/billing/usage${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[BillingAPI] Fetching usage:', url);
+  }
+  
   return request(apiGet<UsageListResponse>(url, token));
 }
 

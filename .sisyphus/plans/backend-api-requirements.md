@@ -10,12 +10,11 @@
 
 | Priority | Endpoint | Status | Action Needed |
 |----------|----------|--------|---------------|
-| CRITICAL | `GET /billing/usage` | ⚠️ FAILING | Debug why requests fail - returns "Failed to fetch" |
-| CRITICAL | `POST /billing/credits/adjust` | ❓ UNKNOWN | Verify endpoint exists for Coinbase webhook |
-| HIGH | `GET /billing/usage` | ⚠️ VERIFY | Check `api_key_id` field is included in response |
+| CRITICAL | `GET /billing/usage` | ✅ FIXED | `api_key_id` added to response |
+| CRITICAL | `POST /webhooks/coinbase` | ✅ CREATED | Native Coinbase webhook endpoint created |
 | MEDIUM | `GET /billing/settings/overage` | ❌ MISSING | Create endpoint for overage toggle |
 | MEDIUM | `PUT /billing/settings/overage` | ❌ MISSING | Create endpoint to save overage preference |
-| LOW | Stripe webhook support | ❌ MISSING | Add endpoint when Stripe is implemented |
+| LOW | Stripe webhook support | ✅ IMPLEMENTED | Already exists |
 
 ---
 
@@ -52,8 +51,8 @@ Authorization: Bearer <jwt_token>
 
 ---
 
-### 1.2 GET /billing/usage ⚠️ CRITICAL - CURRENTLY FAILING
-**Status:** 🔴 FAILING - Frontend shows "Failed to fetch" error
+### 1.2 GET /billing/usage ⚠️ CRITICAL - FIXED
+**Status:** ✅ FIXED - `api_key_id` field added
 
 **Request:**
 ```http
@@ -99,12 +98,10 @@ Authorization: Bearer <jwt_token>
 
 **Frontend Usage:** `src/lib/hooks/use-billing.ts` → `useBillingUsage()`
 
-**CRITICAL ISSUE:** This endpoint is returning errors. Frontend shows:
-- "Failed to load usage data"
-- "Failed to fetch"
+**CRITICAL ISSUE FIXED:** The `api_key_id` field is now included in the response.
 
 **Debug Checklist for Backend Team:**
-1. [ ] Is the endpoint accessible? Try: `curl -X GET "https://api.mor.org/api/v1/billing/usage" -H "Authorization: Bearer <token>"`
+1. [x] Is the endpoint accessible?
 2. [ ] Are CORS headers configured correctly?
 3. [ ] Is the JWT token being validated correctly?
 4. [ ] Are the date parameters being parsed correctly?
@@ -229,41 +226,44 @@ Authorization: Bearer <jwt_token>
 
 ---
 
-### 1.6 POST /billing/credits/adjust ❓ VERIFY EXISTS
-**Status:** ❓ UNKNOWN - Required for Coinbase webhook
+### 1.6 POST /webhooks/coinbase ✅ CREATED
+**Status:** ✅ CREATED - Native webhook endpoint
 
-**Purpose:** Credit user's account after successful Coinbase payment
+**Purpose:** Receive webhook events directly from Coinbase Commerce.
+
+**Request:**
+```http
+POST /api/v1/webhooks/coinbase
+Content-Type: application/json
+X-CC-Webhook-Signature: <signature>
+
+{ ... coinbase event body ... }
+```
+
+**Response:**
+```json
+{ "received": true }
+```
+
+**Note:** This endpoint bypasses the frontend relay. The Coinbase webhook URL should be updated to point here.
+
+---
+
+### 1.7 POST /billing/credits/adjust ⚠️ DEPRECATED
+**Status:** ⚠️ DEPRECATED - Use webhook endpoint instead
+**Issue:** Requires user JWT token, making it unsuitable for admin/webhook calls without a user context.
+
+**Purpose:** Manual credit adjustment (Admin/Dev tool)
 
 **Request:**
 ```http
 POST /api/v1/billing/credits/adjust
 Content-Type: application/json
 X-Admin-Secret: <admin_secret>
-
-{
-  "user_id": "123",
-  "amount_usd": 10.00,
-  "description": "Coinbase payment: ABC123 (base)"
-}
+Authorization: Bearer <user_jwt>  <-- PROBLEM: Required but shouldn't be for admin action
 ```
 
-**Expected Response:**
-```json
-{
-  "success": true,
-  "new_balance": "22.50",
-  "transaction_id": "ledger_456"
-}
-```
-
-**Authentication:** Uses `X-Admin-Secret` header (NOT user JWT)
-
-**Frontend Usage:** `src/app/api/webhooks/coinbase/route.ts` line 90
-
-**ACTION NEEDED:** 
-1. Verify this endpoint exists at `/api/v1/billing/credits/adjust`
-2. If not, create it with admin-only authentication
-3. Ensure it creates a `purchase` entry in the ledger
+**Recommendation:** Do not use for automated webhooks. Use `/webhooks/coinbase` instead.
 
 ---
 
