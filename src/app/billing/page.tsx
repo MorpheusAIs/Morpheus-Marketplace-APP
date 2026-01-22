@@ -1,15 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
-import { DollarSign, TrendingUp, Clock, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { DollarSign, TrendingUp, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { StatCard } from '@/components/billing/StatCard';
 import { FundingSection } from '@/components/billing/FundingSection';
 import { StakingWidget } from '@/components/billing/StakingWidget';
 import { useBillingBalance, useWalletStatus } from '@/lib/hooks/use-billing';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function BillingPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(5);
+  
   const { data: balance, isLoading: isLoadingBalance, error: balanceError, refetch: refetchBalance } = useBillingBalance();
   const { data: walletStatus, isLoading: isLoadingWallet, refetch: refetchWallet } = useWalletStatus();
 
@@ -31,6 +39,70 @@ export default function BillingPage() {
     // Refetch balance after simulated payment
     await refetchBalance();
   };
+
+  // Check for payment success query parameter
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    if (payment === 'success') {
+      setShowSuccess(true);
+      // Refetch balance to show updated amount
+      refetchBalance();
+      
+      // Start countdown and redirect
+      const countdownInterval = setInterval(() => {
+        setRedirectCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            // Remove query parameter and redirect
+            router.replace('/billing');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(countdownInterval);
+    }
+  }, [searchParams, router, refetchBalance]);
+
+  const handleManualRedirect = () => {
+    router.replace('/billing');
+  };
+
+  // Show success message overlay if payment was successful
+  if (showSuccess) {
+    return (
+      <AuthenticatedLayout>
+        <div className="container mx-auto flex min-h-[calc(100vh-200px)] items-center justify-center p-6">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
+              </div>
+              <CardTitle className="text-2xl">Payment Successful!</CardTitle>
+              <CardDescription className="text-base">
+                Your payment has been processed successfully. Your account balance will be updated shortly.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Redirecting to billing page in {redirectCountdown} second{redirectCountdown !== 1 ? 's' : ''}...
+                </p>
+              </div>
+              <Button 
+                onClick={handleManualRedirect}
+                className="w-full"
+                variant="default"
+              >
+                Go to Billing Page Now
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
 
   return (
     <AuthenticatedLayout>

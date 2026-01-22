@@ -360,8 +360,19 @@ export default function TestPage() {
   const ensureSessionExists = async (): Promise<void> => {
     const automationSettings = await checkAutomationSettings();
     
+    // Get default automation enabled from environment variable for development
+    const envDefaultEnabled = process.env.NEXT_PUBLIC_DEFAULT_AUTOMATION_ENABLED === 'true';
+    const isDevelopment = process.env.NEXT_PUBLIC_API_BASE_URL?.includes('dev') || 
+                          process.env.NEXT_PUBLIC_API_BASE_URL?.includes('localhost');
+    
+    // Determine if automation is effectively enabled
+    // In development with env var set, treat as enabled even if backend says false
+    const isAutomationEnabled = automationSettings === null || 
+      (isDevelopment && envDefaultEnabled) ||
+      automationSettings.is_enabled;
+    
     // If automation is enabled, no need to check/create session
-    if (automationSettings === null || automationSettings.is_enabled) {
+    if (isAutomationEnabled) {
       return;
     }
 

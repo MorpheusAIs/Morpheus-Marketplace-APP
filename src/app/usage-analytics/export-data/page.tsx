@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Download, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Download, Search, Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ export default function ExportDataPage() {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 90);
 
-  const { data: usageData, isLoading } = useBillingUsage({
+  const { data: usageData, isLoading, error } = useBillingUsage({
     from: startDate.toISOString(),
     to: endDate.toISOString(),
     limit: 100, // API max is 100
@@ -133,7 +133,21 @@ export default function ExportDataPage() {
             </div>
 
             {/* Table */}
-            {isLoading ? (
+            {error ? (
+              <div className="flex flex-col items-center justify-center p-8 rounded-lg border border-red-500/20 bg-red-500/5 text-red-500">
+                <AlertCircle className="h-8 w-8 mb-2" />
+                <p className="font-medium">Failed to load usage data</p>
+                <p className="text-sm mt-1 opacity-80">{error.message}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4 border-red-500/20 hover:bg-red-500/10 text-red-500"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : isLoading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
