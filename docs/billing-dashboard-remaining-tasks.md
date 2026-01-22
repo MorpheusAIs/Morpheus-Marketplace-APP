@@ -1,32 +1,111 @@
 # Billing Dashboard: Remaining Implementation Tasks
 
-**Last Updated:** January 20, 2026  
-**Status:** 95% Complete - Final Phase
+**Last Updated:** January 22, 2026  
+**Status:** 90% Complete - API Debugging Required
 
 ---
 
 ## Executive Summary
 
-The billing and usage analytics dashboard is 95% complete with all core infrastructure, API integration, and most UI components implemented. This document outlines the remaining tasks to reach 100% completion.
+The billing and usage analytics dashboard is 90% complete with all core infrastructure, API integration, and most UI components implemented. However, there is a **critical issue** with the Usage Analytics page where the `/billing/usage` API endpoint is returning errors, causing all charts to show empty states.
 
 **Major Achievements:**
 - ✅ Web3 wallet connection (AppKit/Wagmi)
 - ✅ Multiple wallet linking with signature verification
 - ✅ Coinbase Commerce integration
-- ✅ All billing API endpoints integrated
-- ✅ Monthly spending charts
-- ✅ Usage analytics with multiple chart types
+- ✅ All billing API endpoints integrated (code exists)
+- ✅ Monthly spending charts (working - uses `/billing/spending`)
+- ✅ Usage analytics components exist (BillingOverview has all pie charts)
 - ✅ CSV export functionality
 - ✅ Staking widget with full wallet management
+- ✅ Transaction history table (TransactionHistoryTable.tsx)
+
+**Critical Issue:**
+- ⚠️ `/billing/usage` API endpoint returning "Failed to fetch" error
+- ⚠️ Overview tab shows "Failed to load overview data" 
+- ⚠️ Pie charts (API Key, Model Type, Token Type) not rendering due to no data
 
 **Remaining Work:**
-- Transaction history view (UI only, API ready)
-- Real data integration in overview charts (replace mock data)
+- 🔴 Debug and fix `/billing/usage` API integration (CRITICAL)
+- ⚠️ Consider consolidating Detailed Analytics tab into Overview
 - Coinbase webhook backend integration
 - Stripe real payment integration
-- API key and model filtering
+- API key and model filtering (partially implemented)
 - Overage settings toggle
 - Polish and documentation
+
+---
+
+## Current UI Architecture (As Implemented)
+
+The Usage Analytics page (`/usage-analytics`) has a **tabbed structure**:
+
+| Tab | Component | Data Source | Status |
+|-----|-----------|-------------|--------|
+| Overview | BillingOverview | `/billing/usage` | ⚠️ ERROR - API failing |
+| Detailed Analytics | UsageCharts | `/billing/usage` (same) | ⚠️ ERROR - API failing |
+| Monthly Spending | MonthlySpendingChart | `/billing/spending` | ✅ WORKING |
+| Transactions | TransactionHistoryTable | `/billing/transactions` | ✅ Needs verification |
+
+**Note:** The Overview and Detailed Analytics tabs both use the same API endpoint and show similar charts. Consider consolidating into a single view matching the reference design in `/morpheus-billing/`.
+
+### Reference Design Comparison
+
+The reference project in `/morpheus-billing/` shows a **single unified view** without tabs:
+- Time filter at top (24H | 7 Days | 30 Days | Custom)
+- Total Usage card with Distribution by Key bars
+- Estimated Cost card with Staking/Credits breakdown
+- 3 pie charts in a row (API Key, Model Type, Token Type)
+- Filter dropdown for API Keys
+- Daily statistics grid
+- Daily Spend Breakdown chart
+- Daily Token Volume chart
+
+Our `BillingOverview.tsx` component already has ALL of this - it just needs the API to work.
+
+---
+
+---
+
+## API Debug Checklist (NEW - CRITICAL)
+
+Before implementing new features, the `/billing/usage` API integration must be fixed.
+
+### Debug Steps
+
+1. **Check Browser DevTools → Network Tab**
+   - Is the request to `/billing/usage` being made?
+   - What's the HTTP status code? (401, 422, 500, etc.)
+   - What's in the response body?
+
+2. **Check Authentication**
+   - Is the Bearer token present in request headers?
+   - Is the token expired?
+   - Add logging to `useBillingUsage` hook
+
+3. **Check Request Parameters**
+   - Are `from` and `to` ISO date strings valid?
+   - Is `limit` within acceptable range (max 100)?
+
+4. **Test API Directly**
+   ```bash
+   curl -X GET "https://api.mor.org/api/v1/billing/usage?from=2026-01-01T00:00:00Z&to=2026-01-22T23:59:59Z&limit=100" \
+     -H "Authorization: Bearer YOUR_TOKEN"
+   ```
+
+5. **Check Console Logs**
+   - Add `console.log` statements in hooks and API functions
+   - Look for error messages
+
+### Common Causes
+
+| Error | Likely Cause | Fix |
+|-------|--------------|-----|
+| 401 Unauthorized | Token expired/invalid | Refresh token, re-login |
+| 422 Unprocessable Entity | Invalid date format or params | Check ISO date strings |
+| 500 Internal Server Error | Backend issue | Contact backend team |
+| CORS Error | Missing CORS headers | Check backend CORS config |
+| Network Error | API unreachable | Check API_BASE_URL env var |
 
 ---
 
@@ -225,37 +304,71 @@ Helper functions for:
 
 ## Remaining Tasks
 
+### CRITICAL PRIORITY
+
+#### 0. Fix /billing/usage API Integration
+
+**Status:** 🔴 BROKEN - Showing "Failed to fetch" error
+**File:** `src/app/usage-analytics/page.tsx`, `src/lib/hooks/use-billing.ts`
+**Estimated Effort:** 2-4 hours (debugging)
+
+**Symptoms:**
+- "Failed to load usage data" error banner at top of page
+- Overview tab shows "Failed to load overview data"
+- All stats show $0.00, 0 tokens
+- Pie charts show "No data available"
+
+**Debug Plan:**
+1. Add console logging to trace the request
+2. Check browser Network tab for actual API response
+3. Verify authentication token is valid
+4. Check if backend endpoint is accessible
+
+**See:** API Debug Checklist section above
+
+---
+
 ### HIGH PRIORITY
 
 #### 1. Transaction History View
 
-**Status:** ✅ Complete
+**Status:** ✅ Complete (UI exists)
 **API Support:** ✅ Ready (`GET /billing/transactions`)
 **Hook:** ✅ Ready (`useBillingTransactions()`)
 **Estimated Effort:** Completed
 
-**Description:**
-Create a dedicated view to display transaction/ledger history with comprehensive filtering and export capabilities.
-
 **Implementation Details:**
 - Created `src/components/billing/TransactionHistoryTable.tsx`
-- Added to `/usage-analytics` as a new tab
+- Added to `/usage-analytics` as "Transactions" tab
 - Implemented filters for Entry Type
 - Implemented pagination and CSV export
+
+**Note:** Needs verification that API actually returns data.
 
 ---
 
 #### 2. Real Data Integration in BillingOverview
 
-**Status:** ✅ Complete
+**Status:** ⚠️ Partially Complete - Code exists but API failing
 **File:** `src/components/billing/BillingOverview.tsx`
-**Estimated Effort:** Completed
+**Estimated Effort:** Code done, needs API fix
 
 **Implementation Details:**
-- Refactored component to accept `usageData` prop
-- Updated `usage-analytics/page.tsx` to pass real API data
-- Fixed TypeScript errors in charts
-- Updated default time range to 30d to ensure data visibility
+- ✅ Refactored component to accept `usageData` prop
+- ✅ Updated `usage-analytics/page.tsx` to pass real API data
+- ✅ Fixed TypeScript errors in charts
+- ✅ Updated default time range to 30d
+- ⚠️ Data not displaying because `/billing/usage` returns error
+
+**Components in BillingOverview (all exist but show empty):**
+- Total Usage card with Distribution by Key bars
+- Estimated Cost card with Staking/Credits breakdown
+- Spend by API Key pie chart
+- Spend by Model Type pie chart
+- Spend by Token Type pie chart
+- Daily Stats Cards (Spend, Input, Output)
+- Daily Spend Breakdown area chart
+- Daily Token Volume bar chart
 
 ---
 
@@ -274,6 +387,39 @@ Create a dedicated view to display transaction/ledger history with comprehensive
 ---
 
 ### MEDIUM PRIORITY
+
+#### 3.5 Consolidate Tabs (UI Architecture Decision)
+
+**Status:** ⏳ Pending Decision
+**File:** `src/app/usage-analytics/page.tsx`
+**Estimated Effort:** 1-2 hours
+
+**Current State:**
+The page has 4 tabs: Overview, Detailed Analytics, Monthly Spending, Transactions
+
+**Issue:**
+- "Overview" and "Detailed Analytics" tabs show SIMILAR charts from SAME data
+- BillingOverview.tsx (Overview tab) already has ALL the charts
+- UsageCharts.tsx (Detailed tab) duplicates some charts
+
+**Recommendation:**
+Remove "Detailed Analytics" tab. BillingOverview already contains:
+- 3 pie charts (API Key, Model Type, Token Type)
+- Daily Spend Breakdown chart
+- Daily Token Volume chart
+- Daily statistics grid
+
+This matches the reference design in `/morpheus-billing/` which has ONE unified view.
+
+**Implementation:**
+```typescript
+// Remove from TabsList:
+<TabsTrigger value="detailed">Detailed Analytics</TabsTrigger>
+
+// Remove TabsContent for "detailed"
+```
+
+---
 
 #### 4. API Key & Model Breakdown Filtering
 
