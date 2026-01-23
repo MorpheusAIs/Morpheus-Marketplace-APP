@@ -7,6 +7,7 @@ import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { StatCard } from '@/components/billing/StatCard';
 import { FundingSection } from '@/components/billing/FundingSection';
 import { StakingWidget } from '@/components/billing/StakingWidget';
+import { PricingPlans } from '@/components/billing/PricingPlans';
 import { useBillingBalance, useWalletStatus } from '@/lib/hooks/use-billing';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -175,24 +176,23 @@ export default function BillingPage() {
                 currentBalance={balance?.total_available ?? '0'}
                 isLoading={isLoadingBalance}
                 onBalanceUpdate={handleBalanceUpdate}
+                stakingWidget={
+                  <StakingWidget
+                    walletStatus={walletStatus}
+                    stakingBalance={balance?.staking?.available}
+                    dailyAllowance={balance?.staking?.daily_amount}
+                    isLoading={isLoadingWallet}
+                    onConnectWallet={handleConnectWallet}
+                    onRefreshStatus={handleRefreshWallet}
+                  />
+                }
               />
             )}
           </div>
 
-          {/* Right Column - Staking (1/3 width) */}
+          {/* Right Column - Pricing Plans (1/3 width) */}
           <div className="lg:col-span-1">
-            {isLoadingWallet ? (
-              <Skeleton className="h-[600px] rounded-xl" />
-            ) : (
-              <StakingWidget
-                walletStatus={walletStatus}
-                stakingBalance={balance?.staking?.available}
-                dailyAllowance={balance?.staking?.daily_amount}
-                isLoading={isLoadingWallet}
-                onConnectWallet={handleConnectWallet}
-                onRefreshStatus={handleRefreshWallet}
-              />
-            )}
+            <PricingPlans />
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, ExternalLink, RefreshCcw, Loader2, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
+import { Wallet, ExternalLink, RefreshCcw, Loader2, CheckCircle2, AlertCircle, LogOut, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -31,6 +31,7 @@ export function StakingWidget({
 }: StakingWidgetProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
+  const [isConnectingAnother, setIsConnectingAnother] = useState(false);
   
   // AppKit & Wagmi hooks
   const { open } = useAppKit();
@@ -87,9 +88,32 @@ export function StakingWidget({
     }
   };
 
-  const handleConnectAnother = async () => {
-    await open();
+  const handleConnectAnother = () => {
+    // Set flag to prevent showing "Connect Wallet" button during process
+    setIsConnectingAnother(true);
+    
+    if (isConnected) {
+      // Disconnect first, then open modal after brief delay
+      disconnect();
+      setTimeout(() => {
+        open();
+      }, 100);
+    } else {
+      // No wallet connected, just open modal
+      open();
+      // Reset flag after modal opens
+      setTimeout(() => {
+        setIsConnectingAnother(false);
+      }, 100);
+    }
   };
+  
+  // Reset connecting flag when wallet gets connected
+  useEffect(() => {
+    if (isConnectingAnother && isConnected) {
+      setIsConnectingAnother(false);
+    }
+  }, [isConnected, isConnectingAnother]);
 
 
   const handleLinkWallet = async () => {
@@ -186,32 +210,27 @@ export function StakingWidget({
         ) : (
           <>
             {hasWallet ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span className="text-muted-foreground">
-                    {walletCount} wallet{walletCount !== 1 ? 's' : ''} connected
-                  </span>
-                </div>
-
-                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total Staked:</span>
-                    <span className="text-sm font-medium text-foreground">
+              <div className="space-y-4">
+                {/* Landscape layout for stats */}
+                <div className="grid grid-cols-3 gap-4 rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Wallets Connected</div>
+                    <div className="flex items-center justify-center gap-1 text-sm font-medium text-foreground">
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                      {walletCount}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Total Staked</div>
+                    <div className="text-sm font-medium text-foreground">
                       {parseFloat(totalStaked).toFixed(2)} MOR
-                    </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Daily Allowance:</span>
-                    <span className="text-sm font-medium text-green-500">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Daily Allowance</div>
+                    <div className="text-sm font-medium text-green-500">
                       ${dailyAllowance ? parseFloat(dailyAllowance).toFixed(2) : '0.00'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Staking Credits:</span>
-                    <span className="text-sm font-medium text-green-500">
-                      ${stakingBalance ? parseFloat(stakingBalance).toFixed(2) : '0.00'}
-                    </span>
+                    </div>
                   </div>
                 </div>
 
@@ -255,14 +274,17 @@ export function StakingWidget({
                       </div>
                     ))}
                     
-                    <Button
-                      onClick={handleConnectAnother}
-                      variant="outline"
-                      className="w-full text-xs mt-2"
-                      size="sm"
-                    >
-                      Connect Another Wallet
-                    </Button>
+                    {/* Only show "Connect Another Wallet" when connected to provider */}
+                    {isConnected && (
+                      <Button
+                        onClick={handleConnectAnother}
+                        variant="outline"
+                        className="w-full text-xs mt-2"
+                        size="sm"
+                      >
+                        Connect Another Wallet
+                      </Button>
+                    )}
                   </div>
                 )}
                 
@@ -296,15 +318,15 @@ export function StakingWidget({
                    </Alert>
                 )}
 
-                {/* Not connected to provider, but has wallets linked (add another) */}
-                {!isConnected && (
+                {/* Not connected to provider, but has wallets linked - show single Connect Wallet button */}
+                {!isConnected && !isConnectingAnother && (
                   <Button
                     onClick={handleConnectAnother}
-                    variant="outline"
-                    className="w-full text-xs"
+                    className="w-full bg-green-500 hover:bg-green-600 text-black"
                     size="sm"
                   >
-                    Connect Another Wallet
+                    <Wallet className="mr-2 h-4 w-4" />
+                    Connect Wallet
                   </Button>
                 )}
 
@@ -319,79 +341,73 @@ export function StakingWidget({
             ) : (
               // Empty State (No wallets linked in backend)
               <div className="space-y-4">
-                <div className="rounded-lg border border-dashed border-border bg-muted/20 p-6 text-center">
-                  <Wallet className={`mx-auto h-12 w-12 ${isConnected ? 'text-green-500' : 'text-muted-foreground/50'}`} />
-                  <p className="mt-3 text-sm font-medium text-foreground">
-                    {isConnected ? 'Wallet Connected' : 'No wallet connected'}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {isConnected 
-                      ? <span className="font-mono">{address ? formatAddress(address) : ''}</span> 
-                      : 'Connect your wallet to view staking status and earn daily credits'}
-                  </p>
-                </div>
-
-                {isConnected ? (
-                  <div className="space-y-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-foreground">
+                      Staking MOR? Connect your wallet to see your daily allowance
+                    </p>
                     <Button
-                      onClick={handleLinkWallet}
-                      className="w-full bg-green-500 hover:bg-green-600 text-black"
-                      disabled={isLinking}
+                      variant="link"
+                      className="h-auto p-0 text-xs text-green-500"
+                      asChild
                     >
-                      {isLinking ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Linking...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Link Connected Wallet
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleDisconnect}
-                      className="w-full"
-                    >
-                      Disconnect
+                      <a
+                        href="https://mor.org/staking"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Info className="h-3 w-3 mr-1" />
+                        How Staking Works
+                      </a>
                     </Button>
                   </div>
-                ) : (
-                  <Button
-                    onClick={handleConnectAnother}
-                    className="w-full bg-green-500 hover:bg-green-600 text-black"
-                  >
-                    <Wallet className="mr-2 h-4 w-4" />
-                    Connect Wallet
-                  </Button>
-                )}
 
-                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-xs font-medium text-foreground">How Staking Works:</p>
-                  <ul className="space-y-1 text-xs text-muted-foreground">
-                    <li>• Stake MOR tokens to earn daily API credits</li>
-                    <li>• Credits refresh automatically at midnight UTC</li>
-                    <li>• Use staking credits before paid balance</li>
-                    <li>• No additional fees or transaction costs</li>
-                  </ul>
+                  {isConnected ? (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={handleLinkWallet}
+                        className="w-full bg-green-500 hover:bg-green-600 text-black"
+                        disabled={isLinking}
+                      >
+                        {isLinking ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Linking...
+                          </>
+                        ) : (
+                          <>
+                            Stake MOR for Daily Allowance
+                            <Wallet className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Stake your tokens to receive a daily allowance instead of paying per usage.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={handleDisconnect}
+                        className="w-full"
+                        size="sm"
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={handleConnectAnother}
+                        className="w-full bg-green-500 hover:bg-green-600 text-black"
+                      >
+                        Stake MOR for Daily Allowance
+                        <Wallet className="ml-2 h-4 w-4" />
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Stake your tokens to receive a daily allowance instead of paying per usage.
+                      </p>
+                    </div>
+                  )}
                 </div>
-
-                <Button
-                  variant="link"
-                  className="w-full text-xs text-green-500"
-                  asChild
-                >
-                  <a
-                    href="https://mor.org/staking"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Learn more about staking
-                    <ExternalLink className="ml-1 h-3 w-3" />
-                  </a>
-                </Button>
               </div>
             )}
           </>

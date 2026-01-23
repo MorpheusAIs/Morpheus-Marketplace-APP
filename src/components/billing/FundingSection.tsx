@@ -26,6 +26,7 @@ interface FundingSectionProps {
   isLoading?: boolean;
   onBalanceUpdate?: (amount: number) => void;
   userId?: string;
+  stakingWidget?: React.ReactNode;
 }
 
 type PaymentFlowState =
@@ -48,7 +49,7 @@ interface CoinbaseCharge {
 
 const POLLING_INTERVAL = 5000;
 
-export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, userId }: FundingSectionProps) {
+export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, userId, stakingWidget }: FundingSectionProps) {
   const [flowState, setFlowState] = useState<PaymentFlowState>('none');
   const [depositAmount, setDepositAmount] = useState('25.00');
   const [timeLeft, setTimeLeft] = useState(3599);
@@ -468,10 +469,17 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                 <p className="text-xs text-muted-foreground">Powered by Stripe</p>
               </div>
             </div>
-            <ExternalLink className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </CardContent>
       </Card>
+
+      {/* Staking Status Box */}
+      {stakingWidget && (
+        <div className="mt-6">
+          {stakingWidget}
+        </div>
+      )}
 
     </div>
   );
