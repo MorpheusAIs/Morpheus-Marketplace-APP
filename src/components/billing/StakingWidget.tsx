@@ -241,7 +241,7 @@ export function StakingWidget({
                       {walletStatus.wallets.map((wallet) => (
                         <div
                           key={wallet.id}
-                          className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 w-full md:min-w-[200px] md:flex-shrink-0"
+                          className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 w-full md:w-auto md:min-w-[200px] md:flex-shrink-0"
                         >
                           <div className="flex flex-col">
                             <code className="text-xs text-muted-foreground">
