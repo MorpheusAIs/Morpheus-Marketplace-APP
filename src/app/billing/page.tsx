@@ -7,6 +7,7 @@ import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { StatCard } from '@/components/billing/StatCard';
 import { FundingSection } from '@/components/billing/FundingSection';
 import { StakingWidget } from '@/components/billing/StakingWidget';
+import { PricingPlans } from '@/components/billing/PricingPlans';
 import { useBillingBalance, useWalletStatus } from '@/lib/hooks/use-billing';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -130,36 +131,29 @@ export default function BillingPage() {
 
         {/* Balance Overview Stats */}
         {isLoadingBalance ? (
-          <div className="grid gap-4 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[...Array(2)].map((_, i) => (
               <Skeleton key={i} className="h-[140px] rounded-xl" />
             ))}
           </div>
         ) : balance ? (
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <StatCard
-              title="Total Available"
-              value={`$${parseFloat(balance.total_available || '0').toFixed(2)}`}
-              icon={DollarSign}
-              description="Combined balance"
-            />
-            <StatCard
-              title="Paid Balance"
+              title="Available Credit"
               value={`$${parseFloat(balance.paid?.available || '0').toFixed(2)}`}
-              icon={TrendingUp}
-              description={`$${parseFloat(balance.paid?.posted_balance || '0').toFixed(2)} posted`}
+              icon={DollarSign}
+              description="Pre-paid credits available for inference"
             />
             <StatCard
-              title="Staking Credits"
+              title="Daily API credit remaining"
               value={`$${parseFloat(balance.staking?.available || '0').toFixed(2)}`}
               icon={Clock}
-              description={`$${parseFloat(balance.staking?.daily_amount || '0').toFixed(2)} daily`}
-            />
-            <StatCard
-              title="Pending Holds"
-              value={`$${parseFloat(balance.paid?.pending_holds || '0').toFixed(2)}`}
-              icon={AlertCircle}
-              description="Temporary holds"
+              description={(() => {
+                const dailyAmount = parseFloat(balance.staking?.daily_amount || '0');
+                const available = parseFloat(balance.staking?.available || '0');
+                const used = Math.max(0, dailyAmount - available);
+                return `${used.toFixed(2)} of ${dailyAmount.toFixed(2)} used today`;
+              })()}
             />
           </div>
         ) : null}
@@ -175,61 +169,23 @@ export default function BillingPage() {
                 currentBalance={balance?.total_available ?? '0'}
                 isLoading={isLoadingBalance}
                 onBalanceUpdate={handleBalanceUpdate}
+                stakingWidget={
+                  <StakingWidget
+                    walletStatus={walletStatus}
+                    stakingBalance={balance?.staking?.available}
+                    dailyAllowance={balance?.staking?.daily_amount}
+                    isLoading={isLoadingWallet}
+                    onConnectWallet={handleConnectWallet}
+                    onRefreshStatus={handleRefreshWallet}
+                  />
+                }
               />
             )}
           </div>
 
-          {/* Right Column - Staking (1/3 width) */}
+          {/* Right Column - Pricing Plans (1/3 width) */}
           <div className="lg:col-span-1">
-            {isLoadingWallet ? (
-              <Skeleton className="h-[600px] rounded-xl" />
-            ) : (
-              <StakingWidget
-                walletStatus={walletStatus}
-                stakingBalance={balance?.staking?.available}
-                dailyAllowance={balance?.staking?.daily_amount}
-                isLoading={isLoadingWallet}
-                onConnectWallet={handleConnectWallet}
-                onRefreshStatus={handleRefreshWallet}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Additional Information */}
-        <div className="rounded-lg border border-border bg-muted/30 p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-3">
-            Billing Information
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Payment Priority</h4>
-              <p className="text-sm text-muted-foreground">
-                Staking credits are used first, followed by your paid balance. This ensures you
-                maximize the value of your staked tokens.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Pending Holds</h4>
-              <p className="text-sm text-muted-foreground">
-                Holds are placed during API requests and converted to charges upon completion.
-                Failed requests release the hold back to your available balance.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Staking Refresh</h4>
-              <p className="text-sm text-muted-foreground">
-                Daily staking allowances refresh automatically at midnight UTC based on your
-                current MOR stake amount.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Transaction History</h4>
-              <p className="text-sm text-muted-foreground">
-                View detailed transaction history including purchases, staking refreshes, and
-                usage charges in the Usage Analytics page.
-              </p>
-            </div>
+            <PricingPlans />
           </div>
         </div>
       </div>

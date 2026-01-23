@@ -19,16 +19,16 @@ The billing and usage analytics dashboard is 90% complete with all core infrastr
 - ✅ CSV export functionality
 - ✅ Staking widget with full wallet management
 - ✅ Transaction history table (TransactionHistoryTable.tsx)
+- ✅ **Backend: `api_key_id` added to usage response** (PR #119 Pending)
+- ✅ **Backend: Native Coinbase webhook endpoint created** (PR #119 Pending)
+- ✅ **Frontend: Consolidated tabs and improved empty states**
 
 **Critical Issue:**
-- ⚠️ `/billing/usage` API endpoint returning "Failed to fetch" error
-- ⚠️ Overview tab shows "Failed to load overview data" 
-- ⚠️ Pie charts (API Key, Model Type, Token Type) not rendering due to no data
+- ⚠️ `/billing/usage` API endpoint CORS error on `app.dev.mor.org` (Fixed in backend PR #119)
+- ⚠️ Overview tab shows "Failed to load overview data" until backend is redeployed
 
 **Remaining Work:**
-- 🔴 Debug and fix `/billing/usage` API integration (CRITICAL)
-- ⚠️ Consider consolidating Detailed Analytics tab into Overview
-- Coinbase webhook backend integration
+- ⏳ Wait for Backend PR #119 merge & deployment (Fixes CORS & `api_key_id`)
 - Stripe real payment integration
 - API key and model filtering (partially implemented)
 - Overage settings toggle
@@ -308,23 +308,16 @@ Helper functions for:
 
 #### 0. Fix /billing/usage API Integration
 
-**Status:** 🔴 BROKEN - Showing "Failed to fetch" error
-**File:** `src/app/usage-analytics/page.tsx`, `src/lib/hooks/use-billing.ts`
-**Estimated Effort:** 2-4 hours (debugging)
+**Status:** ⏳ Pending Backend Deployment
+**Backend PR:** [#119](https://github.com/MorpheusAIs/Morpheus-Marketplace-API/pull/119)
+**Fixes:** 
+1. Adds `api_key_id` to response
+2. Adds `app.dev.mor.org` to CORS allowlist
 
-**Symptoms:**
-- "Failed to load usage data" error banner at top of page
-- Overview tab shows "Failed to load overview data"
-- All stats show $0.00, 0 tokens
-- Pie charts show "No data available"
-
-**Debug Plan:**
-1. Add console logging to trace the request
-2. Check browser Network tab for actual API response
-3. Verify authentication token is valid
-4. Check if backend endpoint is accessible
-
-**See:** API Debug Checklist section above
+**Frontend Work Completed:**
+- Added detailed debug logging to API calls and hooks
+- Verified token handling logic
+- Prepared UI to handle data once API is reachable
 
 ---
 
@@ -374,15 +367,15 @@ Helper functions for:
 
 #### 3. Coinbase Webhook Backend Integration
 
-**Status:** ✅ Complete (Frontend Logic)
-**File:** `src/app/api/webhooks/coinbase/route.ts`
+**Status:** ✅ Complete (Backend & Frontend)
+**File:** `src/app/api/webhooks/coinbase/route.ts` (Frontend), `src/api/v1/webhooks/coinbase.py` (Backend)
 **Estimated Effort:** Completed
 
 **Implementation Details:**
-- Implemented `handleChargeConfirmed`
-- Added call to internal backend endpoint (`/api/v1/billing/credit`)
-- Added error handling and retry logic
-- Requires `INTERNAL_API_SECRET` env var
+- **Frontend:** Implemented `handleChargeConfirmed` logic
+- **Backend:** Created `/api/v1/webhooks/coinbase` endpoint with proper signature verification and idempotency
+- **Backend:** Updated `src/api/v1/billing/index.py` to include `api_key_id`
+- **Next Step:** Point Coinbase webhook URL to the backend endpoint directly OR update frontend to call the new endpoint.
 
 ---
 
@@ -390,34 +383,15 @@ Helper functions for:
 
 #### 3.5 Consolidate Tabs (UI Architecture Decision)
 
-**Status:** ⏳ Pending Decision
+**Status:** ✅ Complete
 **File:** `src/app/usage-analytics/page.tsx`
-**Estimated Effort:** 1-2 hours
+**Estimated Effort:** Completed
 
-**Current State:**
-The page has 4 tabs: Overview, Detailed Analytics, Monthly Spending, Transactions
-
-**Issue:**
-- "Overview" and "Detailed Analytics" tabs show SIMILAR charts from SAME data
-- BillingOverview.tsx (Overview tab) already has ALL the charts
-- UsageCharts.tsx (Detailed tab) duplicates some charts
-
-**Recommendation:**
-Remove "Detailed Analytics" tab. BillingOverview already contains:
-- 3 pie charts (API Key, Model Type, Token Type)
-- Daily Spend Breakdown chart
-- Daily Token Volume chart
-- Daily statistics grid
-
-This matches the reference design in `/morpheus-billing/` which has ONE unified view.
-
-**Implementation:**
-```typescript
-// Remove from TabsList:
-<TabsTrigger value="detailed">Detailed Analytics</TabsTrigger>
-
-// Remove TabsContent for "detailed"
-```
+**Changes Made:**
+- Removed "Detailed Analytics" tab (redundant)
+- `BillingOverview` now serves as the main dashboard view
+- Removed unused `UsageCharts` component import
+- Cleaned up data processing logic
 
 ---
 

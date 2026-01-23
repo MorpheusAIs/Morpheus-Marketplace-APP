@@ -16,6 +16,7 @@ import { Trash2, Plus, Pencil, X } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { apiPost, apiDelete, apiPut } from "@/lib/api/apiService";
+import { formatLocaleDate } from "@/lib/utils/billing-utils";
 import {
   Select,
   SelectContent,
@@ -144,7 +145,7 @@ export default function ApiKeysPage() {
 
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
+    return formatLocaleDate(date);
   };
 
   const handleSetDefaultKey = async (keyId: number, keyName: string) => {

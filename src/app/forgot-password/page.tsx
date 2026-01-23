@@ -157,7 +157,7 @@ function ForgotPasswordContent() {
             alt="Morpheus Logo"
             className="h-8 w-auto"
           />
-          <span className="text-2xl font-semibold text-foreground">API Gateway</span>
+          <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
         </div>
         <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
           <CardHeader className="text-center space-y-2">

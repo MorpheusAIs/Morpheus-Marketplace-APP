@@ -15,8 +15,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Morpheus API Gateway Admin",
-  description: "Management interface for the Morpheus API Gateway",
+  title: "Morpheus Inference API Admin",
+  description: "Management interface for the Morpheus Inference API",
   icons: {
     icon: '/morpheus_wings_32x32.png',
     shortcut: '/morpheus_wings_32x32.png',

@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency, formatLargeNumber } from '@/lib/utils/billing-utils';
+import { formatCurrency, formatLargeNumber, formatLocaleDate } from '@/lib/utils/billing-utils';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import type { UsageEntryResponse, UsageListResponse } from '@/types/billing';
 
@@ -73,36 +73,37 @@ interface SpendData {
 }
 
 function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
-  const grouped = items.reduce<Record<string, DailyData>>((acc, entry) => {
-    const date = new Date(entry.created_at).toLocaleDateString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-    });
-
-    if (!acc[date]) {
-      acc[date] = {
-        date,
-        staking: 0,
-        credit: 0,
-        inputTokens: 0,
-        outputTokens: 0,
+  const grouped = items.reduce<Record<string, { isoDate: string; data: DailyData }>>((acc, entry) => {
+    // Use ISO date string (YYYY-MM-DD) for grouping to ensure consistency across locales
+    const isoDate = entry.created_at.split('T')[0];
+    
+    if (!acc[isoDate]) {
+      // Format date for display using browser's locale
+      const displayDate = formatLocaleDate(entry.created_at);
+      acc[isoDate] = {
+        isoDate,
+        data: {
+          date: displayDate,
+          staking: 0,
+          credit: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
       };
     }
 
-    acc[date].staking += parseFloat(entry.amount_staking);
-    acc[date].credit += parseFloat(entry.amount_paid);
-    acc[date].inputTokens += entry.tokens_input ?? 0;
-    acc[date].outputTokens += entry.tokens_output ?? 0;
+    acc[isoDate].data.staking += parseFloat(entry.amount_staking);
+    acc[isoDate].data.credit += parseFloat(entry.amount_paid);
+    acc[isoDate].data.inputTokens += entry.tokens_input ?? 0;
+    acc[isoDate].data.outputTokens += entry.tokens_output ?? 0;
 
     return acc;
   }, {});
 
-  return Object.values(grouped).sort((a, b) => {
-    const [aMonth, aDay] = a.date.split('/').map(Number);
-    const [bMonth, bDay] = b.date.split('/').map(Number);
-    if (aMonth !== bMonth) return aMonth - bMonth;
-    return aDay - bDay;
-  });
+  // Sort by ISO date string (naturally sortable) and return formatted data
+  return Object.values(grouped)
+    .sort((a, b) => a.isoDate.localeCompare(b.isoDate))
+    .map((item) => item.data);
 }
 
 function aggregateSpendByModel(items: UsageEntryResponse[]): SpendData[] {
@@ -441,8 +442,12 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                No data available
+              <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <Database className="h-6 w-6 opacity-20" />
+                </div>
+                <p className="text-sm font-medium">No API key data</p>
+                <p className="text-xs mt-1 opacity-70">Start making requests to see breakdown</p>
               </div>
             )}
           </CardContent>
@@ -490,8 +495,12 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                No data available
+              <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <TrendingUp className="h-6 w-6 opacity-20" />
+                </div>
+                <p className="text-sm font-medium">No model usage</p>
+                <p className="text-xs mt-1 opacity-70">Try selecting a wider time range</p>
               </div>
             )}
           </CardContent>
@@ -539,8 +548,12 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                No data available
+              <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <Database className="h-6 w-6 opacity-20" />
+                </div>
+                <p className="text-sm font-medium">No token activity</p>
+                <p className="text-xs mt-1 opacity-70">Input/Output tokens will appear here</p>
               </div>
             )}
           </CardContent>
@@ -692,8 +705,12 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[350px] text-muted-foreground text-sm">
-              No data available for the selected period
+            <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
+              <div className="p-4 rounded-full bg-muted/50 mb-4">
+                <TrendingUp className="h-8 w-8 opacity-20" />
+              </div>
+              <p className="text-sm font-medium">No spending data for this period</p>
+              <p className="text-xs mt-1 opacity-70">Try selecting a different time range or making requests</p>
             </div>
           )}
         </CardContent>
@@ -729,8 +746,12 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[350px] text-muted-foreground text-sm">
-              No data available for the selected period
+            <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
+              <div className="p-4 rounded-full bg-muted/50 mb-4">
+                <Database className="h-8 w-8 opacity-20" />
+              </div>
+              <p className="text-sm font-medium">No volume data for this period</p>
+              <p className="text-xs mt-1 opacity-70">Token usage history will appear here</p>
             </div>
           )}
         </CardContent>

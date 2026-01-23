@@ -30,13 +30,12 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useBillingTransactions } from '@/lib/hooks/use-billing';
-import { formatCurrency, downloadCSV } from '@/lib/utils/billing-utils';
+import { formatCurrency, downloadCSV, formatLocaleDate, formatLocaleTime } from '@/lib/utils/billing-utils';
 import type { LedgerEntryResponse, LedgerEntryTypeEnum, LedgerStatusEnum } from '@/types/billing';
 
 const ENTRY_TYPES: { value: LedgerEntryTypeEnum | 'all'; label: string }[] = [
   { value: 'all', label: 'All Types' },
   { value: 'purchase', label: 'Purchase' },
-  { value: 'staking_refresh', label: 'Staking Refresh' },
   { value: 'usage_hold', label: 'Usage Hold' },
   { value: 'usage_charge', label: 'Usage Charge' },
   { value: 'refund', label: 'Refund' },
@@ -92,10 +91,21 @@ export function TransactionHistoryTable() {
     entry_type: selectedType === 'all' ? undefined : selectedType,
   });
 
-  const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
+  // Filter out staking_refresh entries from the displayed data
+  const filteredData = useMemo(() => {
+    if (!data?.items) return data;
+    const filteredItems = data.items.filter(item => item.entry_type !== 'staking_refresh');
+    return {
+      ...data,
+      items: filteredItems,
+      total: filteredItems.length, // Note: This is approximate since we're filtering client-side
+    };
+  }, [data]);
+
+  const totalPages = filteredData ? Math.ceil(filteredData.total / pageSize) : 0;
 
   const handleExportCSV = () => {
-    if (!data?.items) return;
+    if (!filteredData?.items) return;
 
     const headers = [
       'ID',
@@ -109,7 +119,7 @@ export function TransactionHistoryTable() {
       'Description',
     ];
 
-    const rows = data.items.map((item) => [
+    const rows = filteredData.items.map((item) => [
       item.id,
       new Date(item.created_at).toISOString(),
       item.entry_type,
@@ -139,7 +149,7 @@ export function TransactionHistoryTable() {
               View your billing transactions, deposits, and usage charges
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!data?.items.length}>
+          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!filteredData?.items.length}>
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -205,19 +215,19 @@ export function TransactionHistoryTable() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : data?.items.length === 0 ? (
+              ) : filteredData?.items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     No transactions found
                   </TableCell>
                 </TableRow>
               ) : (
-                data?.items.map((item) => (
+                filteredData?.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="whitespace-nowrap">
-                      {new Date(item.created_at).toLocaleDateString()}
+                      {formatLocaleDate(item.created_at)}
                       <span className="block text-xs text-muted-foreground">
-                        {new Date(item.created_at).toLocaleTimeString()}
+                        {formatLocaleTime(item.created_at)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -261,11 +271,11 @@ export function TransactionHistoryTable() {
 
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="text-sm text-muted-foreground">
-            {data?.total ? (
+            {filteredData?.total ? (
               <>
                 Showing <strong>{(page - 1) * pageSize + 1}</strong> to{' '}
-                <strong>{Math.min(page * pageSize, data.total)}</strong> of{' '}
-                <strong>{data.total}</strong> entries
+                <strong>{Math.min(page * pageSize, filteredData.total)}</strong> of{' '}
+                <strong>{filteredData.total}</strong> entries
               </>
             ) : (
               'No entries'
@@ -285,7 +295,7 @@ export function TransactionHistoryTable() {
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => p + 1)}
-              disabled={!data?.has_more || isLoading}
+              disabled={!filteredData?.has_more || isLoading}
             >
               Next
               <ChevronRight className="h-4 w-4" />

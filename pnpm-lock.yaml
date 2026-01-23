@@ -83,6 +83,12 @@ importers:
       '@reown/appkit-adapter-wagmi':
         specifier: ^1.8.16
         version: 1.8.16(oq2hjtjapohkspx4atptmqgdza)
+      '@solana/kit':
+        specifier: ^5.4.0
+        version: 5.4.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@stripe/stripe-js':
+        specifier: ^8.6.3
+        version: 8.6.3
       '@tanstack/react-query':
         specifier: ^5.76.1
         version: 5.90.17(react@18.3.1)
@@ -155,6 +161,9 @@ importers:
       streamdown:
         specifier: ^1.4.0
         version: 1.6.11(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(react@18.3.1)
+      stripe:
+        specifier: ^20.2.0
+        version: 20.2.0(@types/node@20.19.29)
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -2283,6 +2292,10 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@stripe/stripe-js@8.6.3':
+    resolution: {integrity: sha512-MQsPNsMMprOu+p+BWYvD69aPjD52yQNXZaENRQX7IkbWqu7lp9k04D+RPeHWJEsuyzmCCoHx3Kqqf3tcXPoNvQ==}
+    engines: {node: '>=12.16'}
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
@@ -5963,6 +5976,15 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
+  stripe@20.2.0:
+    resolution: {integrity: sha512-m8niTfdm3nPP/yQswRWMwQxqEUcTtB3RTJQ9oo6NINDzgi7aPOadsH/fPXIIfL1Sc5+lqQFKSk7WiO6CXmvaeA==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   strnum@2.1.2:
     resolution: {integrity: sha512-l63NF9y/cLROq/yqKXSLtcMeeyOfnSQlfMSlzFt/K73oIaD8DGaQWd7Z34X9GPiKqP5rbSh84Hl4bOlLcjiSrQ==}
 
@@ -9074,7 +9096,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/addresses@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9087,14 +9108,12 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/assertions@5.4.0(typescript@5.9.3)':
     dependencies:
       '@solana/errors': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/buffer-layout@4.0.1':
     dependencies:
@@ -9112,7 +9131,6 @@ snapshots:
       '@solana/errors': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/codecs-data-structures@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9121,7 +9139,6 @@ snapshots:
       '@solana/errors': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/codecs-numbers@2.3.0(typescript@5.9.3)':
     dependencies:
@@ -9136,7 +9153,6 @@ snapshots:
       '@solana/errors': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/codecs-strings@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9145,7 +9161,6 @@ snapshots:
       '@solana/errors': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/codecs@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9158,7 +9173,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/errors@2.3.0(typescript@5.9.3)':
     dependencies:
@@ -9173,17 +9187,14 @@ snapshots:
       commander: 14.0.2
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/fast-stable-stringify@5.4.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/functional@5.4.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/instruction-plans@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9197,7 +9208,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/instructions@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9205,7 +9215,6 @@ snapshots:
       '@solana/errors': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/keys@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9218,7 +9227,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/kit@5.4.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
     dependencies:
@@ -9250,12 +9258,10 @@ snapshots:
       - bufferutil
       - fastestsmallesttextencoderdecoder
       - utf-8-validate
-    optional: true
 
   '@solana/nominal-types@5.4.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/offchain-messages@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9271,7 +9277,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/options@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9284,12 +9289,10 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/plugin-core@5.4.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/programs@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9299,12 +9302,10 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/promises@5.4.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/rpc-api@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9323,17 +9324,14 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/rpc-parsed-types@5.4.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/rpc-spec-types@5.4.0(typescript@5.9.3)':
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/rpc-spec@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9341,7 +9339,6 @@ snapshots:
       '@solana/rpc-spec-types': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/rpc-subscriptions-api@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9356,7 +9353,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/rpc-subscriptions-channel-websocket@5.4.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
     dependencies:
@@ -9370,7 +9366,6 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-    optional: true
 
   '@solana/rpc-subscriptions-spec@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9380,7 +9375,6 @@ snapshots:
       '@solana/subscribable': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/rpc-subscriptions@5.4.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
     dependencies:
@@ -9401,7 +9395,6 @@ snapshots:
       - bufferutil
       - fastestsmallesttextencoderdecoder
       - utf-8-validate
-    optional: true
 
   '@solana/rpc-transformers@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9414,7 +9407,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/rpc-transport-http@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9424,7 +9416,6 @@ snapshots:
       undici-types: 7.18.2
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/rpc-types@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9438,7 +9429,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/rpc@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9455,7 +9445,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/signers@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9472,14 +9461,12 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/subscribable@5.4.0(typescript@5.9.3)':
     dependencies:
       '@solana/errors': 5.4.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
-    optional: true
 
   '@solana/sysvars@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9491,7 +9478,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/transaction-confirmation@5.4.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
     dependencies:
@@ -9511,7 +9497,6 @@ snapshots:
       - bufferutil
       - fastestsmallesttextencoderdecoder
       - utf-8-validate
-    optional: true
 
   '@solana/transaction-messages@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9528,7 +9513,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/transactions@5.4.0(typescript@5.9.3)':
     dependencies:
@@ -9548,7 +9532,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
-    optional: true
 
   '@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
     dependencies:
@@ -9577,6 +9560,8 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@stripe/stripe-js@8.6.3': {}
 
   '@swc/helpers@0.5.15':
     dependencies:
@@ -14322,6 +14307,12 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
+  stripe@20.2.0(@types/node@20.19.29):
+    dependencies:
+      qs: 6.14.1
+    optionalDependencies:
+      '@types/node': 20.19.29
+
   strnum@2.1.2: {}
 
   style-to-js@1.1.21:
@@ -14559,8 +14550,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.18.2:
-    optional: true
+  undici-types@7.18.2: {}
 
   unicorn-magic@0.3.0: {}
 
@@ -14933,7 +14923,6 @@ snapshots:
     optionalDependencies:
       bufferutil: 4.1.0
       utf-8-validate: 5.0.10
-    optional: true
 
   wsl-utils@0.3.1:
     dependencies:

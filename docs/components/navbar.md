@@ -22,7 +22,7 @@ A shared navigation bar component used across authentication screens (sign-in an
   
   - **Application Name**: `p` or `span`
     - **Props**: `className: "text-lg font-semibold text-white"`
-    - **Content**: `"API Gateway Admin"`
+    - **Content**: `"Morpheus Inference API Admin"`
 
 ### Right Section (Navigation/Actions)
 - **Container**: `div`
@@ -63,7 +63,7 @@ interface NavbarProps {
 
 export function Navbar({
   logoComponent,
-  appName = "API Gateway Admin",
+  appName = "Morpheus Inference API Admin",
   externalLinkHref = "https://mor.org",
   externalLinkText = "mor.org",
   signInHref = "/signin",

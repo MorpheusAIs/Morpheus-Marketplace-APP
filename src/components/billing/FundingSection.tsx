@@ -13,7 +13,6 @@ import {
   Copy,
   CheckCircle2,
   Timer,
-  Lock,
   AlertCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +26,7 @@ interface FundingSectionProps {
   isLoading?: boolean;
   onBalanceUpdate?: (amount: number) => void;
   userId?: string;
+  stakingWidget?: React.ReactNode;
 }
 
 type PaymentFlowState =
@@ -35,8 +35,6 @@ type PaymentFlowState =
   | 'crypto_loading'
   | 'crypto_checkout'
   | 'crypto_success'
-  | 'stripe_amount'
-  | 'stripe_checkout'
   | 'stripe_success';
 
 interface CoinbaseCharge {
@@ -49,14 +47,9 @@ interface CoinbaseCharge {
   timeline: Array<{ status: string; time: string }>;
 }
 
-interface ChargeStatus {
-  status: string;
-  payments: Array<unknown>;
-}
-
 const POLLING_INTERVAL = 5000;
 
-export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, userId }: FundingSectionProps) {
+export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, userId, stakingWidget }: FundingSectionProps) {
   const [flowState, setFlowState] = useState<PaymentFlowState>('none');
   const [depositAmount, setDepositAmount] = useState('25.00');
   const [timeLeft, setTimeLeft] = useState(3599);
@@ -65,13 +58,6 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   const [charge, setCharge] = useState<CoinbaseCharge | null>(null);
   const [chargeStatus, setChargeStatus] = useState<string>('NEW');
   const [copied, setCopied] = useState(false);
-
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [email, setEmail] = useState('');
-  const [nameOnCard, setNameOnCard] = useState('');
-  const [isProcessingStripe, setIsProcessingStripe] = useState(false);
 
   const checkChargeStatus = useCallback(async (chargeId: string) => {
     try {
@@ -122,6 +108,24 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     return () => clearInterval(interval);
   }, [flowState, timeLeft]);
 
+  // Check for Stripe return parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const sessionId = params.get('session_id');
+
+    if (payment === 'success' && sessionId) {
+      setFlowState('stripe_success');
+      window.history.replaceState({}, '', window.location.pathname);
+      if (onBalanceUpdate) {
+        onBalanceUpdate(0); 
+      }
+    } else if (payment === 'cancelled') {
+      setError('Payment was cancelled');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [onBalanceUpdate]);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -135,12 +139,6 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     setCharge(null);
     setChargeStatus('NEW');
     setCopied(false);
-    setIsProcessingStripe(false);
-    setCardNumber('');
-    setExpiry('');
-    setCvc('');
-    setEmail('');
-    setNameOnCard('');
   };
 
   const validateAmount = () => {
@@ -220,41 +218,11 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     }
   };
 
-  const startStripeFlow = () => setFlowState('stripe_amount');
-  const proceedToStripeCheckout = () => {
-    if (!validateAmount()) return;
-    setFlowState('stripe_checkout');
+  const openStripeCheckout = () => {
+    window.open('https://buy.stripe.com/test_9B6bJ0eU08TG6Pi4EIgnK00', '_blank', 'noopener,noreferrer');
   };
 
-  const handleStripePay = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessingStripe(true);
-    setTimeout(() => {
-      setIsProcessingStripe(false);
-      setFlowState('stripe_success');
-      if (onBalanceUpdate) {
-        onBalanceUpdate(parseFloat(depositAmount));
-      }
-    }, 2000);
-  };
-
-  const handleCardNumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '');
-    val = val.substring(0, 16);
-    val = val.replace(/(\d{4})/g, '$1 ').trim();
-    setCardNumber(val);
-  };
-
-  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, '');
-    if (val.length >= 2) {
-      val = val.substring(0, 2) + '/' + val.substring(2, 4);
-    }
-    setExpiry(val);
-  };
-
-  if (flowState === 'crypto_amount' || flowState === 'stripe_amount') {
-    const isStripe = flowState === 'stripe_amount';
+  if (flowState === 'crypto_amount') {
     return (
       <Card className="animate-in fade-in duration-300">
         <CardHeader>
@@ -265,7 +233,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             <CardTitle>Add Funds</CardTitle>
             <div className="w-10" />
           </div>
-          <CardDescription>Enter the amount you'd like to add</CardDescription>
+          <CardDescription>Enter the amount you&apos;d like to add</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -315,15 +283,10 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
           </div>
 
           <Button
-            onClick={isStripe ? proceedToStripeCheckout : createCoinbaseCharge}
-            className={cn(
-              'w-full',
-              isStripe
-                ? 'bg-[#635BFF] hover:bg-[#5851DF]'
-                : 'bg-blue-600 hover:bg-blue-500'
-            )}
+            onClick={createCoinbaseCharge}
+            className="w-full bg-blue-600 hover:bg-blue-500"
           >
-            {isStripe ? 'Continue to Payment' : 'Continue with Coinbase'}
+            Continue with Coinbase
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardContent>
@@ -440,122 +403,6 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     );
   }
 
-  if (flowState === 'stripe_checkout') {
-    return (
-      <Card className="animate-in slide-in-from-right duration-300 overflow-hidden">
-        <div className="border-b p-4 flex justify-between items-center bg-background">
-          <div className="flex items-center gap-2">
-            <div className="bg-[#635BFF] text-white p-1 rounded">
-              <CreditCard className="h-4 w-4" />
-            </div>
-            <span className="text-[#635BFF] font-bold">Stripe</span>
-            <span className="text-muted-foreground">| Secure Checkout</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={resetFlow}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <CardContent className="p-6">
-          <div className="mb-6">
-            <div className="text-xs text-muted-foreground uppercase mb-1">Pay Morpheus AI</div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold">${parseFloat(depositAmount).toFixed(2)}</span>
-              <span className="text-sm text-muted-foreground">USD</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleStripePay} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Card Information</Label>
-              <div className="border rounded-md overflow-hidden">
-                <div className="flex items-center px-3 py-2 border-b">
-                  <CreditCard className="h-4 w-4 text-muted-foreground mr-2" />
-                  <Input
-                    type="text"
-                    required
-                    value={cardNumber}
-                    onChange={handleCardNumChange}
-                    placeholder="Card number"
-                    className="border-0 focus-visible:ring-0"
-                    maxLength={19}
-                  />
-                </div>
-                <div className="flex divide-x">
-                  <Input
-                    type="text"
-                    required
-                    value={expiry}
-                    onChange={handleExpiryChange}
-                    placeholder="MM / YY"
-                    className="w-1/2 border-0 rounded-none focus-visible:ring-0"
-                    maxLength={5}
-                  />
-                  <Input
-                    type="text"
-                    required
-                    value={cvc}
-                    onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').substring(0, 4))}
-                    placeholder="CVC"
-                    className="w-1/2 border-0 rounded-none focus-visible:ring-0"
-                    maxLength={4}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Name on card</Label>
-              <Input
-                id="name"
-                type="text"
-                required
-                value={nameOnCard}
-                onChange={(e) => setNameOnCard(e.target.value)}
-                placeholder="J. Smith"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isProcessingStripe}
-              className="w-full bg-[#635BFF] hover:bg-[#5851DF]"
-            >
-              {isProcessingStripe ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" />
-                  Pay ${parseFloat(depositAmount).toFixed(2)}
-                </>
-              )}
-            </Button>
-
-            <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-              <Lock className="h-3 w-3" />
-              Powered by <span className="font-bold">stripe</span>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (flowState === 'crypto_success' || flowState === 'stripe_success') {
     const isStripe = flowState === 'stripe_success';
     return (
@@ -589,29 +436,14 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Current Balance</CardTitle>
-          <CardDescription>Your available credits for API usage</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-4xl font-bold text-green-500">
-            ${isLoading ? '...' : parseFloat(currentBalance).toFixed(2)}
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Combined paid balance and staking credits
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Add Funds</CardTitle>
           <CardDescription>Choose a method to increase your credits</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
+        <CardContent>
           <Button
             variant="outline"
             className="w-full justify-between h-auto p-4"
-            onClick={startStripeFlow}
+            onClick={openStripeCheckout}
           >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-muted rounded-md">
@@ -624,46 +456,16 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             </div>
             <ArrowRight className="h-4 w-4" />
           </Button>
-
-          <Button
-            variant="outline"
-            className="w-full justify-between h-auto p-4"
-            onClick={startCryptoFlow}
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-md text-blue-500">
-                <Coins className="h-5 w-5" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium">Pay with Crypto</p>
-                <p className="text-xs text-muted-foreground">USDC via Coinbase Commerce</p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4" />
-          </Button>
         </CardContent>
       </Card>
 
-      <Card className="border-blue-500/20 bg-blue-500/5">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Coinbase Commerce Integration</p>
-              <p className="text-xs text-muted-foreground">
-                Crypto payments are processed via Coinbase Commerce. You can pay with USDC on multiple networks
-                including Base, Ethereum, and Polygon.
-              </p>
-              <Button variant="link" className="h-auto p-0 text-xs text-blue-500" asChild>
-                <a href="https://mor.org/staking" target="_blank" rel="noopener noreferrer">
-                  Learn about staking for free credits
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Staking Status Box */}
+      {stakingWidget && (
+        <div className="mt-6">
+          {stakingWidget}
+        </div>
+      )}
+
     </div>
   );
 }

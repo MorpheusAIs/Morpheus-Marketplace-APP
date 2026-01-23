@@ -37,6 +37,60 @@ export function formatChartDate(dateString: string): string {
 }
 
 /**
+ * Get browser locale, falling back to 'en-US' if not available
+ */
+function getBrowserLocale(): string {
+  if (typeof window === 'undefined') {
+    return 'en-US';
+  }
+  // Use navigator.language which reflects the browser's language setting
+  return navigator.language || navigator.languages?.[0] || 'en-US';
+}
+
+/**
+ * Format date using browser's locale
+ * Uses the format selected on the browser (e.g., dd/mm/YYYY for EU, mm/dd/YYYY for US)
+ */
+export function formatLocaleDate(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const locale = getBrowserLocale();
+  return dateObj.toLocaleDateString(locale);
+}
+
+/**
+ * Format time using browser's locale
+ * Uses the format selected on the browser (e.g., 24h for EU, am/pm for US)
+ */
+export function formatLocaleTime(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const locale = getBrowserLocale();
+  
+  // Check if locale prefers 24-hour format (most European locales)
+  // US, Canada, and some other countries use 12-hour format
+  const uses12HourFormat = locale.startsWith('en-US') || 
+                          locale.startsWith('en-CA') || 
+                          locale.startsWith('en-PH') ||
+                          locale.startsWith('en-IN');
+  
+  return dateObj.toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: uses12HourFormat
+  });
+}
+
+/**
+ * Format date and time using browser's locale
+ * Combines date and time in a single formatted string
+ */
+export function formatLocaleDateTime(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const locale = getBrowserLocale();
+  return dateObj.toLocaleString(locale, options);
+}
+
+/**
  * Get date range based on time range selection
  */
 export function getDateRangeForTimeRange(

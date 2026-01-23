@@ -4,7 +4,6 @@ import React, { useState, useMemo } from 'react';
 import { Activity, TrendingUp, Zap, AlertCircle } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { StatCard } from '@/components/billing/StatCard';
-import { UsageCharts } from '@/components/billing/UsageCharts';
 import { BillingOverview } from '@/components/billing/BillingOverview';
 import { MonthlySpendingChart } from '@/components/billing/MonthlySpendingChart';
 import { TransactionHistoryTable } from '@/components/billing/TransactionHistoryTable';
@@ -13,10 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBillingUsage } from '@/lib/hooks/use-billing';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import {
-  aggregateUsageByDate,
   getDateRangeForTimeRange,
   formatCurrency,
   formatLargeNumber,
+  aggregateUsageByDate,
 } from '@/lib/utils/billing-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -44,6 +43,23 @@ export default function UsageAnalyticsPage() {
     to: dateRange.end.toISOString(),
     limit: 100, // API max is 100
   });
+
+  // Debug logging
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[UsageAnalytics] Query State:', {
+        isLoading,
+        hasError: !!error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        hasData: !!usageData,
+        itemCount: usageData?.items?.length,
+        dateRange: {
+          start: dateRange.start.toISOString(),
+          end: dateRange.end.toISOString(),
+        }
+      });
+    }
+  }, [isLoading, error, usageData, dateRange]);
 
   // Aggregate data by date for charts
   const dailyData = useMemo(() => {
@@ -166,7 +182,6 @@ export default function UsageAnalyticsPage() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="detailed">Detailed Analytics</TabsTrigger>
             <TabsTrigger value="monthly">Monthly Spending</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
           </TabsList>
@@ -186,31 +201,6 @@ export default function UsageAnalyticsPage() {
 
           <TabsContent value="transactions" className="space-y-6">
             <TransactionHistoryTable />
-          </TabsContent>
-
-          <TabsContent value="detailed" className="space-y-6">
-            {isLoading ? (
-              <div className="space-y-6">
-                <Skeleton className="h-[400px] rounded-xl" />
-                <Skeleton className="h-[400px] rounded-xl" />
-              </div>
-            ) : dailyData.length > 0 ? (
-              <UsageCharts 
-                dailyData={dailyData} 
-                apiKeys={apiKeys as never} 
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-12">
-                <Activity className="h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-4 text-lg font-medium text-foreground">No usage data</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  No API usage found for the selected time period.
-                  {timeRange === 'custom'
-                    ? ' Try adjusting your date range.'
-                    : ' Start using the API to see analytics here.'}
-                </p>
-              </div>
-            )}
           </TabsContent>
         </Tabs>
 
