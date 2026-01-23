@@ -17,8 +17,8 @@ export function PricingPlans() {
           <TrendingUp className="h-5 w-5 text-green-500" />
           <CardTitle>Pricing Plans</CardTitle>
         </div>
-        <CardDescription>
-          View our comprehensive pricing for all available models, tiers, and computational limits in our API documentation.
+        <CardDescription className="pt-4">
+          View our comprehensive pricing for all available models, tiers, and computational limits in our API documentation. Daily API credits are used first, followed by your paid balance. This ensures you maximize the value of your staked tokens.
         </CardDescription>
       </CardHeader>
       <CardContent>

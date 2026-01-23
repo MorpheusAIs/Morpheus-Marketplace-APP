@@ -195,43 +195,6 @@ export default function BillingPage() {
             <PricingPlans />
           </div>
         </div>
-
-        {/* Additional Information */}
-        <div className="rounded-lg border border-border bg-muted/30 p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-3">
-            Billing Information
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Payment Priority</h4>
-              <p className="text-sm text-muted-foreground">
-                Staking credits are used first, followed by your paid balance. This ensures you
-                maximize the value of your staked tokens.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Pending Holds</h4>
-              <p className="text-sm text-muted-foreground">
-                Holds are placed during API requests and converted to charges upon completion.
-                Failed requests release the hold back to your available balance.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Staking Refresh</h4>
-              <p className="text-sm text-muted-foreground">
-                Daily staking allowances refresh automatically at midnight UTC based on your
-                current MOR stake amount.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-2">Transaction History</h4>
-              <p className="text-sm text-muted-foreground">
-                View detailed transaction history including purchases, staking refreshes, and
-                usage charges in the Usage Analytics page.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </AuthenticatedLayout>
   );
