@@ -237,11 +237,11 @@ export function StakingWidget({
                 {walletStatus?.wallets && walletStatus.wallets.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">Connected Wallets:</p>
-                    <div className="flex gap-2 overflow-x-auto pb-2">
+                    <div className="flex flex-col md:flex-row md:overflow-x-auto gap-2 pb-2">
                       {walletStatus.wallets.map((wallet) => (
                         <div
                           key={wallet.id}
-                          className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 min-w-[200px] flex-shrink-0"
+                          className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 w-full md:min-w-[200px] md:flex-shrink-0"
                         >
                           <div className="flex flex-col">
                             <code className="text-xs text-muted-foreground">
