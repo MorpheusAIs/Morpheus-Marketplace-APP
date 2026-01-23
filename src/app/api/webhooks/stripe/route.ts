@@ -63,31 +63,14 @@ export async function POST(request: NextRequest) {
   try {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      
-      // Support both Payment Links (client_reference_id) and Checkout Sessions (metadata)
-      const userId = session.client_reference_id || session.metadata?.userId;
-      
-      // Payment Links: amount_total is in cents, convert to dollars
-      // Checkout Sessions: may have metadata.amount as string
-      let amount: string;
-      if (session.amount_total) {
-        amount = (session.amount_total / 100).toFixed(2);
-      } else if (session.metadata?.amount) {
-        amount = session.metadata.amount;
-      } else {
-        console.error('Missing amount in session', { sessionId: session.id });
-        return NextResponse.json({ received: true });
-      }
+      const userId = session.metadata?.userId;
+      const amount = session.metadata?.amount;
 
-      if (userId) {
+      if (userId && amount) {
         console.log(`Processing Stripe payment for user ${userId}: $${amount}`);
         await creditUserAccount(userId, amount, session.id);
       } else {
-        console.error('Missing userId in session (no client_reference_id or metadata.userId)', {
-          sessionId: session.id,
-          hasClientReferenceId: !!session.client_reference_id,
-          hasMetadataUserId: !!session.metadata?.userId,
-        });
+        console.error('Missing userId or amount in session metadata');
       }
     }
 

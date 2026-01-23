@@ -9,7 +9,6 @@ import { FundingSection } from '@/components/billing/FundingSection';
 import { StakingWidget } from '@/components/billing/StakingWidget';
 import { PricingPlans } from '@/components/billing/PricingPlans';
 import { useBillingBalance, useWalletStatus } from '@/lib/hooks/use-billing';
-import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,6 @@ export default function BillingPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(5);
   
-  const { user } = useCognitoAuth();
   const { data: balance, isLoading: isLoadingBalance, error: balanceError, refetch: refetchBalance } = useBillingBalance();
   const { data: walletStatus, isLoading: isLoadingWallet, refetch: refetchWallet } = useWalletStatus();
 
@@ -171,7 +169,6 @@ export default function BillingPage() {
                 currentBalance={balance?.total_available ?? '0'}
                 isLoading={isLoadingBalance}
                 onBalanceUpdate={handleBalanceUpdate}
-                userId={user?.sub}
                 stakingWidget={
                   <StakingWidget
                     walletStatus={walletStatus}
