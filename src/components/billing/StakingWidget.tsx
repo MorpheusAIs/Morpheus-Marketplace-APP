@@ -237,42 +237,44 @@ export function StakingWidget({
                 {walletStatus?.wallets && walletStatus.wallets.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">Connected Wallets:</p>
-                    {walletStatus.wallets.map((wallet) => (
-                      <div
-                        key={wallet.id}
-                        className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2"
-                      >
-                        <div className="flex flex-col">
-                          <code className="text-xs text-muted-foreground">
-                            {formatAddress(wallet.wallet_address)}
-                          </code>
-                          {(() => {
-                            const stakerInfo = walletStatus?.stakers?.find(
-                              s => s.address.toLowerCase() === wallet.wallet_address.toLowerCase()
-                            );
-                            const stakedAmount = stakerInfo 
-                              ? (Number(BigInt(stakerInfo.staked)) / 1e18).toString()
-                              : formatMorAmount(wallet.staked_amount);
-                              
-                            return stakedAmount && stakedAmount !== '0' ? (
-                              <span className="text-[10px] text-green-500">
-                                {parseFloat(stakedAmount).toFixed(2)} MOR
-                              </span>
-                            ) : null;
-                          })()}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
-                          onClick={() => handleUnlinkWallet(wallet.id)}
-                          disabled={unlinkWallet.isPending}
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {walletStatus.wallets.map((wallet) => (
+                        <div
+                          key={wallet.id}
+                          className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 min-w-[200px] flex-shrink-0"
                         >
-                          <span className="sr-only">Unlink</span>
-                          &times;
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex flex-col">
+                            <code className="text-xs text-muted-foreground">
+                              {formatAddress(wallet.wallet_address)}
+                            </code>
+                            {(() => {
+                              const stakerInfo = walletStatus?.stakers?.find(
+                                s => s.address.toLowerCase() === wallet.wallet_address.toLowerCase()
+                              );
+                              const stakedAmount = stakerInfo 
+                                ? (Number(BigInt(stakerInfo.staked)) / 1e18).toString()
+                                : formatMorAmount(wallet.staked_amount);
+                                
+                              return stakedAmount && stakedAmount !== '0' ? (
+                                <span className="text-[10px] text-green-500">
+                                  {parseFloat(stakedAmount).toFixed(2)} MOR
+                                </span>
+                              ) : null;
+                            })()}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 ml-2"
+                            onClick={() => handleUnlinkWallet(wallet.id)}
+                            disabled={unlinkWallet.isPending}
+                          >
+                            <span className="sr-only">Unlink</span>
+                            &times;
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                     
                     {/* Only show "Connect Another Wallet" when connected to provider */}
                     {isConnected && (
@@ -318,25 +320,32 @@ export function StakingWidget({
                    </Alert>
                 )}
 
-                {/* Not connected to provider, but has wallets linked - show single Connect Wallet button */}
-                {!isConnected && !isConnectingAnother && (
-                  <Button
-                    onClick={handleConnectAnother}
-                    className="w-full bg-green-500 hover:bg-green-600 text-black"
-                    size="sm"
-                  >
-                    <Wallet className="mr-2 h-4 w-4" />
-                    Connect Wallet
-                  </Button>
+                {/* Connect Wallet button and Alert - side by side on desktop, stacked on mobile */}
+                {!isConnected && !isConnectingAnother ? (
+                  <div className="flex flex-col md:flex-row md:items-center gap-2 mt-2">
+                    <Button
+                      onClick={handleConnectAnother}
+                      className="w-full md:w-1/2 bg-green-500 hover:bg-green-600 text-black"
+                      size="lg"
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Connect Wallet
+                    </Button>
+                    <Alert className="bg-green-500/10 border-green-500/20 md:w-1/2 [&>svg~*]:pl-0">
+                      {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
+                      <AlertDescription className="text-xs text-muted-foreground">
+                        Your staking rewards refresh daily at midnight UTC
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                ) : (
+                  <Alert className="bg-green-500/10 border-green-500/20 mt-2">
+                    {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
+                    <AlertDescription className="text-xs text-muted-foreground">
+                      Your staking rewards refresh daily at midnight UTC
+                    </AlertDescription>
+                  </Alert>
                 )}
-
-
-                <Alert className="bg-green-500/10 border-green-500/20 mt-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <AlertDescription className="text-xs text-muted-foreground">
-                    Your staking rewards refresh daily at midnight UTC
-                  </AlertDescription>
-                </Alert>
               </div>
             ) : (
               // Empty State (No wallets linked in backend)
