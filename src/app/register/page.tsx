@@ -51,7 +51,7 @@ export default function RegisterPage() {
           <div className="mt-8 space-y-6">
             <div className="text-center">
               <p className="mb-6 text-[var(--platinum)]/80">
-                Create your account to access the Morpheus API Gateway and start building with AI.
+                Create your account to access the Morpheus Inference API and start building with AI.
                 You'll be redirected to our secure registration service.
               </p>
               

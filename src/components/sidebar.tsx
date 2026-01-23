@@ -56,7 +56,7 @@ export function Sidebar() {
             height={32}
             className="h-8 w-8"
           />
-          <span className="text-lg font-semibold text-sidebar-foreground">API Gateway Admin</span>
+          <span className="text-lg font-semibold text-sidebar-foreground">Inference API Admin</span>
         </div>
       </SidebarHeader>
 

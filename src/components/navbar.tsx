@@ -15,7 +15,7 @@ interface NavbarProps {
 
 export function Navbar({
   logoComponent,
-  appName = "API Gateway Admin",
+  appName = "Morpheus Inference API Admin",
   externalLinkHref = "https://mor.org?utm_source=api-admin",
   externalLinkText = "mor.org",
   signInHref = "/signin",

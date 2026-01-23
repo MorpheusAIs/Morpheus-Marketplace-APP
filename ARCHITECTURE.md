@@ -1,4 +1,4 @@
-# Morpheus API Gateway - Application Architecture
+# Morpheus Inference API - Application Architecture
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -15,7 +15,7 @@
 
 ## Overview
 
-The Morpheus API Gateway is a Next.js 15 application that provides a web interface for managing API keys, configuring automation settings, and interacting with AI models through a chat interface. The application serves as a documentation and management portal for the Morpheus API Gateway backend service.
+The Morpheus Inference API is a Next.js 15 application that provides a web interface for managing API keys, configuring automation settings, and interacting with AI models through a chat interface. The application serves as a documentation and management portal for the Morpheus Inference API backend service.
 
 ### Key Features
 - User authentication via AWS Cognito

@@ -189,7 +189,7 @@ export function Sidebar({
       <div className="flex items-center space-x-3">
         {/* Logo component */}
         <div className="h-8 w-8 bg-white rounded" />
-        <span className="text-lg font-semibold">API Gateway Admin</span>
+        <span className="text-lg font-semibold">Morpheus Inference API Admin</span>
       </div>
 
       {/* Navigation */}

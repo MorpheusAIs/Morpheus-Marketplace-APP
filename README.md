@@ -1,6 +1,6 @@
-# Morpheus APP - API Gateway Interface
+# Morpheus APP - Morpheus Inference API Interface
 
-A [Next.js](https://nextjs.org) application that provides the user interface for the Morpheus API Gateway, including user authentication via AWS Cognito, API key management, automation settings, and an interactive chat interface.
+A [Next.js](https://nextjs.org) application that provides the user interface for the Morpheus Inference API, including user authentication via AWS Cognito, API key management, automation settings, and an interactive chat interface.
 
 ## 🚀 Features
 
