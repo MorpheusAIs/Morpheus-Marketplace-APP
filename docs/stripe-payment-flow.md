@@ -58,7 +58,7 @@ sequenceDiagram
 - Faster webhook processing
 - Simpler architecture
 
-### Option B: Frontend Webhook Bridge (Alternative)
+### Option B: Frontend Webhook Bridge (Legacy)
 
 ```mermaid
 sequenceDiagram
