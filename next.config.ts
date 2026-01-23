@@ -29,6 +29,25 @@ const nextConfig: NextConfig = {
         '**/morpheus-billing/**',
       ],
     };
+    
+    // Handle optional wallet connector dependencies that may not be installed
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      'porto': false,
+      'porto/internal': false,
+      '@gemini-wallet/core': false,
+      '@react-native-async-storage/async-storage': false,
+    };
+
+    // Ignore missing optional dependencies during build
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      /Module not found.*porto/,
+      /Module not found.*@gemini-wallet/,
+      /Module not found.*@react-native-async-storage/,
+    ];
+    
     return config;
   },
   // Exclude morpheus-billing from output file tracing
