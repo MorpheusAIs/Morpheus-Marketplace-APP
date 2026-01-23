@@ -30,7 +30,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useBillingTransactions } from '@/lib/hooks/use-billing';
-import { formatCurrency, downloadCSV } from '@/lib/utils/billing-utils';
+import { formatCurrency, downloadCSV, formatLocaleDate, formatLocaleTime } from '@/lib/utils/billing-utils';
 import type { LedgerEntryResponse, LedgerEntryTypeEnum, LedgerStatusEnum } from '@/types/billing';
 
 const ENTRY_TYPES: { value: LedgerEntryTypeEnum | 'all'; label: string }[] = [
@@ -225,9 +225,9 @@ export function TransactionHistoryTable() {
                 filteredData?.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="whitespace-nowrap">
-                      {new Date(item.created_at).toLocaleDateString()}
+                      {formatLocaleDate(item.created_at)}
                       <span className="block text-xs text-muted-foreground">
-                        {new Date(item.created_at).toLocaleTimeString()}
+                        {formatLocaleTime(item.created_at)}
                       </span>
                     </TableCell>
                     <TableCell>

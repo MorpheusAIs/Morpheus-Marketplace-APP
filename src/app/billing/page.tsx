@@ -131,36 +131,29 @@ export default function BillingPage() {
 
         {/* Balance Overview Stats */}
         {isLoadingBalance ? (
-          <div className="grid gap-4 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[...Array(2)].map((_, i) => (
               <Skeleton key={i} className="h-[140px] rounded-xl" />
             ))}
           </div>
         ) : balance ? (
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <StatCard
-              title="Total Available"
-              value={`$${parseFloat(balance.total_available || '0').toFixed(2)}`}
-              icon={DollarSign}
-              description="Combined balance"
-            />
-            <StatCard
-              title="Paid Balance"
+              title="Available Credit"
               value={`$${parseFloat(balance.paid?.available || '0').toFixed(2)}`}
-              icon={TrendingUp}
-              description={`$${parseFloat(balance.paid?.posted_balance || '0').toFixed(2)} posted`}
+              icon={DollarSign}
+              description="Pre-paid credits available for inference"
             />
             <StatCard
-              title="Staking Credits"
+              title="Daily API credit remaining"
               value={`$${parseFloat(balance.staking?.available || '0').toFixed(2)}`}
               icon={Clock}
-              description={`$${parseFloat(balance.staking?.daily_amount || '0').toFixed(2)} daily`}
-            />
-            <StatCard
-              title="Pending Holds"
-              value={`$${parseFloat(balance.paid?.pending_holds || '0').toFixed(2)}`}
-              icon={AlertCircle}
-              description="Temporary holds"
+              description={(() => {
+                const dailyAmount = parseFloat(balance.staking?.daily_amount || '0');
+                const available = parseFloat(balance.staking?.available || '0');
+                const used = Math.max(0, dailyAmount - available);
+                return `${used.toFixed(2)} of ${dailyAmount.toFixed(2)} used today`;
+              })()}
             />
           </div>
         ) : null}

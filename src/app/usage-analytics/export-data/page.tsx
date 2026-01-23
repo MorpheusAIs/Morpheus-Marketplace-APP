@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBillingUsage } from '@/lib/hooks/use-billing';
-import { generateUsageCSV, downloadCSV } from '@/lib/utils/billing-utils';
+import { generateUsageCSV, downloadCSV, formatLocaleDateTime } from '@/lib/utils/billing-utils';
 import type { UsageEntryResponse } from '@/types/billing';
 
 export default function ExportDataPage() {
@@ -48,7 +48,13 @@ export default function ExportDataPage() {
         item.model_name?.toLowerCase().includes(query) ||
         item.endpoint?.toLowerCase().includes(query) ||
         item.request_id?.toLowerCase().includes(query) ||
-        new Date(item.created_at).toLocaleDateString().includes(query)
+        formatLocaleDateTime(item.created_at, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).toLowerCase().includes(query)
     );
   }, [usageData, searchQuery]);
 
@@ -184,7 +190,7 @@ export default function ExportDataPage() {
                       {paginatedData.map((entry) => (
                         <TableRow key={entry.id}>
                           <TableCell className="font-medium">
-                            {new Date(entry.created_at).toLocaleString('en-US', {
+                            {formatLocaleDateTime(entry.created_at, {
                               month: 'short',
                               day: 'numeric',
                               year: 'numeric',

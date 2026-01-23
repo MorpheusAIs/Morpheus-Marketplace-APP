@@ -5,7 +5,7 @@ import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { UsageEntryResponse } from '@/types/billing';
-import { generateUsageCSV, downloadCSV } from '@/lib/utils/billing-utils';
+import { generateUsageCSV, downloadCSV, formatLocaleDate } from '@/lib/utils/billing-utils';
 
 interface DataExportProps {
   usageData: UsageEntryResponse[];
@@ -68,7 +68,7 @@ export function DataExport({ usageData, isLoading }: DataExportProps) {
                   {usageData.slice(0, 5).map((entry, index) => (
                     <tr key={entry.id || index} className="border-b border-border last:border-0">
                       <td className="px-4 py-3 text-muted-foreground">
-                        {new Date(entry.created_at).toLocaleDateString()}
+                        {formatLocaleDate(entry.created_at)}
                       </td>
                       <td className="px-4 py-3 text-foreground">
                         {entry.model_name || 'N/A'}

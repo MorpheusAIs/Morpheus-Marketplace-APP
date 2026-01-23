@@ -436,21 +436,6 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Current Balance</CardTitle>
-          <CardDescription>Your available credits for API usage</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-4xl font-bold text-green-500">
-            ${isLoading ? '...' : parseFloat(currentBalance).toFixed(2)}
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Combined paid balance and staking credits
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Add Funds</CardTitle>
           <CardDescription>Choose a method to increase your credits</CardDescription>
         </CardHeader>

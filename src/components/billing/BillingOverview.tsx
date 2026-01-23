@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency, formatLargeNumber } from '@/lib/utils/billing-utils';
+import { formatCurrency, formatLargeNumber, formatLocaleDate } from '@/lib/utils/billing-utils';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import type { UsageEntryResponse, UsageListResponse } from '@/types/billing';
 
@@ -73,36 +73,37 @@ interface SpendData {
 }
 
 function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
-  const grouped = items.reduce<Record<string, DailyData>>((acc, entry) => {
-    const date = new Date(entry.created_at).toLocaleDateString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-    });
-
-    if (!acc[date]) {
-      acc[date] = {
-        date,
-        staking: 0,
-        credit: 0,
-        inputTokens: 0,
-        outputTokens: 0,
+  const grouped = items.reduce<Record<string, { isoDate: string; data: DailyData }>>((acc, entry) => {
+    // Use ISO date string (YYYY-MM-DD) for grouping to ensure consistency across locales
+    const isoDate = entry.created_at.split('T')[0];
+    
+    if (!acc[isoDate]) {
+      // Format date for display using browser's locale
+      const displayDate = formatLocaleDate(entry.created_at);
+      acc[isoDate] = {
+        isoDate,
+        data: {
+          date: displayDate,
+          staking: 0,
+          credit: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
       };
     }
 
-    acc[date].staking += parseFloat(entry.amount_staking);
-    acc[date].credit += parseFloat(entry.amount_paid);
-    acc[date].inputTokens += entry.tokens_input ?? 0;
-    acc[date].outputTokens += entry.tokens_output ?? 0;
+    acc[isoDate].data.staking += parseFloat(entry.amount_staking);
+    acc[isoDate].data.credit += parseFloat(entry.amount_paid);
+    acc[isoDate].data.inputTokens += entry.tokens_input ?? 0;
+    acc[isoDate].data.outputTokens += entry.tokens_output ?? 0;
 
     return acc;
   }, {});
 
-  return Object.values(grouped).sort((a, b) => {
-    const [aMonth, aDay] = a.date.split('/').map(Number);
-    const [bMonth, bDay] = b.date.split('/').map(Number);
-    if (aMonth !== bMonth) return aMonth - bMonth;
-    return aDay - bDay;
-  });
+  // Sort by ISO date string (naturally sortable) and return formatted data
+  return Object.values(grouped)
+    .sort((a, b) => a.isoDate.localeCompare(b.isoDate))
+    .map((item) => item.data);
 }
 
 function aggregateSpendByModel(items: UsageEntryResponse[]): SpendData[] {
