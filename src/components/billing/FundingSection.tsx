@@ -232,7 +232,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             <CardTitle>Add Funds</CardTitle>
             <div className="w-10" />
           </div>
-          <CardDescription>Enter the amount you'd like to add</CardDescription>
+          <CardDescription>Enter the amount you&apos;d like to add</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -453,7 +453,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
           <CardTitle>Add Funds</CardTitle>
           <CardDescription>Choose a method to increase your credits</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
+        <CardContent>
           <Button
             variant="outline"
             className="w-full justify-between h-auto p-4"
@@ -470,46 +470,9 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             </div>
             <ExternalLink className="h-4 w-4" />
           </Button>
-
-          <Button
-            variant="outline"
-            className="w-full justify-between h-auto p-4"
-            onClick={startCryptoFlow}
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-md text-blue-500">
-                <Coins className="h-5 w-5" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium">Pay with Crypto</p>
-                <p className="text-xs text-muted-foreground">USDC via Coinbase Commerce</p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4" />
-          </Button>
         </CardContent>
       </Card>
 
-      <Card className="border-blue-500/20 bg-blue-500/5">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Coinbase Commerce Integration</p>
-              <p className="text-xs text-muted-foreground">
-                Crypto payments are processed via Coinbase Commerce. You can pay with USDC on multiple networks
-                including Base, Ethereum, and Polygon.
-              </p>
-              <Button variant="link" className="h-auto p-0 text-xs text-blue-500" asChild>
-                <a href="https://mor.org/staking" target="_blank" rel="noopener noreferrer">
-                  Learn about staking for free credits
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
