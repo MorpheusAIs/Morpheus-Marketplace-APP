@@ -62,15 +62,39 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant S as Stripe
-    participant FW as Frontend Webhook<br/>(Next.js API Route)
-    participant BE as Backend API
+    participant U as User
+    participant FE as Frontend App<br/>(Next.js on AWS Amplify)
+    participant S as Stripe<br/>(Hosted Checkout)
+    participant FW as Frontend Webhook<br/>(Lambda - may cold start)
+    participant BE as Backend API<br/>(FastAPI)
+    participant DB as Database
 
-    S->>FW: POST /api/webhooks/stripe
-    FW->>FW: Verify signature, extract data
-    FW->>BE: POST /api/v1/billing/credits/adjust
+    Note over U,DB: User clicks "Credit Card" button
+
+    U->>FE: Click "Add Funds" → Credit Card
+    FE->>S: Open Payment Link in new tab<br/>buy.stripe.com/xxx?client_reference_id={cognitoSub}
+    
+    Note over S: User enters card details<br/>on Stripe's secure page
+    
+    U->>S: Complete payment
+    S->>U: Show success page
+    
+    Note over FW,DB: Webhook processing (extra hop via Lambda)
+    
+    S->>FW: POST /api/webhooks/stripe<br/>checkout.session.completed
+    Note over FW: ⚠️ Possible cold start<br/>(1-10s delay)
+    FW->>FW: Verify Stripe signature
+    FW->>FW: Extract client_reference_id<br/>Convert amount_total to USD
+    FW->>BE: POST /api/v1/billing/credits/adjust<br/>{user_id, amount_usd, description}
+    BE->>DB: Update user balance
     BE->>FW: 200 OK
-    FW->>S: 200 OK
+    FW->>S: 200 OK (acknowledge receipt)
+    
+    Note over U,FE: User returns to app
+    
+    U->>FE: Navigate back to billing page
+    FE->>BE: GET /api/v1/billing/balance
+    BE->>FE: Updated balance
 ```
 
 **When to use:**
@@ -112,6 +136,13 @@ Since the frontend is deployed on **AWS Amplify** (not Vercel), there are import
 | ❌ Extra hop (Amplify → Backend) | ✅ Direct processing |
 | ❌ Lambda timeout risks | ✅ No timeout concerns |
 | ❌ More points of failure | ✅ Simpler architecture |
+
+
+## AWS Amplify Deployment Note
+
+The frontend is deployed on **AWS Amplify**, where API routes run as Lambda functions with potential cold starts (1-10s). This is why **Option A (Direct Backend)** is recommended - the FastAPI backend is always running with no cold start delays.
+
+If using Option B, Stripe's retry mechanism (up to 3 days) mitigates occasional cold start timeouts.
 
 ---
 
