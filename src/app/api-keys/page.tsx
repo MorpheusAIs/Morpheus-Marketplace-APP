@@ -48,7 +48,7 @@ interface ApiKeyResponse {
 
 export default function ApiKeysPage() {
   const { apiKeys, accessToken, refreshApiKeys, defaultApiKey } = useCognitoAuth();
-  const { success, error } = useNotification();
+  const { success, error, warning } = useNotification();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isNewKeyModalOpen, setIsNewKeyModalOpen] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
