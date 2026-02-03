@@ -14,6 +14,8 @@ import {
   getTransactions,
   getMonthlySpending,
   getWalletStatus,
+  getBillingPreferences,
+  updateBillingPreferences,
   type GetUsageParams,
   type GetUsageForMonthParams,
   type GetTransactionsParams,
@@ -26,6 +28,8 @@ import type {
   MonthlySpendingResponse,
   WalletStatusResponse,
   WalletLinkRequest,
+  BillingPreferencesResponse,
+  BillingPreferencesUpdateRequest,
 } from '@/types/billing';
 
 // ========== Balance Hook ==========
@@ -198,14 +202,48 @@ export function useUnlinkWallet() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (walletId: number) => {
+    mutationFn: async (walletAddress: string) => {
       const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
-      return unlinkWallet(token, walletId);
+      return unlinkWallet(token, walletAddress);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+    }
+  });
+}
+
+// ========== Billing Preferences Hooks ==========
+
+export function useBillingPreferences(options?: {
+  enabled?: boolean;
+}): UseQueryResult<BillingPreferencesResponse, Error> {
+  const { getValidToken } = useCognitoAuth();
+
+  return useQuery({
+    queryKey: ['billing', 'preferences'],
+    queryFn: async () => {
+      const token = await getValidToken();
+      if (!token) throw new Error('Not authenticated');
+      return getBillingPreferences(token);
+    },
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useUpdateBillingPreferences() {
+  const { getValidToken } = useCognitoAuth();
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: BillingPreferencesUpdateRequest) => {
+      const token = await getValidToken();
+      if (!token) throw new Error('Not authenticated');
+      return updateBillingPreferences(token, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing', 'preferences'] });
     }
   });
 }

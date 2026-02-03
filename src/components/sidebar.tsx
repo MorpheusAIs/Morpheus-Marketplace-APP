@@ -33,8 +33,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout, user, apiKeys } = useCognitoAuth();
+  const { logout, user, apiKeys, defaultApiKey } = useCognitoAuth();
   const hasApiKeys = apiKeys.length > 0;
+  const hasDefaultApiKey = defaultApiKey !== null;
 
   const handleLogout = () => {
     logout();
@@ -112,7 +113,7 @@ export function Sidebar() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="w-full">
-                        {hasApiKeys ? (
+                        {hasDefaultApiKey ? (
                           <SidebarMenuButton
                             asChild
                             isActive={pathname === "/test"}
@@ -135,9 +136,9 @@ export function Sidebar() {
                         )}
                       </div>
                     </TooltipTrigger>
-                    {!hasApiKeys && (
+                    {!hasDefaultApiKey && (
                       <TooltipContent>
-                        <p>Create an API key first to use Test</p>
+                        <p>Set a default API key to use Test</p>
                       </TooltipContent>
                     )}
                   </Tooltip>

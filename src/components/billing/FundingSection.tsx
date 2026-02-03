@@ -64,7 +64,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     }
   };
 
-  const openStripeCheckout = async (amount: string) => {
+  const openStripeCheckout = async (amount?: string) => {
     const baseUrl = 'https://buy.stripe.com/test_9B6bJ0eU08TG6Pi4EIgnK00';
     const url = userId ? `${baseUrl}?client_reference_id=${encodeURIComponent(userId)}` : baseUrl;
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -138,7 +138,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             <Button
               variant="outline"
               className="w-full justify-between h-auto p-4"
-              onClick={() => handlePaymentMethodClick('stripe')}
+              onClick={() => openStripeCheckout()}
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-muted rounded-md">

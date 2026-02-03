@@ -57,7 +57,7 @@ export default function ApiKeysPage() {
   const [isEditingDefaultKey, setIsEditingDefaultKey] = useState(false);
   const [pendingDefaultKeyId, setPendingDefaultKeyId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string; isDefault: boolean } | null>(null);
 
   // Find the default API key from the apiKeys array
   const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
@@ -92,7 +92,11 @@ export default function ApiKeysPage() {
   };
 
   const handleDeleteClick = (keyId: number, keyName: string) => {
-    setKeyToDelete({ id: keyId, name: keyName });
+    // Check if this is the default key
+    const keyToDeleteData = apiKeys.find(key => key.id === keyId);
+    const isDefaultKey = keyToDeleteData?.is_default || false;
+    
+    setKeyToDelete({ id: keyId, name: keyName, isDefault: isDefaultKey });
     setShowDeleteDialog(true);
   };
 
@@ -107,8 +111,28 @@ export default function ApiKeysPage() {
       if (response.error) {
         throw new Error(response.error);
       }
+      
+      // If we deleted the default key, clear sessionStorage
+      if (keyToDelete.isDefault) {
+        sessionStorage.removeItem('verified_api_key');
+        sessionStorage.removeItem('verified_api_key_prefix');
+        sessionStorage.removeItem('verified_api_key_timestamp');
+        sessionStorage.removeItem('verified_api_key_name');
+        localStorage.removeItem('selected_api_key_prefix');
+      }
+      
       await refreshApiKeys();
-      success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
+      
+      if (keyToDelete.isDefault) {
+        warning(
+          "Default API Key Deleted",
+          "You've deleted your default API key. Please set a new default key to use Chat functionality.",
+          { duration: 8000 }
+        );
+      } else {
+        success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
+      }
+      
       setShowDeleteDialog(false);
       setKeyToDelete(null);
     } catch (err) {
@@ -415,7 +439,17 @@ export default function ApiKeysPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete API Key</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the API key "{keyToDelete?.name}"? This action cannot be undone.
+              {keyToDelete?.isDefault ? (
+                <>
+                  <span className="font-semibold text-yellow-600 dark:text-yellow-500">Warning:</span> You are about to delete your <span className="font-semibold">default API key</span> "{keyToDelete?.name}".
+                  <br /><br />
+                  After deletion, you will need to set a new default API key to use Chat functionality. This action cannot be undone.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to delete the API key "{keyToDelete?.name}"? This action cannot be undone.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -424,7 +458,7 @@ export default function ApiKeysPage() {
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              Delete
+              {keyToDelete?.isDefault ? "Delete Default Key" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

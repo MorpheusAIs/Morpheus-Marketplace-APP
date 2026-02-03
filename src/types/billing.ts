@@ -222,3 +222,13 @@ export interface UsageStatistics {
   inputs: DailyStats;
   outputs: DailyStats;
 }
+
+// ========== Billing Preferences Types ==========
+
+export interface BillingPreferencesResponse {
+  allow_overages: boolean;
+}
+
+export interface BillingPreferencesUpdateRequest {
+  allow_overages: boolean;
+}

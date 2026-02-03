@@ -43,6 +43,12 @@ export function VerifyApiKeyModal({
       return;
     }
 
+    // Validate API key length (should be exactly 74 characters)
+    if (normalizedInput.length !== 74) {
+      setError(`API key must be exactly 74 characters (currently ${normalizedInput.length})`);
+      return;
+    }
+
     setIsVerifying(true);
     setError("");
 
@@ -109,7 +115,7 @@ export function VerifyApiKeyModal({
               }}
             />
             <p className="text-xs text-muted-foreground mt-1 col-span-4">
-              Must start with "{keyPrefix}"
+              Must start with "{keyPrefix}" and be exactly 74 characters
             </p>
             {error && (
               <p className="text-xs text-red-500 mt-1 col-span-4">{error}</p>

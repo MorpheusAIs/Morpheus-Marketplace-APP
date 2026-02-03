@@ -3,7 +3,7 @@
  * Handles all billing-related API calls including balance, usage, transactions, and wallet management
  */
 
-import { apiGet, apiPost, apiDelete, buildApiUrl, type ApiResponse } from './client';
+import { apiGet, apiPost, apiPut, apiDelete, buildApiUrl, type ApiResponse } from './client';
 import type {
   BalanceResponse,
   UsageListResponse,
@@ -15,6 +15,8 @@ import type {
   NonceResponse,
   SpendingModeEnum,
   LedgerEntryTypeEnum,
+  BillingPreferencesResponse,
+  BillingPreferencesUpdateRequest,
 } from '@/types/billing';
 
 /**
@@ -237,9 +239,9 @@ export async function linkWallet(
  */
 export async function unlinkWallet(
   token: string,
-  walletId: number
+  walletAddress: string
 ): Promise<{ message: string; wallet_address: string }> {
-  const url = buildApiUrl(`/auth/wallet/${walletId}`);
+  const url = buildApiUrl(`/auth/wallet/${walletAddress}`);
   return request(apiDelete<{ message: string; wallet_address: string }>(url, token));
 }
 
@@ -258,12 +260,28 @@ export async function checkWalletAvailability(
 
 // ========== Convenience API URLs ==========
 
+// ========== Billing Preferences API ==========
+
+export async function getBillingPreferences(token: string): Promise<BillingPreferencesResponse> {
+  const url = buildApiUrl('/billing/preferences');
+  return request(apiGet<BillingPreferencesResponse>(url, token));
+}
+
+export async function updateBillingPreferences(
+  token: string,
+  data: BillingPreferencesUpdateRequest
+): Promise<BillingPreferencesResponse> {
+  const url = buildApiUrl('/billing/preferences');
+  return request(apiPut<BillingPreferencesResponse>(url, data, token));
+}
+
 export const BILLING_URLS = {
   balance: () => buildApiUrl('/billing/balance'),
   usage: () => buildApiUrl('/billing/usage'),
   usageMonth: () => buildApiUrl('/billing/usage/month'),
   transactions: () => buildApiUrl('/billing/transactions'),
   spending: () => buildApiUrl('/billing/spending'),
+  preferences: () => buildApiUrl('/billing/preferences'),
   walletStatus: () => buildApiUrl('/auth/wallet/'),
   walletNonce: () => buildApiUrl('/auth/wallet/nonce'),
   walletLink: () => buildApiUrl('/auth/wallet/link'),
