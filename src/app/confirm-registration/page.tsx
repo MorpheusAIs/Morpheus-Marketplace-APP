@@ -123,7 +123,7 @@ function ConfirmRegistrationContent() {
 
     try {
       const command = new ResendConfirmationCodeCommand({
-        ClientId: cognitoConfig.clientId,
+        ClientId: cognitoConfig.userPoolClientId,
         Username: email,
       });
 
