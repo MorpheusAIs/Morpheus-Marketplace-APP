@@ -73,6 +73,12 @@ export default function SignInPage() {
       } else if (errorMessage.includes("User does not exist") || errorMessage.includes("UserNotFoundException")) {
         // Fallback check in case error name isn't set but message indicates user not found
         setError("User doesn't exist");
+      } else if (errorName === 'UserNotConfirmedException' || errorMessage.includes("User is not confirmed")) {
+        // Handle unconfirmed user - redirect to confirmation page
+        setError("Your account is not confirmed. Redirecting to confirmation page...");
+        setTimeout(() => {
+          router.push(`/confirm-registration?email=${encodeURIComponent(email)}`);
+        }, 2000);
       } else {
         setError(errorMessage || "Failed to sign in");
       }

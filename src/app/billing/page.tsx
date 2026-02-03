@@ -8,6 +8,7 @@ import { StatCard } from '@/components/billing/StatCard';
 import { FundingSection } from '@/components/billing/FundingSection';
 import { StakingWidget } from '@/components/billing/StakingWidget';
 import { PricingPlans } from '@/components/billing/PricingPlans';
+import { OveragesToggle } from '@/components/billing/OveragesToggle';
 import { useBillingBalance, useWalletStatus } from '@/lib/hooks/use-billing';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -183,8 +184,9 @@ export default function BillingPage() {
             )}
           </div>
 
-          {/* Right Column - Pricing Plans (1/3 width) */}
-          <div className="lg:col-span-1">
+          {/* Right Column - Settings & Pricing Plans (1/3 width) */}
+          <div className="lg:col-span-1 space-y-6">
+            <OveragesToggle />
             <PricingPlans />
           </div>
         </div>

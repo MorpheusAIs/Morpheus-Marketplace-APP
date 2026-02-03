@@ -712,10 +712,6 @@ export default function ChatPage() {
     return `${key.substring(0, 15)}...`;
   };
 
-  if (!fullApiKey) {
-    return null;
-  }
-
   // Show message if no API key
   if (!fullApiKey || !apiKeyPrefix) {
     return (

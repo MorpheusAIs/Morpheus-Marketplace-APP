@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Wallet, ExternalLink, RefreshCcw, Loader2, CheckCircle2, AlertCircle, LogOut, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ export function StakingWidget({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
   const [isConnectingAnother, setIsConnectingAnother] = useState(false);
+  const [pendingStakingFlow, setPendingStakingFlow] = useState(false);
   
   // AppKit & Wagmi hooks
   const { open } = useAppKit();
@@ -44,6 +45,10 @@ export function StakingWidget({
   const linkWallet = useLinkWallet();
   const unlinkWallet = useUnlinkWallet();
   const queryClient = useQueryClient();
+  
+  // Track previous connection state to detect disconnections
+  const prevIsConnectedRef = useRef<boolean>(isConnected);
+  const prevAddressRef = useRef<string | undefined>(address);
 
   const hasWallet = walletStatus?.has_wallets ?? false;
   const walletCount = walletStatus?.wallet_count ?? 0;
@@ -115,8 +120,100 @@ export function StakingWidget({
     }
   }, [isConnected, isConnectingAnother]);
 
+  // Reactively detect wallet disconnections from any source (MetaMask extension, etc.)
+  // This effect runs whenever isConnected or address changes
+  useEffect(() => {
+    const wasConnected = prevIsConnectedRef.current;
+    const hadAddress = prevAddressRef.current;
+    const nowDisconnected = !isConnected && !address;
+    
+    // Detect disconnection: was connected with an address, now neither
+    if (wasConnected && hadAddress && nowDisconnected) {
+      console.log('[StakingWidget] Wallet disconnection detected - cleaning up state');
+      
+      // Cancel any in-flight queries to prevent stale data issues
+      queryClient.cancelQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.cancelQueries({ queryKey: ['billing', 'balance'] });
+      
+      // Immediately invalidate queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+      
+      // Reset all state flags to clean up UI
+      setPendingStakingFlow(false);
+      setIsConnectingAnother(false);
+      setIsRefreshing(false);
+      setIsLinking(false);
+      
+      // Show a subtle notification to user
+      toast.info('Wallet disconnected');
+    }
+    
+    // Update refs for next comparison
+    prevIsConnectedRef.current = isConnected;
+    prevAddressRef.current = address;
+  }, [isConnected, address, queryClient]);
 
-  const handleLinkWallet = async () => {
+  // Additional listener for direct MetaMask/provider events
+  // This catches disconnections that happen at the provider level
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return;
+
+    // Type assertion for ethereum provider - using unknown for safety
+    const provider = window.ethereum as unknown as {
+      on?: (event: string, handler: (...args: unknown[]) => void) => void;
+      removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
+    };
+    if (!provider.on || !provider.removeListener) return;
+
+    const handleAccountsChanged = (...args: unknown[]) => {
+      const accounts = args[0] as string[] | undefined;
+      // Empty accounts array means disconnected
+      if ((!accounts || accounts.length === 0) && prevIsConnectedRef.current) {
+        console.log('[StakingWidget] Direct provider disconnect detected via accountsChanged');
+        
+        // Cancel and invalidate queries
+        queryClient.cancelQueries({ queryKey: ['wallet', 'status'] });
+        queryClient.cancelQueries({ queryKey: ['billing', 'balance'] });
+        queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
+        queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+        
+        // Reset state
+        setPendingStakingFlow(false);
+        setIsConnectingAnother(false);
+        setIsRefreshing(false);
+        setIsLinking(false);
+      }
+    };
+
+    const handleDisconnect = () => {
+      console.log('[StakingWidget] Direct provider disconnect event');
+      
+      // Cancel and invalidate queries
+      queryClient.cancelQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.cancelQueries({ queryKey: ['billing', 'balance'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+      
+      // Reset state
+      setPendingStakingFlow(false);
+      setIsConnectingAnother(false);
+      setIsRefreshing(false);
+      setIsLinking(false);
+    };
+
+    // Listen to provider events
+    provider.on('accountsChanged', handleAccountsChanged);
+    provider.on('disconnect', handleDisconnect);
+
+    return () => {
+      // Cleanup listeners
+      provider.removeListener?.('accountsChanged', handleAccountsChanged);
+      provider.removeListener?.('disconnect', handleDisconnect);
+    };
+  }, [queryClient]);
+
+  const handleLinkWallet = React.useCallback(async () => {
     if (!address) return;
     
     try {
@@ -158,11 +255,33 @@ export function StakingWidget({
     } finally {
       setIsLinking(false);
     }
-  };
+  }, [address, generateNonce, signMessageAsync, linkWallet, onRefreshStatus]);
 
-  const handleUnlinkWallet = async (walletId: number) => {
+  // Auto-trigger linking flow when wallet connects during initial staking flow
+  // This prevents the need for a second click to trigger the signature request
+  useEffect(() => {
+    if (pendingStakingFlow && isConnected && address && !isCurrentWalletLinked) {
+      setPendingStakingFlow(false);
+      handleLinkWallet();
+    }
+  }, [pendingStakingFlow, isConnected, address, isCurrentWalletLinked, handleLinkWallet]);
+
+  // Clear pending staking flow if user disconnects or closes modal without connecting
+  useEffect(() => {
+    if (pendingStakingFlow && !isConnected && !address) {
+      // Give a short delay to allow for reconnection scenarios
+      const timer = setTimeout(() => {
+        if (!isConnected) {
+          setPendingStakingFlow(false);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingStakingFlow, isConnected, address]);
+
+  const handleUnlinkWallet = async (walletAddress: string) => {
     try {
-      await unlinkWallet.mutateAsync(walletId);
+      await unlinkWallet.mutateAsync(walletAddress);
       toast.success('Wallet unlinked successfully');
       if (onRefreshStatus) onRefreshStatus();
     } catch (error) {
@@ -214,7 +333,7 @@ export function StakingWidget({
                 {/* Landscape layout for stats */}
                 <div className="grid grid-cols-3 gap-4 rounded-lg border border-border bg-muted/30 p-4">
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Wallets Connected</div>
+                    <div className="text-xs text-muted-foreground mb-1">Linked Wallets</div>
                     <div className="flex items-center justify-center gap-1 text-sm font-medium text-foreground">
                       <CheckCircle2 className="h-3 w-3 text-green-500" />
                       {walletCount}
@@ -236,7 +355,7 @@ export function StakingWidget({
 
                 {walletStatus?.wallets && walletStatus.wallets.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">Connected Wallets:</p>
+                    <p className="text-xs font-medium text-muted-foreground">Linked Wallets:</p>
                     <div className="flex flex-col md:flex-row md:overflow-x-auto gap-2 pb-2">
                       {walletStatus.wallets.map((wallet) => (
                         <div
@@ -266,7 +385,7 @@ export function StakingWidget({
                             variant="ghost"
                             size="sm"
                             className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 ml-2"
-                            onClick={() => handleUnlinkWallet(wallet.id)}
+                            onClick={() => handleUnlinkWallet(wallet.wallet_address)}
                             disabled={unlinkWallet.isPending}
                           >
                             <span className="sr-only">Unlink</span>
@@ -405,7 +524,10 @@ export function StakingWidget({
                   ) : (
                     <div className="space-y-2">
                       <Button
-                        onClick={handleConnectAnother}
+                        onClick={() => {
+                          setPendingStakingFlow(true);
+                          handleConnectAnother();
+                        }}
                         className="w-full bg-green-500 hover:bg-green-600 text-black"
                       >
                         Stake MOR for Daily Allowance
