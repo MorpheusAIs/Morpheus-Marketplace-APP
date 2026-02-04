@@ -32,6 +32,7 @@ interface CognitoAuthContextType {
   confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
   logout: () => void;
   refreshApiKeys: () => Promise<void>;
+  refreshUserAttributes: () => Promise<void>;
   getValidToken: () => Promise<string | null>;
   socialLogin: (provider: 'Google' | 'GitHub' | 'X') => void;
 }
@@ -371,6 +372,51 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
+  const refreshUserAttributes = async () => {
+    try {
+      const validToken = await CognitoDirectAuth.getValidAccessToken();
+      if (!validToken) {
+        throw new Error('No valid access token available');
+      }
+
+      // Import GetUserCommand dynamically to avoid build-time issues
+      const { GetUserCommand } = await import('@aws-sdk/client-cognito-identity-provider');
+      const { CognitoIdentityProviderClient } = await import('@aws-sdk/client-cognito-identity-provider');
+      const { cognitoConfig } = await import('@/lib/auth/cognito-config');
+      
+      // Create Cognito client
+      const cognitoClient = new CognitoIdentityProviderClient({
+        region: cognitoConfig.region,
+      });
+
+      // Fetch fresh user attributes from Cognito
+      const getUserCommand = new GetUserCommand({
+        AccessToken: validToken,
+      });
+      
+      const userResponse = await cognitoClient.send(getUserCommand);
+      
+      // Extract user attributes
+      const attributes = userResponse.UserAttributes || [];
+      const emailAttribute = attributes.find(attr => attr.Name === 'email');
+      const emailVerifiedAttribute = attributes.find(attr => attr.Name === 'email_verified');
+      
+      // Update user object with fresh attributes
+      if (user) {
+        const updatedUser: CognitoUser = {
+          ...user,
+          email: emailAttribute?.Value || user.email,
+          email_verified: emailVerifiedAttribute?.Value === 'true',
+        };
+        setUser(updatedUser);
+        console.log('✅ User attributes refreshed successfully');
+      }
+    } catch (error) {
+      console.error('Error refreshing user attributes:', error);
+      throw error;
+    }
+  };
+
   const getValidToken = async () => {
     const token = await CognitoDirectAuth.getValidAccessToken();
     if (token && token !== accessToken) {
@@ -437,6 +483,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     confirmForgotPassword,
     logout,
     refreshApiKeys,
+    refreshUserAttributes,
     getValidToken,
     socialLogin,
   };
