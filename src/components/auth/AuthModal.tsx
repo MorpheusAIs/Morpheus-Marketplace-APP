@@ -149,9 +149,16 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       return;
     }
 
-    // Password reset functionality not yet implemented in CognitoDirectAuth
-    setError('Password reset functionality is not available. Please contact support.');
-    setIsLoading(false);
+    try {
+      await CognitoDirectAuth.forgotPassword(email);
+      setMode('reset');
+      setError(''); // Clear any previous errors
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send reset code';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleConfirmPasswordReset = async (e: React.FormEvent) => {
@@ -173,9 +180,21 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       return;
     }
 
-    // Password reset functionality not yet implemented in CognitoDirectAuth
-    setError('Password reset functionality is not available. Please contact support.');
-    setIsLoading(false);
+    try {
+      await CognitoDirectAuth.confirmForgotPassword(email, confirmationCode, newPassword);
+      setMode('signin');
+      setError(''); // Clear any previous errors
+      // Show success message briefly
+      setPassword(''); // Clear password fields for security
+      setConfirmPassword('');
+      setNewPassword('');
+      setConfirmationCode('');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Password reset failed';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
