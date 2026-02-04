@@ -44,5 +44,5 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-/morpheus-billing.automation/
+# Automation
 .automation/
