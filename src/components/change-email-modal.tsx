@@ -42,7 +42,7 @@ interface ChangeEmailModalProps {
 type Step = "enter-email" | "verify-code";
 
 export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalProps) {
-  const { user, accessToken } = useCognitoAuth();
+  const { user, accessToken, refreshUserAttributes } = useCognitoAuth();
   const { success, error } = useNotification();
   const [newEmail, setNewEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -141,11 +141,11 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
       const emailAttribute = userResponse.UserAttributes?.find(attr => attr.Name === "email");
       
       if (emailAttribute?.Value === newEmail) {
+        // Refresh user attributes in the auth context to update the UI
+        await refreshUserAttributes();
+        
         success("Email Changed Successfully", "Your email address has been updated.");
         onOpenChangeAction(false);
-        
-        // Refresh the page to update the user info
-        window.location.reload();
       } else {
         throw new Error("Email verification succeeded but email was not updated");
       }
