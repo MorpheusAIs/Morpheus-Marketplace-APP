@@ -98,11 +98,13 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         const activeKeys = response.data.filter(key => key.is_active);
         setApiKeys(activeKeys);
         
-        // Check if there's still a default key in the active keys
-        const hasDefaultKey = activeKeys.some(key => key.is_default);
-        
-        // If no default key exists, clear the defaultApiKey state
-        if (!hasDefaultKey) {
+        // Update defaultApiKey state to match the default key in active keys
+        const defaultKey = activeKeys.find(key => key.is_default);
+        if (defaultKey) {
+          // Set the default key metadata (without full key)
+          setDefaultApiKey(defaultKey);
+        } else {
+          // No default key exists, clear the state
           setDefaultApiKey(null);
         }
         
