@@ -106,29 +106,51 @@ export default function ApiKeysPage() {
       return;
     }
 
+    const wasDefaultKey = keyToDelete.isDefault;
+
     try {
       const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), accessToken);
       if (response.error) {
         throw new Error(response.error);
       }
       
-      // If we deleted the default key, clear sessionStorage
-      if (keyToDelete.isDefault) {
-        sessionStorage.removeItem('verified_api_key');
-        sessionStorage.removeItem('verified_api_key_prefix');
-        sessionStorage.removeItem('verified_api_key_timestamp');
-        sessionStorage.removeItem('verified_api_key_name');
-        localStorage.removeItem('selected_api_key_prefix');
-      }
-      
       await refreshApiKeys();
       
-      if (keyToDelete.isDefault) {
-        warning(
-          "Default API Key Deleted",
-          "You've deleted your default API key. Please set a new default key to use Chat functionality.",
-          { duration: 8000 }
-        );
+      // Check if we deleted the default key
+      if (wasDefaultKey) {
+        // After refresh, check if another key was auto-promoted to default
+        // Use a small timeout to ensure state has updated
+        setTimeout(() => {
+          const newDefaultKey = apiKeys.find(key => key.is_default);
+          
+          if (newDefaultKey) {
+            // Another key was auto-promoted to default
+            warning(
+              "Default API Key Changed",
+              `"${keyToDelete.name}" was deleted. "${newDefaultKey.name}" is now your default API key. You'll need to verify it before using the API.`,
+              { duration: 8000 }
+            );
+            // Clear sessionStorage since the old verified key is gone
+            sessionStorage.removeItem('verified_api_key');
+            sessionStorage.removeItem('verified_api_key_prefix');
+            sessionStorage.removeItem('verified_api_key_timestamp');
+            sessionStorage.removeItem('verified_api_key_name');
+            localStorage.removeItem('selected_api_key_prefix');
+          } else {
+            // No default key exists anymore
+            warning(
+              "Default API Key Deleted",
+              "You've deleted your default API key. Please set a new default key to continue using the API.",
+              { duration: 8000 }
+            );
+            // Clear sessionStorage
+            sessionStorage.removeItem('verified_api_key');
+            sessionStorage.removeItem('verified_api_key_prefix');
+            sessionStorage.removeItem('verified_api_key_timestamp');
+            sessionStorage.removeItem('verified_api_key_name');
+            localStorage.removeItem('selected_api_key_prefix');
+          }
+        }, 100);
       } else {
         success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
       }
@@ -443,7 +465,10 @@ export default function ApiKeysPage() {
                 <>
                   <span className="font-semibold text-yellow-600 dark:text-yellow-500">Warning:</span> You are about to delete your <span className="font-semibold">default API key</span> "{keyToDelete?.name}".
                   <br /><br />
-                  After deletion, you will need to set a new default API key to use Chat functionality. This action cannot be undone.
+                  {apiKeys.length > 1 
+                    ? "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it." 
+                    : "After deletion, you will need to create and set a new default API key to continue using the API."
+                  } This action cannot be undone.
                 </>
               ) : (
                 <>
