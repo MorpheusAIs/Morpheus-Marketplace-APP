@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 export function PricingPlans() {
   const handleSeePricing = () => {
-    window.open('https://apidocs.mor.org?utm_source=api-admin', '_blank', 'noopener,noreferrer');
+    window.open('https://apidocs.mor.org/documentation/models/pricing?utm_source=api-admin', '_blank', 'noopener,noreferrer');
   };
 
   return (
