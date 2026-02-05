@@ -86,13 +86,23 @@ async function request<T>(promise: Promise<ApiResponse<T>>): Promise<T> {
   }
 }
 
+function buildBillingEndpoint(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  if (typeof window !== 'undefined') {
+    return `/api/billing${normalizedPath}`;
+  }
+
+  return buildApiUrl(`/billing${normalizedPath}`);
+}
+
 // ========== Balance API ==========
 
 /**
  * Get current credit balance (paid + staking buckets)
  */
 export async function getBalance(token: string): Promise<BalanceResponse> {
-  const url = buildApiUrl('/billing/balance');
+  const url = buildBillingEndpoint('/balance');
   return request(apiGet<BalanceResponse>(url, token));
 }
 
@@ -120,7 +130,7 @@ export async function getUsage(
   if (params?.to) queryParams.append('to', params.to);
   if (params?.model) queryParams.append('model', params.model);
 
-  const url = buildApiUrl(`/billing/usage${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  const url = `${buildBillingEndpoint('/usage')}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
   
   if (process.env.NODE_ENV === 'development') {
     console.log('[BillingAPI] Fetching usage:', url);
@@ -150,7 +160,7 @@ export async function getUsageForMonth(
   if (params.limit) queryParams.append('limit', params.limit.toString());
   if (params.offset) queryParams.append('offset', params.offset.toString());
 
-  const url = buildApiUrl(`/billing/usage/month?${queryParams.toString()}`);
+  const url = `${buildBillingEndpoint('/usage/month')}?${queryParams.toString()}`;
   return request(apiGet<UsageListResponse>(url, token));
 }
 
@@ -178,7 +188,7 @@ export async function getTransactions(
   if (params?.from) queryParams.append('from', params.from);
   if (params?.to) queryParams.append('to', params.to);
 
-  const url = buildApiUrl(`/billing/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  const url = `${buildBillingEndpoint('/transactions')}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
   return request(apiGet<LedgerListResponse>(url, token));
 }
 
@@ -200,7 +210,7 @@ export async function getMonthlySpending(
   if (params?.year) queryParams.append('year', params.year.toString());
   if (params?.mode) queryParams.append('mode', params.mode);
 
-  const url = buildApiUrl(`/billing/spending${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  const url = `${buildBillingEndpoint('/spending')}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
   return request(apiGet<MonthlySpendingResponse>(url, token));
 }
 
@@ -263,7 +273,7 @@ export async function checkWalletAvailability(
 // ========== Billing Preferences API ==========
 
 export async function getBillingPreferences(token: string): Promise<BillingPreferencesResponse> {
-  const url = buildApiUrl('/billing/preferences');
+  const url = buildBillingEndpoint('/preferences');
   return request(apiGet<BillingPreferencesResponse>(url, token));
 }
 
@@ -271,17 +281,17 @@ export async function updateBillingPreferences(
   token: string,
   data: BillingPreferencesUpdateRequest
 ): Promise<BillingPreferencesResponse> {
-  const url = buildApiUrl('/billing/preferences');
+  const url = buildBillingEndpoint('/preferences');
   return request(apiPut<BillingPreferencesResponse>(url, data, token));
 }
 
 export const BILLING_URLS = {
-  balance: () => buildApiUrl('/billing/balance'),
-  usage: () => buildApiUrl('/billing/usage'),
-  usageMonth: () => buildApiUrl('/billing/usage/month'),
-  transactions: () => buildApiUrl('/billing/transactions'),
-  spending: () => buildApiUrl('/billing/spending'),
-  preferences: () => buildApiUrl('/billing/preferences'),
+  balance: () => buildBillingEndpoint('/balance'),
+  usage: () => buildBillingEndpoint('/usage'),
+  usageMonth: () => buildBillingEndpoint('/usage/month'),
+  transactions: () => buildBillingEndpoint('/transactions'),
+  spending: () => buildBillingEndpoint('/spending'),
+  preferences: () => buildBillingEndpoint('/preferences'),
   walletStatus: () => buildApiUrl('/auth/wallet/'),
   walletNonce: () => buildApiUrl('/auth/wallet/nonce'),
   walletLink: () => buildApiUrl('/auth/wallet/link'),
