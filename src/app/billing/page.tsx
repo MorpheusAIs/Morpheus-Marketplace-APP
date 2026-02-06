@@ -10,6 +10,7 @@ import { StakingWidget } from '@/components/billing/StakingWidget';
 import { PricingPlans } from '@/components/billing/PricingPlans';
 import { OveragesToggle } from '@/components/billing/OveragesToggle';
 import { useBillingBalance, useWalletStatus } from '@/lib/hooks/use-billing';
+import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ export default function BillingPage() {
   
   const { data: balance, isLoading: isLoadingBalance, error: balanceError, refetch: refetchBalance } = useBillingBalance();
   const { data: walletStatus, isLoading: isLoadingWallet, refetch: refetchWallet } = useWalletStatus();
+  const { user } = useCognitoAuth();
 
   const handleConnectWallet = () => {
     // TODO: Implement wallet connection flow
@@ -170,6 +172,7 @@ export default function BillingPage() {
                 currentBalance={balance?.total_available ?? '0'}
                 isLoading={isLoadingBalance}
                 onBalanceUpdate={handleBalanceUpdate}
+                userId={user?.sub}
                 stakingWidget={
                   <StakingWidget
                     walletStatus={walletStatus}

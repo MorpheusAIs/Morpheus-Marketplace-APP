@@ -46,12 +46,39 @@ export function StakingWidget({
   const unlinkWallet = useUnlinkWallet();
   const queryClient = useQueryClient();
   
-  // Track previous connection state to detect disconnections
+  // Track previous connection state to detect disconnections and connections
   const prevIsConnectedRef = useRef<boolean>(isConnected);
   const prevAddressRef = useRef<string | undefined>(address);
 
   const hasWallet = walletStatus?.has_wallets ?? false;
   const walletCount = walletStatus?.wallet_count ?? 0;
+  
+  // Reactively detect wallet connections and address changes to immediately refresh status
+  useEffect(() => {
+    const wasDisconnected = !prevIsConnectedRef.current && !prevAddressRef.current;
+    const nowConnected = isConnected && address;
+    const addressChanged = prevIsConnectedRef.current && isConnected && 
+                          prevAddressRef.current && address && 
+                          prevAddressRef.current !== address;
+    
+    // Detect connection: was disconnected, now connected with address
+    if (wasDisconnected && nowConnected) {
+      console.log('[StakingWidget] Wallet connection detected - refreshing status');
+      
+      // Immediately invalidate queries to refresh UI with connected wallet state
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+    }
+    
+    // Detect address change: wallet stays connected but user switched accounts
+    if (addressChanged) {
+      console.log('[StakingWidget] Wallet address changed - refreshing status');
+      
+      // Immediately invalidate queries to refresh UI with new wallet address
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
+    }
+  }, [isConnected, address, queryClient]);
   
   const formatMorAmount = (value: string | undefined): string => {
     if (!value || value === '0') return '0';
@@ -395,17 +422,6 @@ export function StakingWidget({
                       ))}
                     </div>
                     
-                    {/* Only show "Connect Another Wallet" when connected to provider */}
-                    {isConnected && (
-                      <Button
-                        onClick={handleConnectAnother}
-                        variant="outline"
-                        className="w-full text-xs mt-2"
-                        size="sm"
-                      >
-                        Connect Another Wallet
-                      </Button>
-                    )}
                   </div>
                 )}
                 
@@ -418,8 +434,7 @@ export function StakingWidget({
                        <div className="mt-2 flex gap-2">
                          <Button 
                            size="sm" 
-                           variant="outline" 
-                           className="h-7 text-xs border-yellow-500/50 hover:bg-yellow-500/10"
+                           className="h-7 text-xs bg-green-500 hover:bg-green-600 text-black font-medium"
                            onClick={handleLinkWallet}
                            disabled={isLinking}
                          >
@@ -457,14 +472,24 @@ export function StakingWidget({
                       </AlertDescription>
                     </Alert>
                   </div>
-                ) : (
-                  <Alert className="bg-green-500/10 border-green-500/20 mt-2">
-                    {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
-                    <AlertDescription className="text-xs text-muted-foreground">
-                      Your staking rewards refresh daily at midnight UTC
-                    </AlertDescription>
-                  </Alert>
-                )}
+                ) : isConnected ? (
+                  <div className="flex flex-col md:flex-row md:items-center gap-2 mt-2">
+                    <Button
+                      onClick={handleConnectAnother}
+                      variant="outline"
+                      className="w-full md:w-1/2 text-xs border-green-500/20 hover:bg-green-500/10 py-5 rounded-lg"
+                      size="sm"
+                    >
+                      Connect Another Wallet
+                    </Button>
+                    <Alert className="bg-green-500/10 border-green-500/20 md:w-1/2 [&>svg~*]:pl-0">
+                      {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
+                      <AlertDescription className="text-xs text-muted-foreground">
+                        Your staking rewards refresh daily at midnight UTC
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                ) : null}
               </div>
             ) : (
               // Empty State (No wallets linked in backend)
@@ -491,47 +516,45 @@ export function StakingWidget({
                   </div>
 
                   {isConnected ? (
-                    <div className="space-y-2">
-                      <Button
-                        onClick={handleLinkWallet}
-                        className="w-full bg-green-500 hover:bg-green-600 text-black"
-                        disabled={isLinking}
-                      >
-                        {isLinking ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Linking...
-                          </>
-                        ) : (
-                          <>
-                            Stake MOR for Daily Allowance
-                            <Wallet className="ml-2 h-4 w-4" />
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-xs text-muted-foreground text-center">
-                        Stake your tokens to receive a daily allowance instead of paying per usage.
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={handleDisconnect}
-                        className="w-full"
-                        size="sm"
-                      >
-                        Disconnect
-                      </Button>
-                    </div>
+                    <Alert className="bg-yellow-500/10 border-yellow-500/20">
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                      <AlertDescription className="text-xs text-muted-foreground">
+                        Connected: <span className="font-mono">{formatAddress(address || '')}</span>
+                        <div className="mt-2 flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="h-7 text-xs bg-green-500 hover:bg-green-600 text-black font-medium"
+                            onClick={handleLinkWallet}
+                            disabled={isLinking}
+                          >
+                            {isLinking ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                            Link This Wallet
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={handleDisconnect}
+                          >
+                            Disconnect
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Stake your tokens to receive a daily allowance instead of paying per usage.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 flex flex-col items-center">
                       <Button
                         onClick={() => {
                           setPendingStakingFlow(true);
                           handleConnectAnother();
                         }}
-                        className="w-full bg-green-500 hover:bg-green-600 text-black"
+                        className="w-full md:w-1/4 bg-green-500 hover:bg-green-600 text-black"
                       >
-                        Stake MOR for Daily Allowance
-                        <Wallet className="ml-2 h-4 w-4" />
+                        <Wallet className="mr-2 h-4 w-4" />
+                        Connect Wallet
                       </Button>
                       <p className="text-xs text-muted-foreground text-center">
                         Stake your tokens to receive a daily allowance instead of paying per usage.
