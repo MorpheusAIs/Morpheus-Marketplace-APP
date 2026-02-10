@@ -90,9 +90,13 @@ export function TransactionHistoryTable() {
   const [selectedType, setSelectedType] = useState<LedgerEntryTypeEnum | 'all'>('all');
   const { user } = useCognitoAuth();
   
+  // MOR-346: Fetch larger batches to account for filtered staking_refresh entries
+  // We fetch 3x the display amount to ensure we have enough visible items after filtering
+  const fetchSize = pageSize * 3;
+  
   const { data, isLoading, error } = useBillingTransactions({
-    limit: pageSize,
-    offset: (page - 1) * pageSize,
+    limit: fetchSize,
+    offset: (page - 1) * fetchSize,
     entry_type: selectedType === 'all' ? undefined : selectedType,
   });
 
@@ -119,18 +123,25 @@ export function TransactionHistoryTable() {
   // Check if we should display this data
   const shouldDisplay = validationResult ? shouldDisplayData(validationResult) : true;
 
-  // Filter out staking_refresh entries from the displayed data
+  // MOR-346: Filter out staking_refresh entries and limit to pageSize for display
+  // We fetch 3x the amount to ensure we have enough items after filtering
   const filteredData = useMemo(() => {
     if (!data?.items) return data;
-    const filteredItems = data.items.filter(item => item.entry_type !== 'staking_refresh');
+    const filteredItems = data.items
+      .filter(item => item.entry_type !== 'staking_refresh')
+      .slice(0, pageSize); // Only show pageSize items per page
+    
     return {
       ...data,
       items: filteredItems,
-      total: filteredItems.length, // Note: This is approximate since we're filtering client-side
+      // Approximate pagination based on filtered results
+      // has_more: true if we got a full page of filtered items (indicates more data likely exists)
+      has_more: filteredItems.length === pageSize && data.has_more,
     };
-  }, [data]);
+  }, [data, pageSize]);
 
-  const totalPages = filteredData ? Math.ceil(filteredData.total / pageSize) : 0;
+  // Calculate total pages based on approximate filtered count
+  const totalPages = filteredData ? Math.ceil(filteredData.total / fetchSize) : 0;
 
   const handleExportCSV = () => {
     if (!filteredData?.items) return;
@@ -345,11 +356,11 @@ export function TransactionHistoryTable() {
 
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="text-sm text-muted-foreground">
-            {filteredData?.total ? (
+            {filteredData?.items && filteredData.items.length > 0 ? (
               <>
                 Showing <strong>{(page - 1) * pageSize + 1}</strong> to{' '}
-                <strong>{Math.min(page * pageSize, filteredData.total)}</strong> of{' '}
-                <strong>{filteredData.total}</strong> entries
+                <strong>{(page - 1) * pageSize + filteredData.items.length}</strong>
+                {filteredData.has_more && ' (more available)'}
               </>
             ) : (
               'No entries'
