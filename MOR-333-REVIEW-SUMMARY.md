@@ -48,7 +48,7 @@ This is a **Priority 1 security and data privacy issue**. The reported symptoms 
 
 ## What We Built
 
-### Fix Branch: `bowtiedswan/mor-333-review-data-isolation`
+### Fix Branch: `fix/mor-333-review-data-isolation`
 
 Created comprehensive **defensive frontend validation** while backend team investigates:
 
@@ -183,7 +183,7 @@ But it **does NOT** fix the root cause:
 ## Recommendation
 
 ### Priority 1: Test This Branch
-1. Checkout: `bowtiedswan/mor-333-review-data-isolation`
+1. Checkout: `fix/mor-333-review-data-isolation`
 2. Deploy to dev
 3. Test with the reported user's account
 4. Check if validation catches the issue
@@ -239,7 +239,7 @@ src/components/billing/TransactionHistoryTable.tsx (modified)
 
 ```bash
 # To review:
-git checkout bowtiedswan/mor-333-review-data-isolation
+git checkout fix/mor-333-review-data-isolation
 
 # To test locally:
 npm run dev
