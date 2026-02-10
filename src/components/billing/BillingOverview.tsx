@@ -75,6 +75,8 @@ interface SpendData {
 }
 
 function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
+  if (items.length === 0) return [];
+
   const grouped = items.reduce<Record<string, { isoDate: string; data: DailyData }>>((acc, entry) => {
     // Use ISO date string (YYYY-MM-DD) for grouping to ensure consistency across locales
     const isoDate = entry.created_at.split('T')[0];
@@ -102,8 +104,33 @@ function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
     return acc;
   }, {});
 
+  // Fill in missing dates from earliest to today
+  const dates = Object.keys(grouped).sort();
+  if (dates.length === 0) return [];
+
+  const startDate = new Date(dates[0]);
+  const endDate = new Date(); // Today
+  const filledData: Record<string, { isoDate: string; data: DailyData }> = { ...grouped };
+
+  // Fill in all dates from start to today
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const isoDate = d.toISOString().split('T')[0];
+    if (!filledData[isoDate]) {
+      filledData[isoDate] = {
+        isoDate,
+        data: {
+          date: formatLocaleDate(d.toISOString()),
+          staking: 0,
+          credit: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+      };
+    }
+  }
+
   // Sort by ISO date string (naturally sortable) and return formatted data
-  return Object.values(grouped)
+  return Object.values(filledData)
     .sort((a, b) => a.isoDate.localeCompare(b.isoDate))
     .map((item) => item.data);
 }
