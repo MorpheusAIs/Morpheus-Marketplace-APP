@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -26,11 +26,18 @@ import {
   AlertCircle,
   Search,
   Filter,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useBillingTransactions } from '@/lib/hooks/use-billing';
+import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { formatCurrency, downloadCSV, formatLocaleDate, formatLocaleTime } from '@/lib/utils/billing-utils';
+import {
+  validateLedgerEntries,
+  reportValidationIssues,
+  shouldDisplayData,
+} from '@/lib/utils/data-isolation-validator';
 import type { LedgerEntryResponse, LedgerEntryTypeEnum, LedgerStatusEnum } from '@/types/billing';
 
 const ENTRY_TYPES: { value: LedgerEntryTypeEnum | 'all'; label: string }[] = [
@@ -81,15 +88,36 @@ export function TransactionHistoryTable() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedType, setSelectedType] = useState<LedgerEntryTypeEnum | 'all'>('all');
-  // API currently doesn't support filtering by status in the hook params directly based on the definition
-  // but we can filter client side if needed, or update the hook.
-  // The hook interface `GetTransactionsParams` only has `entry_type`.
+  const { user } = useCognitoAuth();
   
   const { data, isLoading, error } = useBillingTransactions({
     limit: pageSize,
     offset: (page - 1) * pageSize,
     entry_type: selectedType === 'all' ? undefined : selectedType,
   });
+
+  // MOR-333: Validate data isolation for ledger entries
+  const validationResult = useMemo(() => {
+    if (!data?.items || data.items.length === 0) return null;
+    
+    return validateLedgerEntries(data.items, {
+      cognitoSub: user?.sub,
+      userEmail: user?.email,
+    });
+  }, [data, user]);
+
+  // Report validation issues
+  useEffect(() => {
+    if (validationResult) {
+      reportValidationIssues('TransactionHistoryTable', validationResult, {
+        cognitoSub: user?.sub,
+        userEmail: user?.email,
+      });
+    }
+  }, [validationResult, user]);
+
+  // Check if we should display this data
+  const shouldDisplay = validationResult ? shouldDisplayData(validationResult) : true;
 
   // Filter out staking_refresh entries from the displayed data
   const filteredData = useMemo(() => {
@@ -156,28 +184,74 @@ export function TransactionHistoryTable() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="w-[200px]">
-            <Select
-              value={selectedType}
-              onValueChange={(value) => {
-                setSelectedType(value as LedgerEntryTypeEnum | 'all');
-                setPage(1);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Type" />
-              </SelectTrigger>
-              <SelectContent>
-                {ENTRY_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* MOR-333: Data validation warnings */}
+        {validationResult && validationResult.warnings.length > 0 && (
+          <div className="mb-6 rounded-lg border border-yellow-500/50 bg-yellow-500/5 p-4">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div className="space-y-2 flex-1">
+                <p className="text-sm font-semibold text-foreground">Data Anomalies Detected</p>
+                <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                  {validationResult.warnings.map((warning, i) => (
+                    <li key={i}>{warning}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground pt-2">
+                  If these transactions don't belong to you, please contact support immediately. Reference: <code className="text-xs bg-muted px-1 py-0.5 rounded">MOR-333</code>
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* MOR-333: Block display if critical issues */}
+        {validationResult && !shouldDisplay ? (
+          <div className="flex items-center justify-center p-12 border border-destructive/50 rounded-lg bg-destructive/5">
+            <div className="text-center space-y-4">
+              <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
+              <div>
+                <p className="text-sm font-semibold text-destructive">Data Validation Failed</p>
+                <p className="mt-2 text-xs text-muted-foreground max-w-md mx-auto">
+                  We detected potential data integrity issues and have hidden this information for your security.
+                  Please contact support immediately. Reference: <code className="text-xs bg-muted px-1 py-0.5 rounded">MOR-333</code>
+                </p>
+              </div>
+              {validationResult.issues.length > 0 && process.env.NODE_ENV === 'development' && (
+                <details className="text-left mt-4 p-3 bg-destructive/10 rounded text-xs">
+                  <summary className="cursor-pointer font-semibold">Technical Details (Dev Mode)</summary>
+                  <ul className="mt-2 space-y-1 list-disc list-inside">
+                    {validationResult.issues.map((issue, i) => (
+                      <li key={i} className="text-muted-foreground">{issue}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <div className="w-[200px]">
+                <Select
+                  value={selectedType}
+                  onValueChange={(value) => {
+                    setSelectedType(value as LedgerEntryTypeEnum | 'all');
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ENTRY_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
         <div className="rounded-md border">
           <Table>
@@ -302,6 +376,8 @@ export function TransactionHistoryTable() {
             </Button>
           </div>
         </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

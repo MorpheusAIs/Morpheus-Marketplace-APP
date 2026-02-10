@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -15,9 +15,15 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, AlertTriangle } from 'lucide-react';
 import { useBillingSpending } from '@/lib/hooks/use-billing';
+import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { formatCurrency } from '@/lib/utils/billing-utils';
+import {
+  validateMonthlySpending,
+  reportValidationIssues,
+  shouldDisplayData,
+} from '@/lib/utils/data-isolation-validator';
 import type { SpendingModeEnum } from '@/types/billing';
 
 interface MonthlySpendingChartProps {
@@ -59,11 +65,35 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingChartProps) {
   const currentYear = year || new Date().getFullYear();
+  const { user } = useCognitoAuth();
 
   const { data: spendingData, isLoading, error } = useBillingSpending({
     year: currentYear,
     mode,
   });
+
+  // MOR-333: Validate data isolation
+  const validationResult = useMemo(() => {
+    if (!spendingData) return null;
+    
+    return validateMonthlySpending(spendingData, {
+      cognitoSub: user?.sub,
+      userEmail: user?.email,
+    });
+  }, [spendingData, user]);
+
+  // Report validation issues
+  useEffect(() => {
+    if (validationResult) {
+      reportValidationIssues('MonthlySpendingChart', validationResult, {
+        cognitoSub: user?.sub,
+        userEmail: user?.email,
+      });
+    }
+  }, [validationResult, user]);
+
+  // Check if we should display this data
+  const shouldDisplay = validationResult ? shouldDisplayData(validationResult) : true;
 
   // Prepare chart data with all 12 months
   const chartData = useMemo(() => {
@@ -127,6 +157,36 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
     };
   }, [chartData]);
 
+  // MOR-333: Block display if critical data isolation issues detected
+  if (validationResult && !shouldDisplay) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-12">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">Data Validation Failed</p>
+              <p className="mt-2 text-xs text-muted-foreground max-w-md mx-auto">
+                We detected potential data integrity issues and have hidden this information for your security.
+                Please contact support if this persists.
+              </p>
+            </div>
+            {validationResult.issues.length > 0 && process.env.NODE_ENV === 'development' && (
+              <details className="text-left mt-4 p-3 bg-destructive/10 rounded text-xs">
+                <summary className="cursor-pointer font-semibold">Technical Details (Dev Mode)</summary>
+                <ul className="mt-2 space-y-1 list-disc list-inside">
+                  {validationResult.issues.map((issue, i) => (
+                    <li key={i} className="text-muted-foreground">{issue}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (error) {
     return (
       <Card>
@@ -156,6 +216,28 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
 
   return (
     <div className="space-y-4">
+      {/* MOR-333: Data validation warnings */}
+      {validationResult && validationResult.warnings.length > 0 && (
+        <Card className="border-yellow-500/50 bg-yellow-500/5">
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">Data Anomalies Detected</p>
+                <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                  {validationResult.warnings.map((warning, i) => (
+                    <li key={i}>{warning}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground pt-2">
+                  If this data doesn't look right, please contact support. Reference: <code className="text-xs bg-muted px-1 py-0.5 rounded">MOR-333</code>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       {stats && (
         <div className="grid gap-4 md:grid-cols-4">
