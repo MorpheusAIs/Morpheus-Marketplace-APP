@@ -15,8 +15,8 @@ import type {
   NonceResponse,
   SpendingModeEnum,
   LedgerEntryTypeEnum,
-  BillingPreferencesResponse,
-  BillingPreferencesUpdateRequest,
+  OverageSettingsResponse,
+  OverageSettingsUpdateRequest,
 } from '@/types/billing';
 
 /**
@@ -267,21 +267,18 @@ export async function checkWalletAvailability(
   return request(apiGet<{ wallet_address: string; is_available: boolean }>(url));
 }
 
-// ========== Convenience API URLs ==========
+// ========== Overage Settings API ==========
 
-// ========== Billing Preferences API ==========
-
-export async function getBillingPreferences(token: string): Promise<BillingPreferencesResponse> {
-  const url = buildApiUrl('/billing/preferences');
-  return request(apiGet<BillingPreferencesResponse>(url, token));
-}
-
-export async function updateBillingPreferences(
+/**
+ * Update the allow_overage setting
+ * Note: The current allow_overage value is returned in the /billing/balance response
+ */
+export async function updateOverageSettings(
   token: string,
-  data: BillingPreferencesUpdateRequest
-): Promise<BillingPreferencesResponse> {
-  const url = buildApiUrl('/billing/preferences');
-  return request(apiPut<BillingPreferencesResponse>(url, data, token));
+  data: OverageSettingsUpdateRequest
+): Promise<OverageSettingsResponse> {
+  const url = buildApiUrl('/billing/settings/overage');
+  return request(apiPut<OverageSettingsResponse>(url, data, token));
 }
 
 export const BILLING_URLS = {
@@ -290,7 +287,7 @@ export const BILLING_URLS = {
   usageMonth: () => buildApiUrl('/billing/usage/month'),
   transactions: () => buildApiUrl('/billing/transactions'),
   spending: () => buildApiUrl('/billing/spending'),
-  preferences: () => buildApiUrl('/billing/preferences'),
+  overageSettings: () => buildApiUrl('/billing/settings/overage'),
   walletStatus: () => buildApiUrl('/auth/wallet/'),
   walletNonce: () => buildApiUrl('/auth/wallet/nonce'),
   walletLink: () => buildApiUrl('/auth/wallet/link'),

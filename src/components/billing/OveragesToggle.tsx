@@ -11,27 +11,41 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useBillingPreferences, useUpdateBillingPreferences } from '@/lib/hooks/use-billing';
+import { useBillingBalance, useUpdateOverageSettings } from '@/lib/hooks/use-billing';
 import { toast } from 'sonner';
 
 export function OveragesToggle() {
-  const { data: preferences, isLoading } = useBillingPreferences();
-  const updatePreferences = useUpdateBillingPreferences();
+  const { data: balance, isLoading, error } = useBillingBalance();
+  const updateSettings = useUpdateOverageSettings();
 
   const handleToggle = async (checked: boolean) => {
     try {
-      await updatePreferences.mutateAsync({ allow_overages: checked });
+      console.log('[OveragesToggle] Attempting to update allow_overage to:', checked);
+      console.log('[OveragesToggle] Current balance/settings:', balance);
+      
+      const result = await updateSettings.mutateAsync({ allow_overage: checked });
+      
+      console.log('[OveragesToggle] Update successful:', result);
+      
       toast.success(
-        checked 
+        result.message || (checked 
           ? 'Overages enabled - Credit Balance will be used when Daily Allowance is exhausted'
-          : 'Overages disabled - Only Daily Staking Allowance will be used'
+          : 'Overages disabled - Only Daily Staking Allowance will be used')
       );
     } catch (error) {
-      toast.error('Failed to update preference');
-      console.error('Failed to update allow_overages:', error);
+      console.error('[OveragesToggle] Failed to update allow_overage:', error);
+      console.error('[OveragesToggle] Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
+      toast.error(
+        `Failed to update setting: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
+  // Show loading state while fetching balance
   if (isLoading) {
     return (
       <Card className="border-border">
@@ -41,6 +55,28 @@ export function OveragesToggle() {
       </Card>
     );
   }
+
+  // Show error state if balance failed to load
+  if (error) {
+    return (
+      <Card className="border-destructive/50">
+        <CardContent className="py-6">
+          <p className="text-sm text-destructive">
+            Failed to load billing settings. Please refresh the page.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Don't render until we have valid balance data
+  if (!balance) {
+    return null;
+  }
+
+  // Per MOR-323: Default should be disabled (false), not enabled (true)
+  const isEnabled = balance.allow_overage ?? false;
+  const isDisabled = updateSettings.isPending;
 
   return (
     <Card className="border-border">
@@ -70,10 +106,10 @@ export function OveragesToggle() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="allow-overages" className="text-sm font-medium">
-              {preferences?.allow_overages ? 'Enabled' : 'Disabled'}
+              {isEnabled ? 'Enabled' : 'Disabled'}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {preferences?.allow_overages 
+              {isEnabled 
                 ? 'Credit Balance will be used as fallback'
                 : 'Only Daily Staking Allowance will be used'
               }
@@ -81,9 +117,9 @@ export function OveragesToggle() {
           </div>
           <Switch
             id="allow-overages"
-            checked={preferences?.allow_overages ?? true}
+            checked={isEnabled}
             onCheckedChange={handleToggle}
-            disabled={updatePreferences.isPending}
+            disabled={isDisabled}
           />
         </div>
       </CardContent>

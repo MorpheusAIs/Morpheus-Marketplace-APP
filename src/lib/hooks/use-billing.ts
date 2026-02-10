@@ -14,8 +14,7 @@ import {
   getTransactions,
   getMonthlySpending,
   getWalletStatus,
-  getBillingPreferences,
-  updateBillingPreferences,
+  updateOverageSettings,
   type GetUsageParams,
   type GetUsageForMonthParams,
   type GetTransactionsParams,
@@ -29,8 +28,7 @@ import type {
   MonthlySpendingResponse,
   WalletStatusResponse,
   WalletLinkRequest,
-  BillingPreferencesResponse,
-  BillingPreferencesUpdateRequest,
+  OverageSettingsUpdateRequest,
 } from '@/types/billing';
 
 // ========== Balance Hook ==========
@@ -347,36 +345,25 @@ export function useUnlinkWallet() {
   });
 }
 
-// ========== Billing Preferences Hooks ==========
+// ========== Overage Settings Hooks ==========
 
-export function useBillingPreferences(options?: {
-  enabled?: boolean;
-}): UseQueryResult<BillingPreferencesResponse, Error> {
-  const { getValidToken } = useCognitoAuth();
-
-  return useQuery({
-    queryKey: ['billing', 'preferences'],
-    queryFn: async () => {
-      const token = await getValidToken();
-      if (!token) throw new Error('Not authenticated');
-      return getBillingPreferences(token);
-    },
-    enabled: options?.enabled ?? true,
-  });
-}
-
-export function useUpdateBillingPreferences() {
+/**
+ * Hook to update the allow_overage setting
+ * Note: The current allow_overage value comes from useBillingBalance()
+ */
+export function useUpdateOverageSettings() {
   const { getValidToken } = useCognitoAuth();
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: BillingPreferencesUpdateRequest) => {
+    mutationFn: async (data: OverageSettingsUpdateRequest) => {
       const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
-      return updateBillingPreferences(token, data);
+      return updateOverageSettings(token, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['billing', 'preferences'] });
+      // Invalidate balance query since it contains the allow_overage field
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balance'] });
     }
   });
 }
