@@ -8,52 +8,51 @@ The Coinbase payment integration returns "Payment service not configured" on app
 - Response: `{"error":"Payment service not configured"}`
 
 ## Root Cause
-The `COINBASE_COMMERCE_API_KEY` environment variable is not accessible to the Next.js API route in the Vercel deployment, even though it's configured in Vercel's dashboard.
+The `COINBASE_COMMERCE_API_KEY` environment variable is not accessible to the Next.js API route in the AWS Amplify deployment, even though it may be configured locally.
 
-## Common Causes & Solutions
+## Common Causes & Solutions (AWS Amplify)
 
-### 1. Environment Variable Not Set for Correct Environment
-
-Vercel has three environment types:
-- **Production**: For production deployments (main/master branch)
-- **Preview**: For PR deployments and preview branches
-- **Development**: For local development with `vercel dev`
+### 1. Environment Variable Not Configured in AWS Amplify Console
 
 **Solution:**
-1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
-2. Find `COINBASE_COMMERCE_API_KEY`
-3. Check the environments it's enabled for:
-   - If you're deploying to `app.dev.mor.org`, this is likely a **Preview** or **Production** deployment
-   - Ensure the variable is checked for the correct environment(s)
-4. Save changes
+1. Open AWS Amplify Console: https://console.aws.amazon.com/amplify/
+2. Select your Morpheus Marketplace APP
+3. Go to: **App settings** → **Environment variables**
+4. Click **Manage variables** or **Add environment variable**
+5. Add:
+   - Variable name: `COINBASE_COMMERCE_API_KEY`
+   - Value: Your 36-character API key
+6. Ensure it's added for the correct branch (e.g., `dev` branch for app.dev.mor.org)
+7. Click **Save**
 
 ### 2. Deployment Not Rebuilt After Adding Variable
 
-Environment variables are baked into the build at build time for server-side variables.
+Environment variables in AWS Amplify are baked into the build at build time.
 
 **Solution:**
-1. After adding/updating the environment variable in Vercel
-2. Go to Deployments tab
-3. Find the latest deployment
-4. Click the three dots (...) → "Redeploy"
-5. OR push a new commit to trigger a fresh build
+1. After adding/updating the environment variable in Amplify Console
+2. AWS Amplify should auto-trigger a new build
+3. OR manually trigger: Go to **Deployments** → **Redeploy this version**
+4. Wait for build to complete (~5-10 minutes)
+5. Monitor build logs for any errors
 
 ### 3. Variable Name Mismatch
 
-Vercel is case-sensitive for environment variable names.
+AWS Amplify is case-sensitive for environment variable names.
 
 **Solution:**
-1. Verify the exact variable name in Vercel matches: `COINBASE_COMMERCE_API_KEY`
+1. Verify the exact variable name matches: `COINBASE_COMMERCE_API_KEY`
 2. No extra spaces, underscores, or typos
+3. No `NEXT_PUBLIC_` prefix (this is a server-side only variable)
 
-### 4. Missing from .env.production (if using)
+### 4. Branch-Specific Configuration
 
-If you have a `.env.production` file that overrides Vercel's variables:
+AWS Amplify configures environment variables per branch, not per environment type.
 
 **Solution:**
-1. Check if `.env.production` exists in your repo
-2. If it does, ensure it includes `COINBASE_COMMERCE_API_KEY=`
-3. Note: This is rare and not recommended
+1. Identify which branch deploys to `app.dev.mor.org` (likely `dev`)
+2. Ensure the variable is configured for that specific branch
+3. Each branch can have different environment variable values
 
 ## Diagnostic Steps
 
@@ -100,38 +99,38 @@ export async function GET() {
 
 Visit: `https://app.dev.mor.org/api/test-env`
 
-## Recommended Fix Process
+## Recommended Fix Process (AWS Amplify)
 
-1. **Verify in Vercel Dashboard:**
-   ```bash
-   # If you have Vercel CLI linked:
-   vercel env ls
-   
-   # Check for COINBASE_COMMERCE_API_KEY
-   # Should show which environments it's active in
-   ```
+1. **Open AWS Amplify Console:**
+   - Navigate to: https://console.aws.amazon.com/amplify/
+   - Select: Morpheus Marketplace APP
 
-2. **Update Environment Variable:**
-   - Go to Vercel Dashboard → Settings → Environment Variables
-   - Click on `COINBASE_COMMERCE_API_KEY`
-   - Ensure "Preview" is checked (if deploying to `app.dev.mor.org`)
-   - Click "Save"
+2. **Configure Environment Variable:**
+   - Go to: **App settings** → **Environment variables**
+   - Click: **Manage variables** (or **Add environment variable**)
+   - Add variable:
+     ```
+     Name: COINBASE_COMMERCE_API_KEY
+     Value: [your 36-character API key]
+     Branch: dev (or the branch that deploys to app.dev.mor.org)
+     ```
+   - Click **Save**
 
-3. **Redeploy:**
-   ```bash
-   # Option A: Through CLI
-   vercel --prod  # for production
-   # or
-   vercel  # for preview
-   
-   # Option B: Through Dashboard
-   # Go to Deployments → Click (...) → Redeploy
-   ```
+3. **Monitor Build:**
+   - AWS Amplify will automatically trigger a new build
+   - Go to: **Deployments** tab to monitor progress
+   - Wait for build to complete (~5-10 minutes)
+   - Check build logs for any errors
 
 4. **Verify Fix:**
    - Visit: `https://app.dev.mor.org/api/coinbase/diagnostic`
    - Confirm `api_key_configured: true`
    - Test payment flow
+
+**Alternative: Manual Redeploy**
+If auto-build doesn't trigger:
+- Go to: **Deployments** → Find latest deployment
+- Click: **Redeploy this version**
 
 ## Prevention
 
@@ -154,9 +153,29 @@ jobs:
           fi
 ```
 
+## AWS Amplify Specific Notes
+
+### Environment Variable Visibility
+- Variables **without** `NEXT_PUBLIC_` prefix are server-side only
+- Server-side variables are available in API routes and `getServerSideProps`
+- They are NOT exposed to the browser/client-side code
+
+### Branch Configuration
+- Each branch can have different environment variable values
+- Common setup:
+  - `main` branch → production environment
+  - `dev` branch → development/staging (app.dev.mor.org)
+  - Feature branches → can inherit from parent branch
+
+### Build Process
+1. AWS Amplify reads environment variables at build time
+2. Variables are injected into the Next.js build
+3. API routes access them via `process.env.*`
+4. Changes require a rebuild to take effect
+
 ## Additional Resources
 
-- [Vercel Environment Variables Documentation](https://vercel.com/docs/concepts/projects/environment-variables)
+- [AWS Amplify Environment Variables Documentation](https://docs.aws.amazon.com/amplify/latest/userguide/environment-variables.html)
 - [Next.js Environment Variables](https://nextjs.org/docs/pages/building-your-application/configuring/environment-variables)
 
 ## Related Issues
