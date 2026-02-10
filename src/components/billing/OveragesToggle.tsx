@@ -56,26 +56,13 @@ export function OveragesToggle() {
     );
   }
 
-  // Show error state if preferences failed to load
-  if (error) {
-    return (
-      <Card className="border-destructive/50">
-        <CardContent className="py-6">
-          <p className="text-sm text-destructive">
-            Failed to load billing preferences. Please refresh the page.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Don't render until we have valid preferences data
-  if (!preferences) {
-    return null;
-  }
-
+  // Check if API endpoint exists (404 = endpoint not implemented yet)
+  const isApiNotImplemented = error?.message?.includes('Not Found') || error?.message?.includes('404');
+  
   // Per MOR-323: Default should be disabled (false), not enabled (true)
-  const isEnabled = preferences.allow_overages ?? false;
+  // If API returns 404, use default value but show as disabled/read-only
+  const isEnabled = preferences?.allow_overages ?? false;
+  const isDisabled = updatePreferences.isPending || isApiNotImplemented;
 
   return (
     <Card className="border-border">
@@ -98,7 +85,10 @@ export function OveragesToggle() {
           </TooltipProvider>
         </CardTitle>
         <CardDescription className="text-xs">
-          Use Credit Balance when Daily Allowance runs out
+          {isApiNotImplemented 
+            ? 'Feature coming soon - Backend API not yet available'
+            : 'Use Credit Balance when Daily Allowance runs out'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -118,7 +108,7 @@ export function OveragesToggle() {
             id="allow-overages"
             checked={isEnabled}
             onCheckedChange={handleToggle}
-            disabled={updatePreferences.isPending}
+            disabled={isDisabled}
           />
         </div>
       </CardContent>
