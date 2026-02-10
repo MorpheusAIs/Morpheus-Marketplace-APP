@@ -323,3 +323,23 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
   opacity: 1 !important;
   background-color: #0C0C0C !important;
 }
+
+/* Recharts hover background styling - reduce opacity for subtle effect */
+.recharts-bar-rectangle:hover,
+.recharts-active-bar {
+  opacity: 0.9 !important;
+}
+
+.recharts-tooltip-cursor {
+  fill: hsl(var(--muted)) !important;
+  opacity: 0.1 !important;
+}
+
+/* For area charts hover */
+.recharts-area-curve:hover {
+  opacity: 0.9 !important;
+}
+
+.recharts-active-shape {
+  opacity: 0.9 !important;
+}

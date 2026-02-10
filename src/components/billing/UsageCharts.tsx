@@ -15,6 +15,8 @@ import {
   BarChart,
   Bar,
   Legend,
+  LineChart,
+  Line,
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { DailyAggregation, APIKeyDB } from '@/types/billing';
@@ -73,8 +75,8 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
   const dailySpendData = useMemo(() => {
     return dailyData.map((item) => ({
       date: formatChartDate(item.date),
-      Staking: parseFloat(item.cost_staking.toFixed(2)),
-      Credit: parseFloat(item.cost_balance.toFixed(2)),
+      Staking: Math.abs(parseFloat(item.cost_staking.toFixed(2))),
+      Credit: Math.abs(parseFloat(item.cost_balance.toFixed(2))),
     }));
   }, [dailyData]);
 
@@ -187,7 +189,7 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
         </div>
       )}
 
-      {/* Daily Spend Breakdown (Stacked Area Chart) */}
+      {/* Daily Spend Breakdown (Line Chart) */}
       <Card>
         <CardHeader>
           <CardTitle>Daily Spend Breakdown</CardTitle>
@@ -195,39 +197,41 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={dailySpendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <LineChart data={dailySpendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis
                 dataKey="date"
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
+                axisLine={false}
               />
               <YAxis
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 tickLine={false}
+                axisLine={false}
                 tickFormatter={(value) => `$${value.toFixed(2)}`}
               />
-              <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
+              <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} cursor={false} />
               <Legend />
-              <Area
+              <Line
                 type="monotone"
                 dataKey="Staking"
-                stackId="1"
+                name="Staking"
                 stroke="#00FF85"
-                fill="#00FF85"
-                fillOpacity={0.6}
+                strokeWidth={2}
+                dot={false}
               />
-              <Area
+              <Line
                 type="monotone"
                 dataKey="Credit"
-                stackId="1"
-                stroke="#3b82f6"
-                fill="#3b82f6"
-                fillOpacity={0.6}
+                name="Credit"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                dot={false}
               />
-            </AreaChart>
+            </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -256,8 +260,8 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
               />
               <Tooltip content={<CustomTooltip valueFormatter={formatLargeNumber} />} />
               <Legend />
-              <Bar dataKey="Input" stackId="a" fill="#3b82f6" />
-              <Bar dataKey="Output" stackId="a" fill="#8b5cf6" />
+              <Bar dataKey="Input" stackId="a" fill="#3b82f6" barSize={40} />
+              <Bar dataKey="Output" stackId="a" fill="#8b5cf6" barSize={40} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

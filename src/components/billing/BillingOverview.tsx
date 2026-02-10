@@ -15,6 +15,8 @@ import {
   BarChart,
   Bar,
   Legend,
+  LineChart,
+  Line,
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Database, TrendingUp, Filter, AlertCircle } from 'lucide-react';
@@ -73,6 +75,8 @@ interface SpendData {
 }
 
 function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
+  if (items.length === 0) return [];
+
   const grouped = items.reduce<Record<string, { isoDate: string; data: DailyData }>>((acc, entry) => {
     // Use ISO date string (YYYY-MM-DD) for grouping to ensure consistency across locales
     const isoDate = entry.created_at.split('T')[0];
@@ -92,16 +96,41 @@ function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
       };
     }
 
-    acc[isoDate].data.staking += parseFloat(entry.amount_staking);
-    acc[isoDate].data.credit += parseFloat(entry.amount_paid);
+    acc[isoDate].data.staking += Math.abs(parseFloat(entry.amount_staking));
+    acc[isoDate].data.credit += Math.abs(parseFloat(entry.amount_paid));
     acc[isoDate].data.inputTokens += entry.tokens_input ?? 0;
     acc[isoDate].data.outputTokens += entry.tokens_output ?? 0;
 
     return acc;
   }, {});
 
+  // Fill in missing dates from earliest to today
+  const dates = Object.keys(grouped).sort();
+  if (dates.length === 0) return [];
+
+  const startDate = new Date(dates[0]);
+  const endDate = new Date(); // Today
+  const filledData: Record<string, { isoDate: string; data: DailyData }> = { ...grouped };
+
+  // Fill in all dates from start to today
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const isoDate = d.toISOString().split('T')[0];
+    if (!filledData[isoDate]) {
+      filledData[isoDate] = {
+        isoDate,
+        data: {
+          date: formatLocaleDate(d.toISOString()),
+          staking: 0,
+          credit: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+      };
+    }
+  }
+
   // Sort by ISO date string (naturally sortable) and return formatted data
-  return Object.values(grouped)
+  return Object.values(filledData)
     .sort((a, b) => a.isoDate.localeCompare(b.isoDate))
     .map((item) => item.data);
 }
@@ -112,7 +141,7 @@ function aggregateSpendByModel(items: UsageEntryResponse[]): SpendData[] {
     if (!acc[modelName]) {
       acc[modelName] = 0;
     }
-    acc[modelName] += parseFloat(entry.amount_total);
+    acc[modelName] += Math.abs(parseFloat(entry.amount_total));
     return acc;
   }, {});
 
@@ -188,7 +217,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
       if (!acc[keyId]) {
         acc[keyId] = 0;
       }
-      acc[keyId] += parseFloat(entry.amount_total);
+      acc[keyId] += Math.abs(parseFloat(entry.amount_total));
       return acc;
     }, {});
 
@@ -211,15 +240,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
   }, [filteredItems]);
 
   const totalCost = useMemo(() => {
-    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_total), 0);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + Math.abs(parseFloat(item.amount_total)), 0);
   }, [filteredItems]);
 
   const stakingTotal = useMemo(() => {
-    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_staking), 0);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + Math.abs(parseFloat(item.amount_staking)), 0);
   }, [filteredItems]);
 
   const creditTotal = useMemo(() => {
-    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_paid), 0);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + Math.abs(parseFloat(item.amount_paid)), 0);
   }, [filteredItems]);
 
   const dailyStats = useMemo(() => {
@@ -660,49 +689,41 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         <CardContent>
           {hasData && dailyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={dailyData}>
-                <defs>
-                  <linearGradient id="colorStaking" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00FF85" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#00FF85" stopOpacity={0.1} />
-                  </linearGradient>
-                  <linearGradient id="colorCredit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <LineChart data={dailyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis
                   dataKey="date"
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickLine={false}
+                  axisLine={false}
                 />
                 <YAxis
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickLine={false}
+                  axisLine={false}
                   tickFormatter={(value) => `$${value}`}
                 />
-                <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
+                <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} cursor={false} />
                 <Legend />
-                <Area
+                <Line
                   type="monotone"
                   dataKey="staking"
                   name="Staked Spend"
-                  stackId="1"
                   stroke="#00FF85"
-                  fill="url(#colorStaking)"
+                  strokeWidth={2}
+                  dot={false}
                 />
-                <Area
+                <Line
                   type="monotone"
                   dataKey="credit"
                   name="Credit Spend"
-                  stackId="1"
                   stroke="#f59e0b"
-                  fill="url(#colorCredit)"
+                  strokeWidth={2}
+                  dot={false}
                 />
-              </AreaChart>
+              </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
@@ -741,8 +762,8 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 />
                 <Tooltip content={<CustomTooltip valueFormatter={formatLargeNumber} />} />
                 <Legend />
-                <Bar dataKey="inputTokens" name="Input" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="outputTokens" name="Output" stackId="a" fill="#8b5cf6" />
+                <Bar dataKey="inputTokens" name="Input" stackId="a" fill="#3b82f6" barSize={40} />
+                <Bar dataKey="outputTokens" name="Output" stackId="a" fill="#8b5cf6" barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
