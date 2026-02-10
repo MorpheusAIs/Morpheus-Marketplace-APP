@@ -694,7 +694,22 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                       tickFormatter={(value) => `$${value}`}
                     />
                     <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
-                    <Legend />
+                    <Legend 
+                      payload={[
+                        ...(hasStakingSpend ? [{
+                          value: 'Staked Spend',
+                          type: 'line' as const,
+                          id: 'staking',
+                          color: '#00FF85'
+                        }] : []),
+                        ...(hasCreditSpend ? [{
+                          value: 'Credit Spend',
+                          type: 'line' as const,
+                          id: 'credit',
+                          color: '#f59e0b'
+                        }] : [])
+                      ]}
+                    />
                     {hasStakingSpend && (
                       <Area
                         type="monotone"

@@ -219,7 +219,22 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
                     tickFormatter={(value) => `$${value.toFixed(2)}`}
                   />
                   <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
-                  <Legend />
+                  <Legend 
+                    payload={[
+                      ...(hasStakingSpend ? [{
+                        value: 'Staking',
+                        type: 'line' as const,
+                        id: 'Staking',
+                        color: '#00FF85'
+                      }] : []),
+                      ...(hasCreditSpend ? [{
+                        value: 'Credit',
+                        type: 'line' as const,
+                        id: 'Credit',
+                        color: '#3b82f6'
+                      }] : [])
+                    ]}
+                  />
                   {hasStakingSpend && (
                     <Area
                       type="monotone"
