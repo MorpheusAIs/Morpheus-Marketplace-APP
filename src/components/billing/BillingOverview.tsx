@@ -694,22 +694,26 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                     />
                     <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
                     <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="staking"
-                      name="Staked Spend"
-                      stackId={useStack ? "1" : undefined}
-                      stroke="#00FF85"
-                      fill="url(#colorStaking)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="credit"
-                      name="Credit Spend"
-                      stackId={useStack ? "1" : undefined}
-                      stroke="#f59e0b"
-                      fill="url(#colorCredit)"
-                    />
+                    {hasStakingSpend && (
+                      <Area
+                        type="monotone"
+                        dataKey="staking"
+                        name="Staked Spend"
+                        stackId={useStack ? "1" : undefined}
+                        stroke="#00FF85"
+                        fill="url(#colorStaking)"
+                      />
+                    )}
+                    {hasCreditSpend && (
+                      <Area
+                        type="monotone"
+                        dataKey="credit"
+                        name="Credit Spend"
+                        stackId={useStack ? "1" : undefined}
+                        stroke="#f59e0b"
+                        fill="url(#colorCredit)"
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               );
