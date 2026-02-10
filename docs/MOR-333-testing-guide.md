@@ -67,18 +67,18 @@ This guide helps testers verify that the data isolation validation is working co
 
 **Goal:** Verify warning for data before service launch.
 
-**Expected Future Date Pattern:**
-- Data from 2023 or earlier (before service existed)
+**Expected Ancient Date Pattern:**
+- Data from December 2025 or earlier (before service launched in January 2026)
 
 **Steps:**
-1. Log in with test account that has pre-2024 data
+1. Log in with test account that has pre-2026 data
 2. Navigate to **Usage Analytics** → **Monthly Spending**
 
 **Expected Results:**
 - ⚠️ Warning banner:
   ```
   ⚠️ Data Anomalies Detected
-  • Data from before service launch detected: 2023-12
+  • Data from before service launch detected: 2025-12
   ```
 
 ---

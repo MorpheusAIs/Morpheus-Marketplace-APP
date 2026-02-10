@@ -133,7 +133,7 @@ export function validateMonthlySpending(
   }
 
   // Check 2: Detect impossibly old data (e.g., before service launch)
-  const SERVICE_LAUNCH_DATE = new Date('2024-01-01'); // Adjust to actual launch date
+  const SERVICE_LAUNCH_DATE = new Date('2026-01-01'); // Service launched January 2026
   const ancientMonths = response.months.filter(m => {
     const monthDate = new Date(m.year, m.month - 1, 1);
     return monthDate < SERVICE_LAUNCH_DATE;

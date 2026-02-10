@@ -174,8 +174,8 @@ const futureMonth = { year: 2026, month: 3 }; // March 2026
 
 ### Pattern 2: Pre-Launch Dates
 ```typescript
-const SERVICE_LAUNCH = new Date('2024-01-01');
-const ancientMonth = { year: 2023, month: 12 }; // Dec 2023
+const SERVICE_LAUNCH = new Date('2026-01-01');
+const ancientMonth = { year: 2025, month: 12 }; // Dec 2025
 
 // ⚠️ Warning: Data before service existed (likely test data)
 ```
