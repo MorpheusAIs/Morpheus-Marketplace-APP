@@ -82,6 +82,13 @@ export function useBillingUsage(
  * The API returns max 100 entries per page. This hook iterates through
  * all pages to ensure complete data, preventing metric fluctuations
  * caused by only seeing a partial first page of results.
+ * 
+ * CRITICAL FIX (MOR-337): This hook now uses dual-condition pagination:
+ * 1. Continue while has_more is true (standard pagination)
+ * 2. Continue while allItems.length < total (defensive pagination)
+ * 
+ * This ensures all data is fetched even if the backend has_more flag
+ * is incorrectly set to false before all pages are retrieved.
  */
 export function useBillingUsageAll(
   params?: Omit<GetUsageParams, 'limit' | 'offset'>,
@@ -102,27 +109,96 @@ export function useBillingUsageAll(
       let offset = 0;
       let hasMore = true;
       let total = 0;
+      let pageCount = 0;
+
+      console.log('[useBillingUsageAll] Starting pagination fetch', {
+        params,
+        pageSize: PAGE_SIZE,
+        timestamp: new Date().toISOString(),
+      });
 
       while (hasMore) {
+        pageCount++;
+        console.log(`[useBillingUsageAll] Fetching page ${pageCount}, offset: ${offset}`);
+        
         const response = await getUsage(token, {
           ...params,
           limit: PAGE_SIZE,
           offset,
         });
 
+        console.log(`[useBillingUsageAll] Page ${pageCount} received:`, {
+          itemsInPage: response.items.length,
+          totalFromAPI: response.total,
+          hasMore: response.has_more,
+          offset: response.offset,
+          limit: response.limit,
+        });
+
         allItems.push(...response.items);
         total = response.total;
-        hasMore = response.has_more;
+        
+        // CRITICAL FIX: Use dual-condition check
+        // Continue if:
+        // 1. Backend says there's more data (has_more === true), OR
+        // 2. We haven't fetched all items yet (allItems.length < total)
+        // 
+        // This defends against backend bugs where has_more is incorrectly
+        // set to false before all pages are retrieved.
+        const shouldContinue = response.has_more || (allItems.length < total && response.items.length > 0);
+        
+        console.log(`[useBillingUsageAll] Pagination decision:`, {
+          collected: allItems.length,
+          total,
+          backendHasMore: response.has_more,
+          calculatedHasMore: allItems.length < total,
+          shouldContinue,
+        });
+
+        hasMore = shouldContinue;
         offset += PAGE_SIZE;
 
-        // Safety limit to prevent runaway loops
-        if (offset > 10000) break;
+        // Safety limits
+        if (offset > 10000) {
+          console.warn('[useBillingUsageAll] Safety limit reached (offset > 10000). Breaking pagination loop.');
+          break;
+        }
+        
+        if (pageCount > 200) {
+          console.warn('[useBillingUsageAll] Safety limit reached (200 pages). Breaking pagination loop.');
+          break;
+        }
+
+        // If we received 0 items on this page, stop (empty page means no more data)
+        if (response.items.length === 0) {
+          console.log('[useBillingUsageAll] Received empty page, stopping pagination.');
+          break;
+        }
       }
+
+      console.log('[useBillingUsageAll] Pagination complete:', {
+        totalPages: pageCount,
+        totalItemsFetched: allItems.length,
+        expectedTotal: total,
+        match: allItems.length === total,
+        discrepancy: total - allItems.length,
+      });
+
+      // Calculate actual totals from fetched data for verification
+      const actualTokensInput = allItems.reduce((sum, item) => sum + (item.tokens_input ?? 0), 0);
+      const actualTokensOutput = allItems.reduce((sum, item) => sum + (item.tokens_output ?? 0), 0);
+      const actualTokensTotal = allItems.reduce((sum, item) => sum + (item.tokens_total ?? 0), 0);
+
+      console.log('[useBillingUsageAll] Token totals:', {
+        input: actualTokensInput,
+        output: actualTokensOutput,
+        total: actualTokensTotal,
+      });
 
       return {
         items: allItems,
-        total,
-        limit: total,
+        total: allItems.length, // Use actual count, not backend total (which may be wrong)
+        limit: allItems.length,
         offset: 0,
         has_more: false,
       };

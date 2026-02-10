@@ -123,7 +123,16 @@ export async function getUsage(
   const url = buildApiUrl(`/billing/usage${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   
   if (process.env.NODE_ENV === 'development') {
-    console.log('[BillingAPI] Fetching usage:', url);
+    console.log('[BillingAPI] Fetching usage:', {
+      url,
+      params: {
+        limit: params?.limit,
+        offset: params?.offset,
+        from: params?.from,
+        to: params?.to,
+        model: params?.model,
+      },
+    });
   }
   
   return request(apiGet<UsageListResponse>(url, token));
