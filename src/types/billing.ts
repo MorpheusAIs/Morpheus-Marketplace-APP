@@ -21,6 +21,8 @@ export interface BalanceResponse {
   paid: PaidBalanceInfo;
   staking: StakingBalanceInfo;
   total_available: string;
+  is_staker?: boolean;
+  allow_overage?: boolean;
   currency?: string;
 }
 
@@ -223,12 +225,13 @@ export interface UsageStatistics {
   outputs: DailyStats;
 }
 
-// ========== Billing Preferences Types ==========
+// ========== Billing Overage Settings Types ==========
 
-export interface BillingPreferencesResponse {
-  allow_overages: boolean;
+export interface OverageSettingsResponse {
+  allow_overage: boolean;
+  message: string;
 }
 
-export interface BillingPreferencesUpdateRequest {
-  allow_overages: boolean;
+export interface OverageSettingsUpdateRequest {
+  allow_overage: boolean;
 }
