@@ -1,4 +1,10 @@
-# MOR-303 Fix Summary: Coinbase Commerce Environment Variable Issue (AWS Amplify)
+# MOR-303 Fix Summary: Coinbase Commerce Environment Variable Issue (AWS Amplify + Terraform)
+
+## ⚠️ IMPORTANT: Infrastructure is Terraform-Managed
+
+Your infrastructure uses **Terraform** to manage AWS Amplify environment variables. This means you **cannot** fix this via the AWS Amplify Console UI.
+
+**👉 See the Terraform-specific fix guide: [MOR-303-terraform-fix.md](./MOR-303-terraform-fix.md)**
 
 ## Issue Description
 Coinbase payment integration works on `localhost` but fails on `app.dev.mor.org` with error:
@@ -7,13 +13,60 @@ Payment service not configured (500 Internal Server Error)
 ```
 
 ## Root Cause
-The `COINBASE_COMMERCE_API_KEY` environment variable is properly set in your local `.env.local` file but is NOT accessible in the AWS Amplify deployment.
+The `COINBASE_COMMERCE_API_KEY` is defined in Terraform as `var.frontend_secrets.coinbase_commerce_api_key`, but this variable is either:
+1. Not set in your Terraform variables
+2. Set to an empty/null value
+3. Not properly passed to the Terraform configuration
 
 ## Diagnostic Results
 ✅ **Localhost**: API key is configured (36 characters, prefix: `ade3369c...`)  
-❌ **Deployed**: API key is not accessible to the Next.js API route
+❌ **Deployed**: API key is not accessible to the Next.js API route  
+✅ **Terraform Config**: Variable is defined, but value is missing
 
-## Fix Steps for AWS Amplify
+## Quick Fix (Terraform)
+
+### Step 1: Update Terraform Variables
+
+In your **infrastructure repository** (separate from this frontend repo), add to `terraform.tfvars` or `dev.tfvars`:
+
+```hcl
+frontend_secrets = {
+  coinbase_commerce_api_key      = "your-36-character-api-key-here"
+  coinbase_commerce_api_secret   = "your-api-secret-here"
+  coinbase_commerce_webhook_secret = "your-webhook-secret-here"
+  # ... other secrets ...
+}
+```
+
+Get the actual values from your local `.env.local` file in this repo.
+
+### Step 2: Apply Terraform Changes
+
+```bash
+# In your infrastructure repo
+terraform plan    # Review changes
+terraform apply   # Apply changes
+
+# This will:
+# 1. Update AWS Amplify environment variables
+# 2. Trigger automatic rebuild (~5-10 minutes)
+# 3. Deploy with correct API key
+```
+
+### Step 3: Verify
+
+```bash
+# Wait for build, then test:
+curl https://app.dev.mor.org/api/coinbase/diagnostic
+
+# Should show: "api_key_configured": true
+```
+
+## Alternative: Manual Fix (Not Recommended for Terraform-Managed Infrastructure)
+
+If you try to update environment variables directly in AWS Amplify Console, your changes will be overwritten the next time Terraform runs.
+
+## Fix Steps for AWS Amplify (If NOT Using Terraform)
 
 ### Method 1: AWS Amplify Console (Recommended)
 
