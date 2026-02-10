@@ -9,7 +9,7 @@ import { MonthlySpendingChart } from '@/components/billing/MonthlySpendingChart'
 import { TransactionHistoryTable } from '@/components/billing/TransactionHistoryTable';
 import { TimeRangeFilter } from '@/components/billing/TimeRangeFilter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useBillingUsage } from '@/lib/hooks/use-billing';
+import { useBillingUsageAll } from '@/lib/hooks/use-billing';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import {
   getDateRangeForTimeRange,
@@ -33,15 +33,14 @@ export default function UsageAnalyticsPage() {
     return getDateRangeForTimeRange(timeRange, customRange);
   }, [timeRange, customRange]);
 
-  // Fetch usage data
+  // Fetch all usage data (handles pagination automatically)
   const {
     data: usageData,
     isLoading,
     error,
-  } = useBillingUsage({
+  } = useBillingUsageAll({
     from: dateRange.start.toISOString(),
     to: dateRange.end.toISOString(),
-    limit: 100, // API max is 100
   });
 
   // Debug logging
