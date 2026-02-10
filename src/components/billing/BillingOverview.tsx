@@ -660,9 +660,10 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         <CardContent>
           {hasData && dailyData.length > 0 ? (
             (() => {
-              // Check if credit has any non-zero values
-              const hasCreditSpend = dailyData.some((d) => d.credit > 0);
-              const hasStakingSpend = dailyData.some((d) => d.staking > 0);
+              // Check if credit has any meaningful non-zero values (threshold to avoid floating point issues)
+              const THRESHOLD = 0.0001;
+              const hasCreditSpend = dailyData.some((d) => d.credit > THRESHOLD);
+              const hasStakingSpend = dailyData.some((d) => d.staking > THRESHOLD);
               // Only use stackId if both have values
               const useStack = hasCreditSpend && hasStakingSpend;
 

@@ -195,9 +195,10 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
         </CardHeader>
         <CardContent>
           {(() => {
-            // Check if credit has any non-zero values
-            const hasCreditSpend = dailySpendData.some((d) => d.Credit > 0);
-            const hasStakingSpend = dailySpendData.some((d) => d.Staking > 0);
+            // Check if credit has any meaningful non-zero values (threshold to avoid floating point issues)
+            const THRESHOLD = 0.0001;
+            const hasCreditSpend = dailySpendData.some((d) => d.Credit > THRESHOLD);
+            const hasStakingSpend = dailySpendData.some((d) => d.Staking > THRESHOLD);
             // Only use stackId if both have values
             const useStack = hasCreditSpend && hasStakingSpend;
 
