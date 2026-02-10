@@ -15,6 +15,8 @@ import {
   BarChart,
   Bar,
   Legend,
+  LineChart,
+  Line,
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { DailyAggregation, APIKeyDB } from '@/types/billing';
@@ -187,78 +189,50 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
         </div>
       )}
 
-      {/* Daily Spend Breakdown (Stacked Area Chart) */}
+      {/* Daily Spend Breakdown (Line Chart) */}
       <Card>
         <CardHeader>
           <CardTitle>Daily Spend Breakdown</CardTitle>
           <CardDescription>Staking credits vs. paid balance over time</CardDescription>
         </CardHeader>
         <CardContent>
-          {(() => {
-            // Check if credit has any meaningful non-zero values (threshold to avoid floating point issues)
-            const THRESHOLD = 0.0001;
-            const hasCreditSpend = dailySpendData.some((d) => d.Credit > THRESHOLD);
-            const hasStakingSpend = dailySpendData.some((d) => d.Staking > THRESHOLD);
-            // Only use stackId if both have values
-            const useStack = hasCreditSpend && hasStakingSpend;
-
-            return (
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={dailySpendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                    tickFormatter={(value) => `$${value.toFixed(2)}`}
-                  />
-                  <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
-                  <Legend 
-                    payload={[
-                      ...(hasStakingSpend ? [{
-                        value: 'Staking',
-                        type: 'line' as const,
-                        id: 'Staking',
-                        color: '#00FF85'
-                      }] : []),
-                      ...(hasCreditSpend ? [{
-                        value: 'Credit',
-                        type: 'line' as const,
-                        id: 'Credit',
-                        color: '#3b82f6'
-                      }] : [])
-                    ]}
-                  />
-                  {hasStakingSpend && (
-                    <Area
-                      type="monotone"
-                      dataKey="Staking"
-                      stackId={useStack ? "1" : undefined}
-                      stroke="#00FF85"
-                      fill="#00FF85"
-                      fillOpacity={0.6}
-                    />
-                  )}
-                  {hasCreditSpend && (
-                    <Area
-                      type="monotone"
-                      dataKey="Credit"
-                      stackId={useStack ? "1" : undefined}
-                      stroke="#3b82f6"
-                      fill="#3b82f6"
-                      fillOpacity={0.6}
-                    />
-                  )}
-                </AreaChart>
-              </ResponsiveContainer>
-            );
-          })()}
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={dailySpendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis
+                dataKey="date"
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => `$${value.toFixed(2)}`}
+              />
+              <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} cursor={false} />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="Staking"
+                name="Staking"
+                stroke="#00FF85"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="Credit"
+                name="Credit"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 

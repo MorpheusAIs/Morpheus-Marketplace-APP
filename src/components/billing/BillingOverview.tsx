@@ -15,6 +15,8 @@ import {
   BarChart,
   Bar,
   Legend,
+  LineChart,
+  Line,
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Database, TrendingUp, Filter, AlertCircle } from 'lucide-react';
@@ -659,81 +661,43 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         </CardHeader>
         <CardContent>
           {hasData && dailyData.length > 0 ? (
-            (() => {
-              // Check if credit has any meaningful non-zero values (threshold to avoid floating point issues)
-              const THRESHOLD = 0.0001;
-              const hasCreditSpend = dailyData.some((d) => d.credit > THRESHOLD);
-              const hasStakingSpend = dailyData.some((d) => d.staking > THRESHOLD);
-              // Only use stackId if both have values
-              const useStack = hasCreditSpend && hasStakingSpend;
-
-              return (
-                <ResponsiveContainer width="100%" height={350}>
-                  <AreaChart data={dailyData}>
-                    <defs>
-                      <linearGradient id="colorStaking" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00FF85" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#00FF85" stopOpacity={0.1} />
-                      </linearGradient>
-                      <linearGradient id="colorCredit" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="date"
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      tickLine={false}
-                      tickFormatter={(value) => `$${value}`}
-                    />
-                    <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
-                    <Legend 
-                      payload={[
-                        ...(hasStakingSpend ? [{
-                          value: 'Staked Spend',
-                          type: 'line' as const,
-                          id: 'staking',
-                          color: '#00FF85'
-                        }] : []),
-                        ...(hasCreditSpend ? [{
-                          value: 'Credit Spend',
-                          type: 'line' as const,
-                          id: 'credit',
-                          color: '#f59e0b'
-                        }] : [])
-                      ]}
-                    />
-                    {hasStakingSpend && (
-                      <Area
-                        type="monotone"
-                        dataKey="staking"
-                        name="Staked Spend"
-                        stackId={useStack ? "1" : undefined}
-                        stroke="#00FF85"
-                        fill="url(#colorStaking)"
-                      />
-                    )}
-                    {hasCreditSpend && (
-                      <Area
-                        type="monotone"
-                        dataKey="credit"
-                        name="Credit Spend"
-                        stackId={useStack ? "1" : undefined}
-                        stroke="#f59e0b"
-                        fill="url(#colorCredit)"
-                      />
-                    )}
-                  </AreaChart>
-                </ResponsiveContainer>
-              );
-            })()
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart data={dailyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} cursor={false} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="staking"
+                  name="Staked Spend"
+                  stroke="#00FF85"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="credit"
+                  name="Credit Spend"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           ) : (
             <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
               <div className="p-4 rounded-full bg-muted/50 mb-4">
