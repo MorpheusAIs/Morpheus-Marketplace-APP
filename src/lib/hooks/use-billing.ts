@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, UseQueryResult, keepPreviousData } from '@tanstack/react-query';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import {
   getBalance,
@@ -24,6 +24,7 @@ import {
 import type {
   BalanceResponse,
   UsageListResponse,
+  UsageEntryResponse,
   LedgerListResponse,
   MonthlySpendingResponse,
   WalletStatusResponse,
@@ -72,6 +73,62 @@ export function useBillingUsage(
       if (!token) throw new Error('Not authenticated');
       return getUsage(token, params);
     },
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/**
+ * Fetch ALL usage entries across all pages.
+ * The API returns max 100 entries per page. This hook iterates through
+ * all pages to ensure complete data, preventing metric fluctuations
+ * caused by only seeing a partial first page of results.
+ */
+export function useBillingUsageAll(
+  params?: Omit<GetUsageParams, 'limit' | 'offset'>,
+  options?: {
+    enabled?: boolean;
+  }
+): UseQueryResult<UsageListResponse, Error> {
+  const { getValidToken } = useCognitoAuth();
+
+  return useQuery({
+    queryKey: ['billing', 'usage', 'all', params],
+    queryFn: async () => {
+      const token = await getValidToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const PAGE_SIZE = 100;
+      const allItems: UsageEntryResponse[] = [];
+      let offset = 0;
+      let hasMore = true;
+      let total = 0;
+
+      while (hasMore) {
+        const response = await getUsage(token, {
+          ...params,
+          limit: PAGE_SIZE,
+          offset,
+        });
+
+        allItems.push(...response.items);
+        total = response.total;
+        hasMore = response.has_more;
+        offset += PAGE_SIZE;
+
+        // Safety limit to prevent runaway loops
+        if (offset > 10000) break;
+      }
+
+      return {
+        items: allItems,
+        total,
+        limit: total,
+        offset: 0,
+        has_more: false,
+      };
+    },
+    staleTime: 60_000, // Data stays fresh for 1 minute
+    placeholderData: keepPreviousData, // Keep showing old data while fetching new
     enabled: options?.enabled ?? true,
   });
 }

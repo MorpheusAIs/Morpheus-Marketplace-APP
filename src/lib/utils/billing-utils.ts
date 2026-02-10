@@ -91,33 +91,41 @@ export function formatLocaleDateTime(date: Date | string, options?: Intl.DateTim
 }
 
 /**
- * Get date range based on time range selection
+ * Get date range based on time range selection.
+ * Uses stable time boundaries (rounded to the start of the current minute)
+ * to ensure consistent API query params and cache keys across renders/refreshes.
  */
 export function getDateRangeForTimeRange(
   timeRange: TimeRange,
   customRange?: CustomDateRange
 ): { start: Date; end: Date } {
-  const now = Date.now();
+  const now = new Date();
   let start: Date;
-  let end = new Date(now);
+  let end: Date;
 
   if (timeRange === 'custom' && customRange) {
     start = new Date(customRange.start);
     // Add one day to end date to include the full day
     end = new Date(new Date(customRange.end).getTime() + 24 * 60 * 60 * 1000 - 1);
   } else {
+    // Round 'end' to the start of the current minute for cache stability.
+    // Within the same minute, repeated calls produce identical boundaries,
+    // preventing unnecessary refetches and cache key mismatches.
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0, 0);
+
     switch (timeRange) {
       case '24h':
-        start = new Date(now - 24 * 60 * 60 * 1000);
+        start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
         break;
       case '7d':
-        start = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        // Start at midnight N days ago for clean day boundaries
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0, 0);
         break;
       case '30d':
-        start = new Date(now - 30 * 24 * 60 * 60 * 1000);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30, 0, 0, 0, 0);
         break;
       default:
-        start = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0, 0);
     }
   }
 
