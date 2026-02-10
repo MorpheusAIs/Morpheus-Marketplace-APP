@@ -714,7 +714,6 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 </ResponsiveContainer>
               );
             })()
-          )
           ) : (
             <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
               <div className="p-4 rounded-full bg-muted/50 mb-4">
