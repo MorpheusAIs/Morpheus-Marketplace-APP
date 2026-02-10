@@ -30,7 +30,19 @@ export default function UsageAnalyticsPage() {
 
   // Calculate date range for API call
   const dateRange = useMemo(() => {
-    return getDateRangeForTimeRange(timeRange, customRange);
+    const range = getDateRangeForTimeRange(timeRange, customRange);
+    
+    // Debug logging to verify different time ranges produce different queries
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[UsageAnalytics] Date range calculated:', {
+        timeRange,
+        startISO: range.start.toISOString(),
+        endISO: range.end.toISOString(),
+        durationDays: Math.round((range.end.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24)),
+      });
+    }
+    
+    return range;
   }, [timeRange, customRange]);
 
   // Fetch all usage data (handles pagination automatically)
@@ -47,18 +59,21 @@ export default function UsageAnalyticsPage() {
   React.useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('[UsageAnalytics] Query State:', {
+        timeRange,
         isLoading,
         hasError: !!error,
         errorMessage: error instanceof Error ? error.message : String(error),
         hasData: !!usageData,
         itemCount: usageData?.items?.length,
+        total: usageData?.total,
         dateRange: {
           start: dateRange.start.toISOString(),
           end: dateRange.end.toISOString(),
+          durationDays: Math.round((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)),
         }
       });
     }
-  }, [isLoading, error, usageData, dateRange]);
+  }, [isLoading, error, usageData, dateRange, timeRange]);
 
   // Aggregate data by date for charts
   const dailyData = useMemo(() => {
@@ -202,6 +217,50 @@ export default function UsageAnalyticsPage() {
             <TransactionHistoryTable />
           </TabsContent>
         </Tabs>
+
+        {/* Debug Panel - MOR-337 Diagnostic Info */}
+        {process.env.NODE_ENV === 'development' && usageData && (
+          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              Debug Information (MOR-337)
+            </h3>
+            <div className="grid gap-4 md:grid-cols-3 text-sm font-mono">
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Request Count:</p>
+                <p className="text-foreground font-bold text-lg">{stats.requestCount.toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Total Tokens:</p>
+                <p className="text-foreground font-bold text-lg">{stats.totalTokens.toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Date Range:</p>
+                <p className="text-foreground text-xs">{timeRange}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Input Tokens:</p>
+                <p className="text-foreground">{usageData.items.reduce((sum, item) => sum + (item.tokens_input ?? 0), 0).toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Output Tokens:</p>
+                <p className="text-foreground">{usageData.items.reduce((sum, item) => sum + (item.tokens_output ?? 0), 0).toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Total Cost:</p>
+                <p className="text-foreground">{formatCurrency(stats.totalCost)}</p>
+              </div>
+            </div>
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                View Sample Data (first 3 records)
+              </summary>
+              <pre className="mt-2 text-xs bg-muted p-4 rounded overflow-x-auto">
+                {JSON.stringify(usageData.items.slice(0, 3), null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
 
         {/* Additional Information */}
         <div className="rounded-lg border border-border bg-muted/30 p-6">
