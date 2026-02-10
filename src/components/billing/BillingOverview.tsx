@@ -659,51 +659,62 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         </CardHeader>
         <CardContent>
           {hasData && dailyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={dailyData}>
-                <defs>
-                  <linearGradient id="colorStaking" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00FF85" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#00FF85" stopOpacity={0.1} />
-                  </linearGradient>
-                  <linearGradient id="colorCredit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="date"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="staking"
-                  name="Staked Spend"
-                  stackId="1"
-                  stroke="#00FF85"
-                  fill="url(#colorStaking)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="credit"
-                  name="Credit Spend"
-                  stackId="1"
-                  stroke="#f59e0b"
-                  fill="url(#colorCredit)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            (() => {
+              // Check if credit has any non-zero values
+              const hasCreditSpend = dailyData.some((d) => d.credit > 0);
+              const hasStakingSpend = dailyData.some((d) => d.staking > 0);
+              // Only use stackId if both have values
+              const useStack = hasCreditSpend && hasStakingSpend;
+
+              return (
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={dailyData}>
+                    <defs>
+                      <linearGradient id="colorStaking" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00FF85" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#00FF85" stopOpacity={0.1} />
+                      </linearGradient>
+                      <linearGradient id="colorCredit" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      tickFormatter={(value) => `$${value}`}
+                    />
+                    <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="staking"
+                      name="Staked Spend"
+                      stackId={useStack ? "1" : undefined}
+                      stroke="#00FF85"
+                      fill="url(#colorStaking)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="credit"
+                      name="Credit Spend"
+                      stackId={useStack ? "1" : undefined}
+                      stroke="#f59e0b"
+                      fill="url(#colorCredit)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              );
+            })()
+          )
           ) : (
             <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground">
               <div className="p-4 rounded-full bg-muted/50 mb-4">

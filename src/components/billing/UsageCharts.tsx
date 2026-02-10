@@ -194,41 +194,51 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
           <CardDescription>Staking credits vs. paid balance over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={dailySpendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="date"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-              />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                tickFormatter={(value) => `$${value.toFixed(2)}`}
-              />
-              <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
-              <Legend />
-              <Area
-                type="monotone"
-                dataKey="Staking"
-                stackId="1"
-                stroke="#00FF85"
-                fill="#00FF85"
-                fillOpacity={0.6}
-              />
-              <Area
-                type="monotone"
-                dataKey="Credit"
-                stackId="1"
-                stroke="#3b82f6"
-                fill="#3b82f6"
-                fillOpacity={0.6}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {(() => {
+            // Check if credit has any non-zero values
+            const hasCreditSpend = dailySpendData.some((d) => d.Credit > 0);
+            const hasStakingSpend = dailySpendData.some((d) => d.Staking > 0);
+            // Only use stackId if both have values
+            const useStack = hasCreditSpend && hasStakingSpend;
+
+            return (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={dailySpendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    tickFormatter={(value) => `$${value.toFixed(2)}`}
+                  />
+                  <Tooltip content={<CustomTooltip valueFormatter={formatCurrency} />} />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="Staking"
+                    stackId={useStack ? "1" : undefined}
+                    stroke="#00FF85"
+                    fill="#00FF85"
+                    fillOpacity={0.6}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Credit"
+                    stackId={useStack ? "1" : undefined}
+                    stroke="#3b82f6"
+                    fill="#3b82f6"
+                    fillOpacity={0.6}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            );
+          })()}
         </CardContent>
       </Card>
 
