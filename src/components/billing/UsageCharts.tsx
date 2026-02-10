@@ -73,8 +73,8 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
   const dailySpendData = useMemo(() => {
     return dailyData.map((item) => ({
       date: formatChartDate(item.date),
-      Staking: parseFloat(item.cost_staking.toFixed(2)),
-      Credit: parseFloat(item.cost_balance.toFixed(2)),
+      Staking: Math.abs(parseFloat(item.cost_staking.toFixed(2))),
+      Credit: Math.abs(parseFloat(item.cost_balance.toFixed(2))),
     }));
   }, [dailyData]);
 
@@ -256,8 +256,8 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
               />
               <Tooltip content={<CustomTooltip valueFormatter={formatLargeNumber} />} />
               <Legend />
-              <Bar dataKey="Input" stackId="a" fill="#3b82f6" />
-              <Bar dataKey="Output" stackId="a" fill="#8b5cf6" />
+              <Bar dataKey="Input" stackId="a" fill="#3b82f6" barSize={40} />
+              <Bar dataKey="Output" stackId="a" fill="#8b5cf6" barSize={40} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

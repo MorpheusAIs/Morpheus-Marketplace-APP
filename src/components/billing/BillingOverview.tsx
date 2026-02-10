@@ -92,8 +92,8 @@ function aggregateByDate(items: UsageEntryResponse[]): DailyData[] {
       };
     }
 
-    acc[isoDate].data.staking += parseFloat(entry.amount_staking);
-    acc[isoDate].data.credit += parseFloat(entry.amount_paid);
+    acc[isoDate].data.staking += Math.abs(parseFloat(entry.amount_staking));
+    acc[isoDate].data.credit += Math.abs(parseFloat(entry.amount_paid));
     acc[isoDate].data.inputTokens += entry.tokens_input ?? 0;
     acc[isoDate].data.outputTokens += entry.tokens_output ?? 0;
 
@@ -112,7 +112,7 @@ function aggregateSpendByModel(items: UsageEntryResponse[]): SpendData[] {
     if (!acc[modelName]) {
       acc[modelName] = 0;
     }
-    acc[modelName] += parseFloat(entry.amount_total);
+    acc[modelName] += Math.abs(parseFloat(entry.amount_total));
     return acc;
   }, {});
 
@@ -188,7 +188,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
       if (!acc[keyId]) {
         acc[keyId] = 0;
       }
-      acc[keyId] += parseFloat(entry.amount_total);
+      acc[keyId] += Math.abs(parseFloat(entry.amount_total));
       return acc;
     }, {});
 
@@ -211,15 +211,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
   }, [filteredItems]);
 
   const totalCost = useMemo(() => {
-    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_total), 0);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + Math.abs(parseFloat(item.amount_total)), 0);
   }, [filteredItems]);
 
   const stakingTotal = useMemo(() => {
-    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_staking), 0);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + Math.abs(parseFloat(item.amount_staking)), 0);
   }, [filteredItems]);
 
   const creditTotal = useMemo(() => {
-    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + parseFloat(item.amount_paid), 0);
+    return filteredItems.reduce((sum: number, item: UsageEntryResponse) => sum + Math.abs(parseFloat(item.amount_paid)), 0);
   }, [filteredItems]);
 
   const dailyStats = useMemo(() => {
@@ -741,8 +741,8 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 />
                 <Tooltip content={<CustomTooltip valueFormatter={formatLargeNumber} />} />
                 <Legend />
-                <Bar dataKey="inputTokens" name="Input" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="outputTokens" name="Output" stackId="a" fill="#8b5cf6" />
+                <Bar dataKey="inputTokens" name="Input" stackId="a" fill="#3b82f6" barSize={40} />
+                <Bar dataKey="outputTokens" name="Output" stackId="a" fill="#8b5cf6" barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
