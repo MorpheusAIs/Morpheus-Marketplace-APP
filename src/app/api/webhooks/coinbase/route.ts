@@ -94,7 +94,7 @@ async function handleChargeConfirmed(data: CoinbaseWebhookEvent['event']['data']
         'X-Admin-Secret': adminSecret,
       },
       body: JSON.stringify({
-        user_id: userId,
+        cognito_user_id: userId, // Use cognito_user_id since userId is a Cognito UUID
         amount_usd: parseFloat(amount),
         description: `Coinbase payment: ${data.code} (${payment?.network || 'crypto'})`,
       }),

@@ -57,7 +57,8 @@ export default function BillingPage() {
         setRedirectCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(countdownInterval);
-            // Remove query parameter and redirect
+            // Hide success message and remove query parameter
+            setShowSuccess(false);
             router.replace('/billing');
             return 0;
           }
@@ -70,6 +71,7 @@ export default function BillingPage() {
   }, [searchParams, router, refetchBalance]);
 
   const handleManualRedirect = () => {
+    setShowSuccess(false);
     router.replace('/billing');
   };
 

@@ -33,7 +33,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     const payment = params.get('payment');
     const sessionId = params.get('session_id');
 
-    if (payment === 'success' && sessionId) {
+    // Handle both Stripe (has session_id) and Coinbase (no session_id) success
+    if (payment === 'success') {
       setFlowState('stripe_success');
       window.history.replaceState({}, '', window.location.pathname);
       if (onBalanceUpdate) {
