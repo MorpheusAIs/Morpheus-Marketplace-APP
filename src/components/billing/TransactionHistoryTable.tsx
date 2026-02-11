@@ -93,17 +93,18 @@ function getTypeColor(type: string) {
 
 export function TransactionHistoryTable() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const pageSize = 10; // MOR-350: Fixed page size of 10 aggregated records
   const [selectedType, setSelectedType] = useState<LedgerEntryTypeEnum | 'all'>('all');
   const { user, apiKeys } = useCognitoAuth();
   
-  // MOR-346: Fetch larger batches to account for filtered staking_refresh entries
-  // We fetch 3x the display amount to ensure we have enough visible items after filtering
-  const fetchSize = pageSize * 3;
+  // Fetch enough data for client-side aggregation and pagination
+  // Since transactions aggregate significantly (many transactions -> fewer aggregated rows),
+  // we fetch 200 raw transactions which should provide enough aggregated rows for multiple pages
+  const FETCH_LIMIT = 200;
   
   const { data, isLoading, error } = useBillingTransactions({
-    limit: fetchSize,
-    offset: (page - 1) * fetchSize,
+    limit: FETCH_LIMIT,
+    offset: 0, // Client-side pagination on aggregated data
     entry_type: selectedType === 'all' ? undefined : selectedType,
   });
 
@@ -121,11 +122,12 @@ export function TransactionHistoryTable() {
     { enabled: shouldFetchAll }
   );
 
-  // Reset fetch state when type filter changes
+  // Reset fetch state and page when type filter changes
   useEffect(() => {
     if (shouldFetchAll) {
       setShouldFetchAll(false);
     }
+    setPage(1); // Reset to first page when filter changes
   }, [selectedType]);
 
   // MOR-333: Validate data isolation for ledger entries
@@ -498,40 +500,47 @@ export function TransactionHistoryTable() {
           </Table>
         </div>
 
-        <div className="flex items-center justify-between space-x-2 py-4">
-          <div className="text-sm text-muted-foreground">
-            {paginatedData.length > 0 ? (
-              <>
-                Showing <strong>{(page - 1) * pageSize + 1}</strong> to{' '}
-                <strong>{Math.min(page * pageSize, aggregatedData.length)}</strong> of{' '}
-                <strong>{aggregatedData.length}</strong> aggregated entries
-              </>
-            ) : (
-              'No entries'
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-muted-foreground mr-2">
-              Page {page} of {totalPages || 1}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1 || isLoading}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={!hasNextPage || isLoading}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="text-sm text-muted-foreground">
+              {paginatedData.length > 0 ? (
+                <>
+                  Showing <strong>{(page - 1) * pageSize + 1}</strong> to{' '}
+                  <strong>{Math.min(page * pageSize, aggregatedData.length)}</strong> of{' '}
+                  <strong>{aggregatedData.length}</strong> aggregated entries
+                  {data?.has_more && page === totalPages && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      (more data available - use CSV export for full dataset)
+                    </span>
+                  )}
+                </>
+              ) : (
+                'No entries'
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-muted-foreground mr-2">
+                Page {page} of {totalPages || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || isLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={!hasNextPage || isLoading}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
           </>
