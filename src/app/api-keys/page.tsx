@@ -59,6 +59,10 @@ export default function ApiKeysPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string; isDefault: boolean } | null>(null);
 
+  // Filter to only show active API keys in the UI
+  // Deleted keys are kept in the context for usage analytics matching
+  const activeApiKeys = apiKeys.filter(key => key.is_active);
+
   // Find the default API key from the apiKeys array
   const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
 
@@ -257,14 +261,14 @@ export default function ApiKeysPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {apiKeys.length === 0 ? (
+                {activeApiKeys.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                       No API keys found. Create your first key below.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  apiKeys.map((apiKey) => {
+                  activeApiKeys.map((apiKey) => {
                     return (
                       <TableRow 
                         key={apiKey.id}
@@ -305,12 +309,12 @@ export default function ApiKeysPage() {
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3">
-            {apiKeys.length === 0 ? (
+            {activeApiKeys.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 No API keys found. Create your first key above.
               </div>
             ) : (
-              apiKeys.map((apiKey) => (
+              activeApiKeys.map((apiKey) => (
                 <Card key={apiKey.id} className="border-border">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
@@ -373,7 +377,7 @@ export default function ApiKeysPage() {
                         <SelectValue placeholder="Select API key" />
                       </SelectTrigger>
                       <SelectContent>
-                        {apiKeys.map((key) => (
+                        {activeApiKeys.map((key) => (
                           <SelectItem key={key.id} value={key.id.toString()}>
                             {key.name}
                           </SelectItem>
@@ -415,7 +419,7 @@ export default function ApiKeysPage() {
                       size="icon"
                       className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
                       onClick={() => setIsEditingDefaultKey(true)}
-                      disabled={apiKeys.length === 0}
+                      disabled={activeApiKeys.length === 0}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -431,7 +435,7 @@ export default function ApiKeysPage() {
         open={isCreateDialogOpen}
         onOpenChangeAction={setIsCreateDialogOpen}
         onCreateAction={handleCreateKey}
-        existingApiKeys={apiKeys}
+        existingApiKeys={activeApiKeys}
       />
 
       <NewApiKeyModal
@@ -465,7 +469,7 @@ export default function ApiKeysPage() {
                 <>
                   <span className="font-semibold text-yellow-600 dark:text-yellow-500">Warning:</span> You are about to delete your <span className="font-semibold">default API key</span> "{keyToDelete?.name}".
                   <br /><br />
-                  {apiKeys.length > 1 
+                  {activeApiKeys.length > 1 
                     ? "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it." 
                     : "After deletion, you will need to create and set a new default API key to continue using the API."
                   } This action cannot be undone.

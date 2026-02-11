@@ -94,12 +94,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     try {
       const response = await apiGet<ApiKey[]>(API_URLS.keys(), token);
       if (response.data) {
-        // Filter to only show active API keys
-        const activeKeys = response.data.filter(key => key.is_active);
-        setApiKeys(activeKeys);
+        // Store ALL API keys (including deleted ones) so usage analytics can match them
+        // The UI components will filter to show only active keys
+        setApiKeys(response.data);
         
-        // Update defaultApiKey state to match the default key in active keys
-        const defaultKey = activeKeys.find(key => key.is_default);
+        // Update defaultApiKey state to match the default key
+        const defaultKey = response.data.find(key => key.is_default);
         if (defaultKey) {
           // Set the default key metadata (without full key)
           setDefaultApiKey(defaultKey);
