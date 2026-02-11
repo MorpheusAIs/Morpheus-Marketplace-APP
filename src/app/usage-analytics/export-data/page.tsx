@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useBillingUsage } from '@/lib/hooks/use-billing';
+import { useBillingUsageAll } from '@/lib/hooks/use-billing';
 import { generateUsageCSV, downloadCSV, formatLocaleDateTime } from '@/lib/utils/billing-utils';
 import type { UsageEntryResponse } from '@/types/billing';
 
@@ -27,14 +27,14 @@ export default function ExportDataPage() {
   const itemsPerPage = 50;
 
   // Fetch all usage data (last 90 days by default)
+  // useBillingUsageAll automatically paginates through all pages
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 90);
 
-  const { data: usageData, isLoading, error } = useBillingUsage({
+  const { data: usageData, isLoading, error } = useBillingUsageAll({
     from: startDate.toISOString(),
     to: endDate.toISOString(),
-    limit: 100, // API max is 100
   });
 
   // Filter data based on search
