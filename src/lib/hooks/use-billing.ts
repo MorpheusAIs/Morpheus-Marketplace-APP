@@ -351,9 +351,12 @@ export function useBillingTransactionsAll(
         has_more: allItems.length < total, // There may be more data beyond 10k limit
       };
     },
-    staleTime: 60_000, // Data stays fresh for 1 minute
+    staleTime: 5 * 60_000, // Data stays fresh for 5 minutes
+    gcTime: 10 * 60_000, // Keep in cache for 10 minutes
     placeholderData: keepPreviousData,
     enabled: options?.enabled ?? true,
+    retry: 1, // Only retry once on failure to avoid hammering the database
+    retryDelay: 2000, // Wait 2 seconds before retrying
   });
 }
 

@@ -108,7 +108,7 @@ export function TransactionHistoryTable() {
   });
 
   // MOR-350: Fetch all transactions for CSV export (up to 10,000 rows)
-  // This runs in the background and only fetches when Export CSV is clicked
+  // This runs ONLY when user clicks Export CSV (enabled: shouldFetchAll)
   const [shouldFetchAll, setShouldFetchAll] = useState(false);
   const { 
     data: allData, 
@@ -120,6 +120,13 @@ export function TransactionHistoryTable() {
     },
     { enabled: shouldFetchAll }
   );
+
+  // Reset fetch state when type filter changes
+  useEffect(() => {
+    if (shouldFetchAll) {
+      setShouldFetchAll(false);
+    }
+  }, [selectedType]);
 
   // MOR-333: Validate data isolation for ledger entries
   const validationResult = useMemo(() => {
@@ -179,72 +186,89 @@ export function TransactionHistoryTable() {
 
   // MOR-350: Export CSV with ALL data (up to 10,000 rows) in GMT timezone
   const handleExportCSV = async () => {
-    // Trigger fetching all data if not already fetched
-    if (!shouldFetchAll) {
-      setShouldFetchAll(true);
-      return; // Let the hook fetch, then user can click again
+    // If already loading, don't trigger again
+    if (isLoadingAll) {
+      return;
     }
 
-    if (!allData?.items) {
+    // If there was an error fetching all data, reset and try again
+    if (allError) {
+      console.error('Previous fetch failed, resetting:', allError);
+      setShouldFetchAll(false);
+      setTimeout(() => setShouldFetchAll(true), 100);
+      return;
+    }
+
+    // First click: Trigger fetching all data
+    if (!shouldFetchAll) {
+      setShouldFetchAll(true);
+      return;
+    }
+
+    // Second click: Export if data is ready
+    if (!allData?.items || allData.items.length === 0) {
       console.error('No data available for export');
       return;
     }
 
-    // Filter out staking_refresh entries
-    const filteredItems = allData.items.filter(item => item.entry_type !== 'staking_refresh');
-    
-    // Convert APIKey[] to APIKeyDB[] format
-    const apiKeysFormatted = apiKeys.map(key => ({
-      id: key.id,
-      key_prefix: key.key_prefix,
-      name: key.name || null,
-      created_at: key.created_at,
-      is_active: key.is_active,
-      is_default: key.is_default,
-      encrypted_key: null,
-      encryption_version: undefined,
-    }));
-    
-    // Aggregate all data
-    const aggregated = aggregateLedgerEntriesByDayKeyModel(filteredItems, apiKeysFormatted);
+    try {
+      // Filter out staking_refresh entries
+      const filteredItems = allData.items.filter(item => item.entry_type !== 'staking_refresh');
+      
+      // Convert APIKey[] to APIKeyDB[] format
+      const apiKeysFormatted = apiKeys.map(key => ({
+        id: key.id,
+        key_prefix: key.key_prefix,
+        name: key.name || null,
+        created_at: key.created_at,
+        is_active: key.is_active,
+        is_default: key.is_default,
+        encrypted_key: null,
+        encryption_version: undefined,
+      }));
+      
+      // Aggregate all data
+      const aggregated = aggregateLedgerEntriesByDayKeyModel(filteredItems, apiKeysFormatted);
 
-    const headers = [
-      'Date (GMT)',
-      'API Key',
-      'Model',
-      'Type',
-      'Transaction Count',
-      'Total Amount',
-      'Amount (Paid)',
-      'Amount (Staking)',
-      'Tokens Input',
-      'Tokens Output',
-      'Tokens Total',
-    ];
+      const headers = [
+        'Date (GMT)',
+        'API Key',
+        'Model',
+        'Type',
+        'Transaction Count',
+        'Total Amount',
+        'Amount (Paid)',
+        'Amount (Staking)',
+        'Tokens Input',
+        'Tokens Output',
+        'Tokens Total',
+      ];
 
-    const rows = aggregated.map((item) => [
-      item.date,
-      item.api_key_name,
-      item.model_name || 'No Model',
-      item.entry_type,
-      item.transaction_count,
-      item.total_amount.toFixed(6),
-      item.total_amount_paid.toFixed(6),
-      item.total_amount_staking.toFixed(6),
-      item.tokens_input,
-      item.tokens_output,
-      item.tokens_total,
-    ]);
+      const rows = aggregated.map((item) => [
+        item.date,
+        item.api_key_name,
+        item.model_name || 'No Model',
+        item.entry_type,
+        item.transaction_count,
+        item.total_amount.toFixed(6),
+        item.total_amount_paid.toFixed(6),
+        item.total_amount_staking.toFixed(6),
+        item.tokens_input,
+        item.tokens_output,
+        item.tokens_total,
+      ]);
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
-    ].join('\n');
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+      ].join('\n');
 
-    downloadCSV(csvContent, `transactions-aggregated-${new Date().toISOString().split('T')[0]}.csv`);
-    
-    // Show notification
-    console.log(`Exported ${aggregated.length} aggregated transaction records`);
+      downloadCSV(csvContent, `transactions-aggregated-${new Date().toISOString().split('T')[0]}.csv`);
+      
+      console.log(`✅ Exported ${aggregated.length} aggregated transaction records`);
+    } catch (error) {
+      console.error('Failed to export CSV:', error);
+    }
   };
 
   return (
@@ -257,15 +281,28 @@ export function TransactionHistoryTable() {
               Daily aggregated transactions by API Key and Model (times shown in GMT)
             </CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleExportCSV} 
-            disabled={paginatedData.length === 0 || isLoadingAll}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            {isLoadingAll ? 'Loading all data...' : shouldFetchAll && allData ? 'Export CSV (All Data)' : 'Export CSV'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExportCSV} 
+              disabled={paginatedData.length === 0 || isLoadingAll}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {isLoadingAll 
+                ? 'Loading all data...' 
+                : allError 
+                ? 'Retry Export' 
+                : shouldFetchAll && allData 
+                ? `Export CSV (${allData.items.length} rows)` 
+                : 'Export CSV'}
+            </Button>
+            {allError && (
+              <span className="text-xs text-red-500" title={allError instanceof Error ? allError.message : 'Export failed'}>
+                Export failed
+              </span>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -284,6 +321,31 @@ export function TransactionHistoryTable() {
                 <p className="text-xs text-muted-foreground pt-2">
                   If these transactions don't belong to you, please contact support immediately. Reference: <code className="text-xs bg-muted px-1 py-0.5 rounded">MOR-333</code>
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CSV Export Error */}
+        {allError && (
+          <div className="mb-6 rounded-lg border border-red-500/50 bg-red-500/5 p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="space-y-2 flex-1">
+                <p className="text-sm font-semibold text-foreground">CSV Export Failed</p>
+                <p className="text-xs text-muted-foreground">
+                  {allError instanceof Error && allError.message.includes('Database connection') 
+                    ? 'Database is temporarily overloaded. Please try again in a few moments.' 
+                    : 'Failed to load transaction data for export. Click "Retry Export" to try again.'}
+                </p>
+                {allError instanceof Error && (
+                  <details className="text-xs text-muted-foreground mt-2">
+                    <summary className="cursor-pointer">Error details</summary>
+                    <code className="block mt-2 p-2 bg-muted rounded text-xs break-all">
+                      {allError.message}
+                    </code>
+                  </details>
+                )}
               </div>
             </div>
           </div>
