@@ -188,6 +188,20 @@ export async function getTransactions(
   if (params?.to) queryParams.append('to', params.to);
 
   const url = buildApiUrl(`/billing/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[BillingAPI] Fetching transactions:', {
+      url,
+      params: {
+        limit: params?.limit,
+        offset: params?.offset,
+        entry_type: params?.entry_type,
+        from: params?.from,
+        to: params?.to,
+      }
+    });
+  }
+  
   return request(apiGet<LedgerListResponse>(url, token));
 }
 

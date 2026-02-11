@@ -216,7 +216,10 @@ export default function UsageAnalyticsPage() {
           </TabsContent> */}
 
           <TabsContent value="transactions" className="space-y-6">
-            <TransactionHistoryTable />
+            <TransactionHistoryTable 
+              dateRange={dateRange}
+              timeRangeLabel={timeRange === '24h' ? '24 Hours' : timeRange === '7d' ? '7 Days' : timeRange === '30d' ? '30 Days' : 'Custom'}
+            />
           </TabsContent>
         </Tabs>
 

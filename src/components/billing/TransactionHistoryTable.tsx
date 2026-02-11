@@ -91,11 +91,30 @@ function getTypeColor(type: string) {
   }
 }
 
-export function TransactionHistoryTable() {
+interface TransactionHistoryTableProps {
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+  timeRangeLabel?: string;
+}
+
+export function TransactionHistoryTable({ dateRange, timeRangeLabel }: TransactionHistoryTableProps) {
   const [page, setPage] = useState(1);
   const pageSize = 10; // MOR-350: Fixed page size of 10 aggregated records
   const [selectedType, setSelectedType] = useState<LedgerEntryTypeEnum | 'all'>('all');
   const { user, apiKeys } = useCognitoAuth();
+  
+  // Debug logging for date range
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && dateRange) {
+      console.log('[TransactionHistoryTable] Date range updated:', {
+        from: dateRange.start.toISOString(),
+        to: dateRange.end.toISOString(),
+        label: timeRangeLabel,
+      });
+    }
+  }, [dateRange, timeRangeLabel]);
   
   // Fetch data for client-side aggregation and pagination
   // API has a max limit of 100 records per request
@@ -105,7 +124,44 @@ export function TransactionHistoryTable() {
     limit: FETCH_LIMIT,
     offset: 0, // Client-side pagination on aggregated data
     entry_type: selectedType === 'all' ? undefined : selectedType,
+    from: dateRange?.start.toISOString(),
+    to: dateRange?.end.toISOString(),
   });
+
+  // Debug logging for fetched data
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && data) {
+      const uniqueDates = new Set(data.items.map(item => formatGMTDate(item.created_at)));
+      const expectedStartDate = dateRange ? formatGMTDate(dateRange.start) : 'none';
+      const expectedEndDate = dateRange ? formatGMTDate(dateRange.end) : 'none';
+      
+      console.log('[TransactionHistoryTable] Data fetched:', {
+        totalItems: data.items.length,
+        total: data.total,
+        requestedDateRange: dateRange ? {
+          from: dateRange.start.toISOString(),
+          to: dateRange.end.toISOString(),
+          fromDate: expectedStartDate,
+          toDate: expectedEndDate,
+        } : 'none',
+        actualDatesInResponse: Array.from(uniqueDates).sort(),
+        uniqueDateCount: uniqueDates.size,
+        sampleTransactions: data.items.slice(0, 3).map(item => ({
+          date: formatGMTDate(item.created_at),
+          type: item.entry_type,
+          amount: item.amount_total,
+        })),
+      });
+      
+      // CRITICAL: Detect if backend is ignoring date filter
+      if (dateRange && uniqueDates.size === 1) {
+        const onlyDate = Array.from(uniqueDates)[0];
+        console.warn('⚠️ [BACKEND BUG] All transactions from single date:', onlyDate);
+        console.warn('⚠️ Expected date range:', expectedStartDate, 'to', expectedEndDate);
+        console.warn('⚠️ This suggests the backend is ignoring the from/to parameters!');
+      }
+    }
+  }, [data, dateRange]);
 
   // MOR-350: Fetch all transactions for CSV export (up to 10,000 rows)
   // This runs ONLY when user clicks Export CSV (enabled: shouldFetchAll)
@@ -117,17 +173,19 @@ export function TransactionHistoryTable() {
   } = useBillingTransactionsAll(
     {
       entry_type: selectedType === 'all' ? undefined : selectedType,
+      from: dateRange?.start.toISOString(),
+      to: dateRange?.end.toISOString(),
     },
     { enabled: shouldFetchAll }
   );
 
-  // Reset fetch state and page when type filter changes
+  // Reset fetch state and page when type filter or date range changes
   useEffect(() => {
     if (shouldFetchAll) {
       setShouldFetchAll(false);
     }
     setPage(1); // Reset to first page when filter changes
-  }, [selectedType]);
+  }, [selectedType, dateRange]);
 
   // MOR-333: Validate data isolation for ledger entries
   const validationResult = useMemo(() => {
@@ -151,6 +209,29 @@ export function TransactionHistoryTable() {
 
   // Check if we should display this data
   const shouldDisplay = validationResult ? shouldDisplayData(validationResult) : true;
+
+  // Detect if backend is ignoring date filter (all transactions from same date)
+  const dateFilterWarning = useMemo(() => {
+    if (!data?.items || data.items.length === 0 || !dateRange) return null;
+    
+    const uniqueDates = new Set(data.items.map(item => formatGMTDate(item.created_at)));
+    const expectedStartDate = formatGMTDate(dateRange.start);
+    const expectedEndDate = formatGMTDate(dateRange.end);
+    
+    // If we expect multiple days but only got one date, backend likely ignoring filter
+    const daysDiff = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 1 && uniqueDates.size === 1) {
+      const onlyDate = Array.from(uniqueDates)[0];
+      return {
+        message: `All ${data.items.length} transactions are from ${onlyDate}, but the requested date range is ${expectedStartDate} to ${expectedEndDate}. The backend may not be filtering by date correctly.`,
+        onlyDate,
+        expectedStart: expectedStartDate,
+        expectedEnd: expectedEndDate,
+      };
+    }
+    
+    return null;
+  }, [data, dateRange]);
 
   // MOR-346: Filter out staking_refresh entries
   // MOR-350: Aggregate by day, API key, and model
@@ -280,6 +361,16 @@ export function TransactionHistoryTable() {
             <CardTitle>Transaction History</CardTitle>
             <CardDescription>
               Daily aggregated transactions by API Key and Model (times shown in GMT).
+              {timeRangeLabel && (
+                <span className="block mt-1 text-xs">
+                  Time Range: {timeRangeLabel}
+                  {dateRange && (
+                    <span className="text-muted-foreground ml-2">
+                      ({formatGMTDate(dateRange.start)} to {formatGMTDate(dateRange.end)})
+                    </span>
+                  )}
+                </span>
+              )}
               {data?.items && (
                 <span className="block mt-1 text-xs">
                   Showing {aggregatedData.length} aggregated rows from {data.items.length} transactions
@@ -413,6 +504,24 @@ export function TransactionHistoryTable() {
               </div>
             </div>
 
+            {/* Backend Date Filter Warning */}
+            {dateFilterWarning && (
+              <div className="flex items-start gap-3 p-4 border border-yellow-500/50 bg-yellow-500/10 rounded-lg mb-4">
+                <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Date Filter May Not Be Working</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    All {data?.items.length} transactions returned are from <strong>{dateFilterWarning.onlyDate}</strong>, 
+                    but you requested data from <strong>{dateFilterWarning.expectedStart}</strong> to <strong>{dateFilterWarning.expectedEnd}</strong>.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This appears to be a backend API issue. The frontend is correctly sending the date range parameters, 
+                    but the backend may not be filtering by them. Check the browser console for detailed API request logs.
+                  </p>
+                </div>
+              </div>
+            )}
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -453,8 +562,20 @@ export function TransactionHistoryTable() {
                 </TableRow>
               ) : paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                    No transactions found
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground">No transactions found</p>
+                      {dateRange && (
+                        <p className="text-xs text-muted-foreground">
+                          for date range: {formatGMTDate(dateRange.start)} to {formatGMTDate(dateRange.end)}
+                        </p>
+                      )}
+                      {selectedType !== 'all' && (
+                        <p className="text-xs text-muted-foreground">
+                          with type filter: {ENTRY_TYPES.find(t => t.value === selectedType)?.label}
+                        </p>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
