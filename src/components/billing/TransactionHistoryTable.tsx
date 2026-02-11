@@ -97,10 +97,9 @@ export function TransactionHistoryTable() {
   const [selectedType, setSelectedType] = useState<LedgerEntryTypeEnum | 'all'>('all');
   const { user, apiKeys } = useCognitoAuth();
   
-  // Fetch enough data for client-side aggregation and pagination
-  // Since transactions aggregate significantly (many transactions -> fewer aggregated rows),
-  // we fetch 200 raw transactions which should provide enough aggregated rows for multiple pages
-  const FETCH_LIMIT = 200;
+  // Fetch data for client-side aggregation and pagination
+  // API has a max limit of 100 records per request
+  const FETCH_LIMIT = 100;
   
   const { data, isLoading, error } = useBillingTransactions({
     limit: FETCH_LIMIT,
@@ -280,7 +279,12 @@ export function TransactionHistoryTable() {
           <div>
             <CardTitle>Transaction History</CardTitle>
             <CardDescription>
-              Daily aggregated transactions by API Key and Model (times shown in GMT)
+              Daily aggregated transactions by API Key and Model (times shown in GMT).
+              {data?.items && (
+                <span className="block mt-1 text-xs">
+                  Showing {aggregatedData.length} aggregated rows from {data.items.length} transactions
+                </span>
+              )}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -379,26 +383,33 @@ export function TransactionHistoryTable() {
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <div className="w-[200px]">
-                <Select
-                  value={selectedType}
-                  onValueChange={(value) => {
-                    setSelectedType(value as LedgerEntryTypeEnum | 'all');
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ENTRY_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-4 mb-6">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="w-[200px]">
+                  <Select
+                    value={selectedType}
+                    onValueChange={(value) => {
+                      setSelectedType(value as LedgerEntryTypeEnum | 'all');
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENTRY_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                <strong>Note:</strong> Only <code className="bg-muted px-1 py-0.5 rounded">usage_charge</code> transactions have API Keys and Models.
+                Other transaction types (purchases, refunds, adjustments) will show "N/A" for these columns.
               </div>
             </div>
 
@@ -453,7 +464,13 @@ export function TransactionHistoryTable() {
                       {item.date}
                     </TableCell>
                     <TableCell className="max-w-[150px] truncate" title={item.api_key_name}>
-                      {item.api_key_name}
+                      {item.api_key_id ? (
+                        <span>{item.api_key_name}</span>
+                      ) : (
+                        <span className="text-muted-foreground italic text-xs">
+                          {item.entry_type === 'usage_charge' ? 'Unknown' : 'N/A'}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="max-w-[150px] truncate" title={item.model_name || 'No Model'}>
                       {item.model_name || 'No Model'}
