@@ -307,7 +307,7 @@ export default function ExportDataPage() {
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">•</span>
                   <span>
-                    Use the search box to filter by model name, endpoint, or request ID.
+                    Use the search box to filter by model name or endpoint
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
