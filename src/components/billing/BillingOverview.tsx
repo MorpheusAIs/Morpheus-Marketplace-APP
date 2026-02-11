@@ -372,23 +372,25 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 Distribution by Key
               </p>
               {tokensByKey.length > 0 ? (
-                tokensByKey.slice(0, 3).map((key) => (
-                  <div key={key.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
-                      <span className="font-medium">{formatLargeNumber(key.value)}</span>
+                <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1">
+                  {tokensByKey.map((key) => (
+                    <div key={key.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
+                        <span className="font-medium">{formatLargeNumber(key.value)}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${totalTokens > 0 ? (key.value / totalTokens) * 100 : 0}%`,
+                            backgroundColor: key.color,
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${totalTokens > 0 ? (key.value / totalTokens) * 100 : 0}%`,
-                          backgroundColor: key.color,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground">No usage data available</p>
               )}
@@ -431,20 +433,22 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 Distribution by Key
               </p>
               {spendByKey.length > 0 ? (
-                spendByKey.slice(0, 3).map((key) => (
-                  <div key={key.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
-                      <span className="font-medium text-orange-500">{formatCurrency(key.value)}</span>
+                <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1">
+                  {spendByKey.map((key) => (
+                    <div key={key.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
+                        <span className="font-medium text-orange-500">{formatCurrency(key.value)}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-orange-500 transition-all"
+                          style={{ width: `${totalCost > 0 ? (key.value / totalCost) * 100 : 0}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-orange-500 transition-all"
-                        style={{ width: `${totalCost > 0 ? (key.value / totalCost) * 100 : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground">No usage data available</p>
               )}
@@ -534,12 +538,12 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                     <Tooltip formatter={(value) => formatCurrency(Number(value) || 0)} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="mt-4 space-y-2">
-                  {spendByModel.slice(0, 5).map((entry) => (
+                <div className="mt-4 max-h-[120px] overflow-y-auto space-y-2 pr-1">
+                  {spendByModel.map((entry) => (
                     <div key={entry.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-3 h-3 rounded-sm"
+                          className="w-3 h-3 rounded-sm flex-shrink-0"
                           style={{ backgroundColor: entry.color }}
                         />
                         <span className="text-muted-foreground truncate max-w-[120px]">{entry.name}</span>
