@@ -25,6 +25,7 @@ import type {
   UsageListResponse,
   UsageEntryResponse,
   LedgerListResponse,
+  LedgerEntryResponse,
   MonthlySpendingResponse,
   WalletStatusResponse,
   WalletLinkRequest,
@@ -244,6 +245,118 @@ export function useBillingTransactions(
       return getTransactions(token, params);
     },
     enabled: options?.enabled ?? true,
+  });
+}
+
+/**
+ * Fetch ALL transaction entries across all pages (MOR-350).
+ * Similar to useBillingUsageAll, this hook iterates through all pages
+ * to ensure complete data for CSV export (up to 10,000 rows).
+ */
+export function useBillingTransactionsAll(
+  params?: Omit<GetTransactionsParams, 'limit' | 'offset'>,
+  options?: {
+    enabled?: boolean;
+  }
+): UseQueryResult<LedgerListResponse, Error> {
+  const { getValidToken } = useCognitoAuth();
+
+  return useQuery({
+    queryKey: ['billing', 'transactions', 'all', params],
+    queryFn: async () => {
+      const token = await getValidToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const PAGE_SIZE = 100;
+      const MAX_ITEMS = 10000; // MOR-350: limit to 10,000 rows
+      const allItems: LedgerEntryResponse[] = [];
+      let offset = 0;
+      let hasMore = true;
+      let total = 0;
+      let pageCount = 0;
+
+      console.log('[useBillingTransactionsAll] Starting pagination fetch', {
+        params,
+        pageSize: PAGE_SIZE,
+        maxItems: MAX_ITEMS,
+        timestamp: new Date().toISOString(),
+      });
+
+      while (hasMore && allItems.length < MAX_ITEMS) {
+        pageCount++;
+        console.log(`[useBillingTransactionsAll] Fetching page ${pageCount}, offset: ${offset}`);
+        
+        const response = await getTransactions(token, {
+          ...params,
+          limit: PAGE_SIZE,
+          offset,
+        });
+
+        console.log(`[useBillingTransactionsAll] Page ${pageCount} received:`, {
+          itemsInPage: response.items.length,
+          totalFromAPI: response.total,
+          hasMore: response.has_more,
+          offset: response.offset,
+          limit: response.limit,
+        });
+
+        allItems.push(...response.items);
+        total = response.total;
+        
+        // Continue if backend says there's more OR we haven't fetched all items yet
+        const shouldContinue = response.has_more || (allItems.length < total && response.items.length > 0);
+        
+        console.log(`[useBillingTransactionsAll] Pagination decision:`, {
+          collected: allItems.length,
+          total,
+          maxItems: MAX_ITEMS,
+          backendHasMore: response.has_more,
+          shouldContinue,
+        });
+
+        hasMore = shouldContinue;
+        offset += PAGE_SIZE;
+
+        // Safety limit: 10,000 items max
+        if (allItems.length >= MAX_ITEMS) {
+          console.warn('[useBillingTransactionsAll] Reached 10,000 item limit. Stopping pagination.');
+          break;
+        }
+
+        // Safety limit: max 100 pages
+        if (pageCount >= 100) {
+          console.warn('[useBillingTransactionsAll] Safety limit reached (100 pages). Breaking pagination loop.');
+          break;
+        }
+
+        // If we received 0 items on this page, stop
+        if (response.items.length === 0) {
+          console.log('[useBillingTransactionsAll] Received empty page, stopping pagination.');
+          break;
+        }
+      }
+
+      console.log('[useBillingTransactionsAll] Pagination complete:', {
+        totalPages: pageCount,
+        totalItemsFetched: allItems.length,
+        expectedTotal: total,
+        match: allItems.length === total,
+      });
+
+      return {
+        items: allItems,
+        total: allItems.length,
+        limit: allItems.length,
+        offset: 0,
+        has_more: allItems.length < total, // There may be more data beyond 10k limit
+      };
+    },
+    staleTime: 5 * 60_000, // Data stays fresh for 5 minutes
+    gcTime: 10 * 60_000, // Keep in cache for 10 minutes
+    placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
+    retry: 1, // Only retry once on failure to avoid hammering the database
+    retryDelay: 2000, // Wait 2 seconds before retrying
   });
 }
 

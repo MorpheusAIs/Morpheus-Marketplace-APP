@@ -24,7 +24,7 @@ export default function ExportDataPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = 10; // MOR-350: Show 10 records per page
 
   // Fetch all usage data (last 90 days by default)
   // useBillingUsageAll automatically paginates through all pages
@@ -313,7 +313,7 @@ export default function ExportDataPage() {
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">•</span>
                   <span>
-                    Click "Download CSV" to export all filtered records to a spreadsheet.
+                    Click &ldquo;Download CSV&rdquo; to export all filtered records to a spreadsheet.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">

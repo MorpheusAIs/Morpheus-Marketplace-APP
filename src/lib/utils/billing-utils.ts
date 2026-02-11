@@ -81,6 +81,37 @@ export function formatLocaleTime(date: Date | string): string {
 }
 
 /**
+ * Format date in GMT timezone (MOR-350)
+ * Returns format: YYYY-MM-DD
+ */
+export function formatGMTDate(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toISOString().split('T')[0];
+}
+
+/**
+ * Format time in GMT timezone (MOR-350)
+ * Returns format: HH:MM:SS GMT
+ */
+export function formatGMTTime(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const timeStr = dateObj.toISOString().split('T')[1].split('.')[0];
+  return `${timeStr} GMT`;
+}
+
+/**
+ * Format full date and time in GMT timezone (MOR-350)
+ * Returns format: YYYY-MM-DD HH:MM:SS GMT
+ */
+export function formatGMTDateTime(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const isoStr = dateObj.toISOString();
+  const [datePart, timePart] = isoStr.split('T');
+  const timeOnly = timePart.split('.')[0];
+  return `${datePart} ${timeOnly} GMT`;
+}
+
+/**
  * Format date and time using browser's locale
  * Combines date and time in a single formatted string
  */
@@ -368,4 +399,91 @@ export function formatLargeNumber(num: number): string {
 export function getKeyName(keyId: string | number, apiKeys: APIKeyDB[]): string {
   const key = apiKeys.find((k) => k.id.toString() === keyId.toString());
   return key?.name || key?.key_prefix || 'Unknown Key';
+}
+
+// ========== Ledger Entry Aggregation (MOR-350) ==========
+
+import type { LedgerEntryResponse } from '@/types/billing';
+
+/**
+ * Aggregated transaction entry grouped by day, API key, and model (MOR-350)
+ */
+export interface AggregatedTransaction {
+  date: string; // YYYY-MM-DD
+  api_key_id: number | null;
+  api_key_name: string;
+  model_name: string | null;
+  entry_type: string;
+  total_amount: number;
+  total_amount_paid: number;
+  total_amount_staking: number;
+  transaction_count: number;
+  tokens_input: number;
+  tokens_output: number;
+  tokens_total: number;
+}
+
+/**
+ * Aggregate ledger entries by day, API key, and model (MOR-350)
+ * Groups transactions and sums amounts for each unique combination
+ */
+export function aggregateLedgerEntriesByDayKeyModel(
+  entries: LedgerEntryResponse[],
+  apiKeys: APIKeyDB[] = []
+): AggregatedTransaction[] {
+  const grouped: Record<string, AggregatedTransaction> = {};
+
+  entries.forEach((entry) => {
+    // Extract date (YYYY-MM-DD)
+    const date = entry.created_at.split('T')[0];
+    
+    // Get API key info
+    const apiKeyId = entry.api_key_id ?? null;
+    const apiKeyName = apiKeyId 
+      ? getKeyName(apiKeyId, apiKeys) 
+      : 'No API Key';
+    
+    // Get model name
+    const modelName = entry.model_name ?? 'No Model';
+    
+    // Create unique key for grouping
+    const groupKey = `${date}|${apiKeyId}|${modelName}|${entry.entry_type}`;
+    
+    if (!grouped[groupKey]) {
+      grouped[groupKey] = {
+        date,
+        api_key_id: apiKeyId,
+        api_key_name: apiKeyName,
+        model_name: modelName,
+        entry_type: entry.entry_type,
+        total_amount: 0,
+        total_amount_paid: 0,
+        total_amount_staking: 0,
+        transaction_count: 0,
+        tokens_input: 0,
+        tokens_output: 0,
+        tokens_total: 0,
+      };
+    }
+    
+    // Aggregate values
+    grouped[groupKey].total_amount += parseFloat(entry.amount_total);
+    grouped[groupKey].total_amount_paid += parseFloat(entry.amount_paid);
+    grouped[groupKey].total_amount_staking += parseFloat(entry.amount_staking);
+    grouped[groupKey].transaction_count += 1;
+    grouped[groupKey].tokens_input += entry.tokens_input ?? 0;
+    grouped[groupKey].tokens_output += entry.tokens_output ?? 0;
+    grouped[groupKey].tokens_total += entry.tokens_total ?? 0;
+  });
+
+  // Sort by date (newest first), then by API key, then by model
+  return Object.values(grouped).sort((a, b) => {
+    const dateCompare = b.date.localeCompare(a.date);
+    if (dateCompare !== 0) return dateCompare;
+    
+    const keyCompare = (a.api_key_name || '').localeCompare(b.api_key_name || '');
+    if (keyCompare !== 0) return keyCompare;
+    
+    return (a.model_name || '').localeCompare(b.model_name || '');
+  });
 }
