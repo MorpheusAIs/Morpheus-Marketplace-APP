@@ -382,6 +382,7 @@ export function formatCurrency(amount: string | number): string {
 
 /**
  * Format large numbers with K/M suffix
+ * MOR-350: For numbers < 1000, show as integer (no decimals)
  */
 export function formatLargeNumber(num: number): string {
   if (num >= 1000000) {
@@ -390,7 +391,8 @@ export function formatLargeNumber(num: number): string {
   if (num >= 1000) {
     return `${(num / 1000).toFixed(2)}K`;
   }
-  return num.toString();
+  // Round to integer for numbers < 1000
+  return Math.round(num).toString();
 }
 
 /**
