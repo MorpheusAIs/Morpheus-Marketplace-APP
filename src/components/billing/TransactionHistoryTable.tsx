@@ -131,15 +131,35 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
   // Debug logging for fetched data
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && data) {
+      const uniqueDates = new Set(data.items.map(item => formatGMTDate(item.created_at)));
+      const expectedStartDate = dateRange ? formatGMTDate(dateRange.start) : 'none';
+      const expectedEndDate = dateRange ? formatGMTDate(dateRange.end) : 'none';
+      
       console.log('[TransactionHistoryTable] Data fetched:', {
         totalItems: data.items.length,
         total: data.total,
-        dateRange: dateRange ? {
+        requestedDateRange: dateRange ? {
           from: dateRange.start.toISOString(),
           to: dateRange.end.toISOString(),
+          fromDate: expectedStartDate,
+          toDate: expectedEndDate,
         } : 'none',
-        sampleDates: data.items.slice(0, 3).map(item => item.created_at),
+        actualDatesInResponse: Array.from(uniqueDates).sort(),
+        uniqueDateCount: uniqueDates.size,
+        sampleTransactions: data.items.slice(0, 3).map(item => ({
+          date: formatGMTDate(item.created_at),
+          type: item.entry_type,
+          amount: item.amount_total,
+        })),
       });
+      
+      // CRITICAL: Detect if backend is ignoring date filter
+      if (dateRange && uniqueDates.size === 1) {
+        const onlyDate = Array.from(uniqueDates)[0];
+        console.warn('⚠️ [BACKEND BUG] All transactions from single date:', onlyDate);
+        console.warn('⚠️ Expected date range:', expectedStartDate, 'to', expectedEndDate);
+        console.warn('⚠️ This suggests the backend is ignoring the from/to parameters!');
+      }
     }
   }, [data, dateRange]);
 
@@ -189,6 +209,29 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
 
   // Check if we should display this data
   const shouldDisplay = validationResult ? shouldDisplayData(validationResult) : true;
+
+  // Detect if backend is ignoring date filter (all transactions from same date)
+  const dateFilterWarning = useMemo(() => {
+    if (!data?.items || data.items.length === 0 || !dateRange) return null;
+    
+    const uniqueDates = new Set(data.items.map(item => formatGMTDate(item.created_at)));
+    const expectedStartDate = formatGMTDate(dateRange.start);
+    const expectedEndDate = formatGMTDate(dateRange.end);
+    
+    // If we expect multiple days but only got one date, backend likely ignoring filter
+    const daysDiff = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff > 1 && uniqueDates.size === 1) {
+      const onlyDate = Array.from(uniqueDates)[0];
+      return {
+        message: `All ${data.items.length} transactions are from ${onlyDate}, but the requested date range is ${expectedStartDate} to ${expectedEndDate}. The backend may not be filtering by date correctly.`,
+        onlyDate,
+        expectedStart: expectedStartDate,
+        expectedEnd: expectedEndDate,
+      };
+    }
+    
+    return null;
+  }, [data, dateRange]);
 
   // MOR-346: Filter out staking_refresh entries
   // MOR-350: Aggregate by day, API key, and model
@@ -460,6 +503,24 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                 Other transaction types (purchases, refunds, adjustments) will show "N/A" for these columns.
               </div>
             </div>
+
+            {/* Backend Date Filter Warning */}
+            {dateFilterWarning && (
+              <div className="flex items-start gap-3 p-4 border border-yellow-500/50 bg-yellow-500/10 rounded-lg mb-4">
+                <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Date Filter May Not Be Working</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    All {data?.items.length} transactions returned are from <strong>{dateFilterWarning.onlyDate}</strong>, 
+                    but you requested data from <strong>{dateFilterWarning.expectedStart}</strong> to <strong>{dateFilterWarning.expectedEnd}</strong>.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This appears to be a backend API issue. The frontend is correctly sending the date range parameters, 
+                    but the backend may not be filtering by them. Check the browser console for detailed API request logs.
+                  </p>
+                </div>
+              </div>
+            )}
 
         <div className="rounded-md border">
           <Table>
