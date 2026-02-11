@@ -75,9 +75,18 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // CRITICAL: Require userId for all payments
+    // This prevents creating charges that can't be credited to any account
+    if (!userId || userId === 'anonymous') {
+      console.error('Charge creation attempted without valid userId');
+      return NextResponse.json(
+        { error: 'Authentication required. Please log in to make a payment.' },
+        { status: 401 }
+      );
+    }
     
-    // Use a fallback for userId if not provided (anonymous payment)
-    const effectiveUserId = userId || 'anonymous';
+    const effectiveUserId = userId;
 
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount < 1) {

@@ -37,8 +37,17 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     if (payment === 'success') {
       setFlowState('stripe_success');
       window.history.replaceState({}, '', window.location.pathname);
+      
+      // FIXED: Actually trigger balance refresh from backend
+      // This gives the webhook time to process (2-5 seconds typical)
+      // Then refreshes the balance to show new credits
       if (onBalanceUpdate) {
-        onBalanceUpdate(0); 
+        // Small delay to allow webhook to process
+        setTimeout(() => {
+          onBalanceUpdate(0); // This should trigger parent to refetch balance
+          // Force a full page data refresh after 2 seconds
+          window.location.reload();
+        }, 2000);
       }
     } else if (payment === 'cancelled') {
       setError('Payment was cancelled');
@@ -72,32 +81,46 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   };
 
   const openCoinbaseCheckout = async (amount: string) => {
-    const response = await fetch('/api/coinbase/charge', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: amount,
-        currency: 'USD',
-        userId: userId || 'anonymous',
-        description: 'Morpheus AI Credits Purchase',
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Coinbase charge creation failed:', errorData);
-      throw new Error(errorData.error || 'Failed to create Coinbase charge');
+    // CRITICAL: Do not allow payments without authenticated user
+    if (!userId) {
+      setError('You must be logged in to make a payment');
+      console.error('Attempted Coinbase checkout without userId');
+      return;
     }
 
-    const data = await response.json();
-    
-    // Response structure: { success: true, charge: { hosted_url, ... } }
-    if (data.charge?.hosted_url) {
-      window.open(data.charge.hosted_url, '_blank', 'noopener,noreferrer');
-    } else {
-      throw new Error('No payment URL received from Coinbase');
+    try {
+      const response = await fetch('/api/coinbase/charge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amount,
+          currency: 'USD',
+          userId: userId, // Guaranteed to be set now
+          description: 'Morpheus AI Credits Purchase',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Coinbase charge creation failed:', errorData);
+        setError(errorData.error || 'Failed to create payment. Please try again.');
+        return;
+      }
+
+      const data = await response.json();
+      
+      // Response structure: { success: true, charge: { hosted_url, ... } }
+      if (data.charge?.hosted_url) {
+        window.open(data.charge.hosted_url, '_blank', 'noopener,noreferrer');
+      } else {
+        setError('No payment URL received from Coinbase');
+        console.error('Missing hosted_url in Coinbase response:', data);
+      }
+    } catch (err) {
+      console.error('Error opening Coinbase checkout:', err);
+      setError('Failed to initialize payment. Please try again.');
     }
   };
 
@@ -156,6 +179,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
               variant="outline"
               className="w-full justify-between h-auto p-4"
               onClick={() => handlePaymentMethodClick('coinbase')}
+              disabled={!userId}
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-muted rounded-md">
@@ -163,7 +187,9 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                 </div>
                 <div className="text-left">
                   <p className="font-medium">Pay with Crypto</p>
-                  <p className="text-xs text-muted-foreground">Powered by Coinbase Commerce</p>
+                  <p className="text-xs text-muted-foreground">
+                    {userId ? 'Powered by Coinbase Commerce' : 'Login required'}
+                  </p>
                 </div>
               </div>
               <ArrowRight className="h-4 w-4" />
