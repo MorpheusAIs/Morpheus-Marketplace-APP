@@ -321,6 +321,11 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
               {timeRangeLabel && (
                 <span className="block mt-1 text-xs">
                   Time Range: {timeRangeLabel}
+                  {dateRange && (
+                    <span className="text-muted-foreground ml-2">
+                      ({formatGMTDate(dateRange.start)} to {formatGMTDate(dateRange.end)})
+                    </span>
+                  )}
                 </span>
               )}
               {data?.items && (
@@ -496,8 +501,20 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                 </TableRow>
               ) : paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                    No transactions found
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground">No transactions found</p>
+                      {dateRange && (
+                        <p className="text-xs text-muted-foreground">
+                          for date range: {formatGMTDate(dateRange.start)} to {formatGMTDate(dateRange.end)}
+                        </p>
+                      )}
+                      {selectedType !== 'all' && (
+                        <p className="text-xs text-muted-foreground">
+                          with type filter: {ENTRY_TYPES.find(t => t.value === selectedType)?.label}
+                        </p>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
