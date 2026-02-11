@@ -91,11 +91,30 @@ function getTypeColor(type: string) {
   }
 }
 
-export function TransactionHistoryTable() {
+interface TransactionHistoryTableProps {
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+  timeRangeLabel?: string;
+}
+
+export function TransactionHistoryTable({ dateRange, timeRangeLabel }: TransactionHistoryTableProps) {
   const [page, setPage] = useState(1);
   const pageSize = 10; // MOR-350: Fixed page size of 10 aggregated records
   const [selectedType, setSelectedType] = useState<LedgerEntryTypeEnum | 'all'>('all');
   const { user, apiKeys } = useCognitoAuth();
+  
+  // Debug logging for date range
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && dateRange) {
+      console.log('[TransactionHistoryTable] Date range updated:', {
+        from: dateRange.start.toISOString(),
+        to: dateRange.end.toISOString(),
+        label: timeRangeLabel,
+      });
+    }
+  }, [dateRange, timeRangeLabel]);
   
   // Fetch data for client-side aggregation and pagination
   // API has a max limit of 100 records per request
@@ -105,7 +124,24 @@ export function TransactionHistoryTable() {
     limit: FETCH_LIMIT,
     offset: 0, // Client-side pagination on aggregated data
     entry_type: selectedType === 'all' ? undefined : selectedType,
+    from: dateRange?.start.toISOString(),
+    to: dateRange?.end.toISOString(),
   });
+
+  // Debug logging for fetched data
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && data) {
+      console.log('[TransactionHistoryTable] Data fetched:', {
+        totalItems: data.items.length,
+        total: data.total,
+        dateRange: dateRange ? {
+          from: dateRange.start.toISOString(),
+          to: dateRange.end.toISOString(),
+        } : 'none',
+        sampleDates: data.items.slice(0, 3).map(item => item.created_at),
+      });
+    }
+  }, [data, dateRange]);
 
   // MOR-350: Fetch all transactions for CSV export (up to 10,000 rows)
   // This runs ONLY when user clicks Export CSV (enabled: shouldFetchAll)
@@ -117,17 +153,19 @@ export function TransactionHistoryTable() {
   } = useBillingTransactionsAll(
     {
       entry_type: selectedType === 'all' ? undefined : selectedType,
+      from: dateRange?.start.toISOString(),
+      to: dateRange?.end.toISOString(),
     },
     { enabled: shouldFetchAll }
   );
 
-  // Reset fetch state and page when type filter changes
+  // Reset fetch state and page when type filter or date range changes
   useEffect(() => {
     if (shouldFetchAll) {
       setShouldFetchAll(false);
     }
     setPage(1); // Reset to first page when filter changes
-  }, [selectedType]);
+  }, [selectedType, dateRange]);
 
   // MOR-333: Validate data isolation for ledger entries
   const validationResult = useMemo(() => {
@@ -280,6 +318,11 @@ export function TransactionHistoryTable() {
             <CardTitle>Transaction History</CardTitle>
             <CardDescription>
               Daily aggregated transactions by API Key and Model (times shown in GMT).
+              {timeRangeLabel && (
+                <span className="block mt-1 text-xs">
+                  Time Range: {timeRangeLabel}
+                </span>
+              )}
               {data?.items && (
                 <span className="block mt-1 text-xs">
                   Showing {aggregatedData.length} aggregated rows from {data.items.length} transactions
