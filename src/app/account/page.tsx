@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Pencil, Trash2, CheckCircle } from "lucide-react";
+import { Pencil, Trash2, CheckCircle, Copy, Check } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { apiGet, apiPut } from "@/lib/api/apiService";
@@ -36,6 +36,7 @@ export default function AccountSettingsPage() {
   const [automationSettings, setAutomationSettings] = useState<AutomationSettings | null>(null);
   const [verifiedApiKey, setVerifiedApiKey] = useState<string | null>(null);
   const [apiKeyPrefix, setApiKeyPrefix] = useState<string>("");
+  const [accountIdCopied, setAccountIdCopied] = useState(false);
 
   useEffect(() => {
     // Load verified API key from sessionStorage
@@ -166,6 +167,19 @@ export default function AccountSettingsPage() {
     }
   };
 
+  const handleCopyAccountId = async () => {
+    if (user?.sub) {
+      try {
+        await navigator.clipboard.writeText(user.sub);
+        setAccountIdCopied(true);
+        success("Copied!", "Account ID copied to clipboard");
+        setTimeout(() => setAccountIdCopied(false), 2000);
+      } catch (err) {
+        error("Copy Failed", "Failed to copy account ID to clipboard");
+      }
+    }
+  };
+
   return (
     <AuthenticatedLayout>
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
@@ -174,14 +188,45 @@ export default function AccountSettingsPage() {
           Manage your account preferences and settings
         </p>
 
-        {/* Account Authentication */}
+        {/* Account Details */}
         <Card className="mt-4 md:mt-8 bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg md:text-xl font-semibold text-card-foreground">
-              Account Authentication
+              Account Details
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Account ID */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 py-4 border-b border-border">
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="account-id" className="text-foreground block mb-1 md:mb-0">
+                  Account ID
+                </Label>
+                <span className="text-muted-foreground text-sm md:text-base break-all md:break-normal font-mono">
+                  {user?.sub || "N/A"}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-white border-white hover:bg-white hover:text-black w-full md:w-auto shrink-0"
+                onClick={handleCopyAccountId}
+                disabled={!user?.sub}
+              >
+                {accountIdCopied ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+
             {/* Email */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 py-4 border-b border-border">
               <div className="flex-1 min-w-0">
