@@ -209,6 +209,32 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
 
   const tokenTypeData = useMemo(() => aggregateTokenTypes(filteredItems), [filteredItems]);
 
+  const tokensByKey = useMemo(() => {
+    if (!usageData?.items || !apiKeys) return [];
+
+    const grouped = usageData.items.reduce<Record<string, number>>((acc, entry: UsageEntryResponse & { api_key_id?: number }) => {
+      const keyId = entry.api_key_id?.toString() || 'unknown';
+      if (!acc[keyId]) {
+        acc[keyId] = 0;
+      }
+      acc[keyId] += entry.tokens_total ?? 0;
+      return acc;
+    }, {});
+
+    return Object.entries(grouped)
+      .map(([keyId, value], index) => {
+        const apiKey = Array.isArray(apiKeys)
+          ? apiKeys.find((k: { id?: number }) => k.id?.toString() === keyId)
+          : null;
+        return {
+          name: (apiKey as { name?: string } | null)?.name || `Key ${keyId}`,
+          value,
+          color: COLORS[index % COLORS.length],
+        };
+      })
+      .sort((a, b) => b.value - a.value);
+  }, [usageData, apiKeys]);
+
   const spendByKey = useMemo(() => {
     if (!usageData?.items || !apiKeys) return [];
 
@@ -345,18 +371,18 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Distribution by Key
               </p>
-              {spendByKey.length > 0 ? (
-                spendByKey.slice(0, 3).map((key) => (
+              {tokensByKey.length > 0 ? (
+                tokensByKey.slice(0, 3).map((key) => (
                   <div key={key.name} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
-                      <span className="font-medium">{formatCurrency(key.value)}</span>
+                      <span className="font-medium">{formatLargeNumber(key.value)}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
-                          width: `${totalCost > 0 ? (key.value / totalCost) * 100 : 0}%`,
+                          width: `${totalTokens > 0 ? (key.value / totalTokens) * 100 : 0}%`,
                           backgroundColor: key.color,
                         }}
                       />
