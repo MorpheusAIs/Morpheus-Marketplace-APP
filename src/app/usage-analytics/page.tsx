@@ -196,7 +196,8 @@ export default function UsageAnalyticsPage() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly Spending</TabsTrigger>
+            {/* MOR-349: Monthly Spending tab disabled for launch - will re-enable after fixing validation issues */}
+            {/* <TabsTrigger value="monthly">Monthly Spending</TabsTrigger> */}
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
           </TabsList>
 
@@ -209,9 +210,10 @@ export default function UsageAnalyticsPage() {
             />
           </TabsContent>
 
-          <TabsContent value="monthly" className="space-y-6">
+          {/* MOR-349: Monthly Spending tab content disabled for launch - will re-enable after fixing validation issues */}
+          {/* <TabsContent value="monthly" className="space-y-6">
             <MonthlySpendingChart />
-          </TabsContent>
+          </TabsContent> */}
 
           <TabsContent value="transactions" className="space-y-6">
             <TransactionHistoryTable />
