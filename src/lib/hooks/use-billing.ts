@@ -88,6 +88,21 @@ export function useBillingUsage(
  * 
  * This ensures all data is fetched even if the backend has_more flag
  * is incorrectly set to false before all pages are retrieved.
+ * 
+ * CRITICAL FIX (MOR-354): Safety limit increased from 10,000 to 1,000,000 offset
+ * to handle extreme high-volume accounts. Previous limit was stopping pagination at
+ * 10,100 records when accounts had 22,000+ records, causing 55% data loss.
+ * 
+ * Now supports up to 1,000,000 usage records (10,000 pages × 100 items/page).
+ * Safety limits are kept as a final protection against:
+ * - Backend bugs (e.g., has_more always true)
+ * - Memory exhaustion (1M records ≈ 100-200MB)
+ * - Data anomalies (1M+ records in 30 days is unusual)
+ * 
+ * Normal pagination should stop naturally via:
+ * - has_more === false
+ * - allItems.length >= total
+ * - Empty page (response.items.length === 0)
  */
 export function useBillingUsageAll(
   params?: Omit<GetUsageParams, 'limit' | 'offset'>,
@@ -158,13 +173,29 @@ export function useBillingUsageAll(
         offset += PAGE_SIZE;
 
         // Safety limits
-        if (offset > 10000) {
-          console.warn('[useBillingUsageAll] Safety limit reached (offset > 10000). Breaking pagination loop.');
+        // MOR-354: Increased from 10,000 to 1,000,000 to handle extreme high-volume scenarios
+        // At 100 items per page, this allows up to 1,000,000 records (10,000 pages)
+        // 
+        // Why keep safety limits at all?
+        // 1. Prevent infinite loops if backend has_more flag is buggy (always returns true)
+        // 2. Prevent browser crashes from memory exhaustion (1M records ≈ 100-200MB)
+        // 3. Prevent users from waiting indefinitely (10k pages ≈ 30+ minutes)
+        // 4. Detect data anomalies (1M+ records in 30 days = data issue)
+        //
+        // The dual-condition pagination (has_more OR length < total) + empty page check
+        // should naturally stop pagination, but this acts as a final safety net.
+        if (offset > 1000000) {
+          console.error('[useBillingUsageAll] SAFETY LIMIT REACHED: offset > 1,000,000');
+          console.error('[useBillingUsageAll] This indicates a backend issue or data anomaly.');
+          console.error('[useBillingUsageAll] Collected:', allItems.length, 'Expected total:', total);
+          console.error('[useBillingUsageAll] Please investigate backend pagination or implement server-side aggregation.');
           break;
         }
         
-        if (pageCount > 200) {
-          console.warn('[useBillingUsageAll] Safety limit reached (200 pages). Breaking pagination loop.');
+        // MOR-354: Increased from 200 to 10,000 pages to match new offset limit
+        if (pageCount > 10000) {
+          console.error('[useBillingUsageAll] SAFETY LIMIT REACHED: 10,000 pages fetched');
+          console.error('[useBillingUsageAll] This is extremely unusual and likely indicates a backend issue.');
           break;
         }
 
@@ -182,6 +213,12 @@ export function useBillingUsageAll(
         match: allItems.length === total,
         discrepancy: total - allItems.length,
       });
+
+      // Warning for very large datasets
+      if (allItems.length > 50000) {
+        console.warn(`[useBillingUsageAll] Large dataset: ${allItems.length.toLocaleString()} records fetched.`);
+        console.warn('[useBillingUsageAll] Consider using shorter time ranges or backend aggregation for better performance.');
+      }
 
       // Calculate actual totals from fetched data for verification
       const actualTokensInput = allItems.reduce((sum, item) => sum + (item.tokens_input ?? 0), 0);
