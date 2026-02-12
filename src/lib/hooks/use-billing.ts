@@ -286,9 +286,11 @@ export function useBillingTransactions(
 }
 
 /**
- * Fetch ALL transaction entries across all pages (MOR-350).
+ * Fetch ALL transaction entries across all pages (MOR-350/MOR-354).
  * Similar to useBillingUsageAll, this hook iterates through all pages
- * to ensure complete data for CSV export (up to 10,000 rows).
+ * to ensure complete data for CSV export and transaction history.
+ * 
+ * Updated to match MOR-354 limits (1M records) for consistency.
  */
 export function useBillingTransactionsAll(
   params?: Omit<GetTransactionsParams, 'limit' | 'offset'>,
@@ -304,8 +306,10 @@ export function useBillingTransactionsAll(
       const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
 
-      const PAGE_SIZE = 100;
-      const MAX_ITEMS = 10000; // MOR-350: limit to 10,000 rows
+      const PAGE_SIZE = 1000;
+      // MOR-354: Increased from 10,000 to 1,000,000 to match useBillingUsageAll
+      // This ensures transaction history and CSV exports can include all records
+      const MAX_ITEMS = 1000000;
       const allItems: LedgerEntryResponse[] = [];
       let offset = 0;
       let hasMore = true;
@@ -354,15 +358,19 @@ export function useBillingTransactionsAll(
         hasMore = shouldContinue;
         offset += PAGE_SIZE;
 
-        // Safety limit: 10,000 items max
+        // Safety limit: 1,000,000 items max (MOR-354)
         if (allItems.length >= MAX_ITEMS) {
-          console.warn('[useBillingTransactionsAll] Reached 10,000 item limit. Stopping pagination.');
+          console.error('[useBillingTransactionsAll] SAFETY LIMIT REACHED:', MAX_ITEMS.toLocaleString(), 'items');
+          console.error('[useBillingTransactionsAll] This indicates a backend issue or data anomaly.');
+          console.error('[useBillingTransactionsAll] Collected:', allItems.length, 'Expected total:', total);
           break;
         }
 
-        // Safety limit: max 100 pages
-        if (pageCount >= 100) {
-          console.warn('[useBillingTransactionsAll] Safety limit reached (100 pages). Breaking pagination loop.');
+        // Safety limit: max 1,000 pages (MOR-354: increased from 100)
+        // At PAGE_SIZE=1000, this allows 1M records
+        if (pageCount >= 1000) {
+          console.error('[useBillingTransactionsAll] SAFETY LIMIT REACHED: 1,000 pages fetched');
+          console.error('[useBillingTransactionsAll] This is extremely unusual and likely indicates a backend issue.');
           break;
         }
 
@@ -379,6 +387,12 @@ export function useBillingTransactionsAll(
         expectedTotal: total,
         match: allItems.length === total,
       });
+
+      // Warning for very large datasets
+      if (allItems.length > 50000) {
+        console.warn(`[useBillingTransactionsAll] Large dataset: ${allItems.length.toLocaleString()} transaction records fetched.`);
+        console.warn('[useBillingTransactionsAll] Consider using shorter time ranges for better performance.');
+      }
 
       return {
         items: allItems,
