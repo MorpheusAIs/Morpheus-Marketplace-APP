@@ -90,9 +90,14 @@ export async function POST(request: NextRequest) {
       chargeCode: eventData?.code,
     });
 
-    // Only handle charge:confirmed events
-    if (eventType !== 'charge:confirmed') {
-      console.log('[Coinbase Webhook] Ignoring non-confirmed event:', eventType);
+    // Handle relevant payment events
+    // charge:confirmed - Payment successfully confirmed
+    // charge:failed - Payment failed
+    // charge:pending - Payment pending (optional, for future use)
+    const relevantEvents = ['charge:confirmed', 'charge:failed'];
+    
+    if (!relevantEvents.includes(eventType)) {
+      console.log('[Coinbase Webhook] Ignoring event type:', eventType);
       return NextResponse.json({ received: true });
     }
 
@@ -109,6 +114,9 @@ export async function POST(request: NextRequest) {
     const amount = payment?.value?.local?.amount || payment?.value?.crypto?.amount || '0';
     const currency = payment?.value?.local?.currency || payment?.value?.crypto?.currency || 'USD';
 
+    // Determine notification status based on event type
+    const status: 'confirmed' | 'failed' = eventType === 'charge:confirmed' ? 'confirmed' : 'failed';
+
     // Create notification
     const notification: PendingNotification = {
       userId,
@@ -116,7 +124,7 @@ export async function POST(request: NextRequest) {
       amount,
       currency,
       timestamp: Date.now(),
-      status: 'confirmed',
+      status,
     };
 
     // Store notification for this user
