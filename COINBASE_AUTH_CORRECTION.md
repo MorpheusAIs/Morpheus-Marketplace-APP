@@ -201,11 +201,11 @@ COINBASE_API_KEY=simple_key
 COINBASE_API_SECRET=simple_secret
 
 # CORRECT (actual format)
-COINBASE_CDP_KEY_NAME=organizations/abc-123/apiKeys/def-456
+COINBASE_CDP_KEY_NAME=organizations/YOUR-ORG-ID/apiKeys/YOUR-KEY-ID
 COINBASE_CDP_PRIVATE_KEY="-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIBKg8Z5IbIEu9zvEw1tCB4qJBEPvVVbm+1zNdZvL1sLroAoGCCqGSM49
-AwEHoUQDQgAEL3i9Jq5VPgKmN7zXBLhN2e9D9Fj8K3gH9vL2qR8T5yU6M1pZ3nV
-4vK2jR9qL8mN5oP7sT6yU3wX8zA1bC9vD4g==
+[YOUR ACTUAL PRIVATE KEY GOES HERE - KEEP THIS SECRET!]
+[This is a multi-line key - do not share or commit to git]
+[Get from Coinbase Developer Portal when creating API key]
 -----END EC PRIVATE KEY-----"
 
 # Then generate JWT tokens programmatically in your code
