@@ -78,16 +78,27 @@ git revert HEAD~1  # If issues occur
 
 #### Step 1: Get Coinbase API Credentials
 
-1. Log into [Coinbase Developer Portal](https://portal.cdp.coinbase.com/)
-2. Navigate to "API Keys" section
-3. Create new API key with permissions:
-   - ✅ `onramp:payment_links:create`
-   - ✅ `onramp:payment_links:read`
-4. Save credentials securely:
-   - `API Key` (Client ID)
-   - `API Secret` (Client Secret)
+1. Log into [Coinbase Developer Portal](https://portal.cdp.coinbase.com/projects/api-keys)
+2. Click "Create API key"
+3. Configure the API key:
+   - **Nickname:** "Morpheus Marketplace Payment Links"
+   - **API restrictions:** Enable **View** permission
+     - This grants access to Payment Links API (create, update, manage)
+   - **IP allowlist:** (Optional but recommended) Add your server IPs
+   - **Signature algorithm:** Select **ECDSA** (recommended)
+4. Click "Create API key"
+5. **Save these securely** (shown only once):
+   - API Key Name (e.g., `organizations/{org_id}/apiKeys/{key_id}`)
+   - Private Key (multi-line EC private key)
+
+**Permission details:**
+- **View** permission includes Payment Links API access
+- You do NOT need "Trade" or "Transfer" permissions for payment links
+- See [Coinbase API Key docs](https://docs.cdp.coinbase.com/coinbase-business/authentication-authorization/api-key-authentication)
 
 #### Step 2: Update Environment Variables
+
+**Important:** Payment Links API uses JWT Bearer tokens generated from CDP API keys, not simple API key strings.
 
 Add to `.env.local` (development):
 ```bash
@@ -95,9 +106,9 @@ Add to `.env.local` (development):
 COINBASE_COMMERCE_API_KEY=existing_key
 COINBASE_COMMERCE_WEBHOOK_SECRET=existing_secret
 
-# New Payment Links API
-COINBASE_API_KEY=your_new_api_key_here
-COINBASE_API_SECRET=your_new_api_secret_here
+# New Payment Links API (JWT-based authentication)
+COINBASE_CDP_KEY_NAME=organizations/{org_id}/apiKeys/{key_id}
+COINBASE_CDP_PRIVATE_KEY="-----BEGIN EC PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END EC PRIVATE KEY-----\n"
 COINBASE_WEBHOOK_SECRET=your_new_webhook_secret_here
 
 # Backend API (existing)
@@ -105,12 +116,15 @@ ADMIN_API_SECRET=your_admin_secret
 NEXT_PUBLIC_API_BASE_URL=https://api.mor.org
 ```
 
-Add to Vercel environment variables (production):
+Add to backend environment variables:
 ```bash
-vercel env add COINBASE_API_KEY
-vercel env add COINBASE_API_SECRET  
-vercel env add COINBASE_WEBHOOK_SECRET
+# In morpheus-marketplace-api
+COINBASE_CDP_KEY_NAME=organizations/{org_id}/apiKeys/{key_id}
+COINBASE_CDP_PRIVATE_KEY="-----BEGIN EC PRIVATE KEY-----\n...\n-----END EC PRIVATE KEY-----\n"
+COINBASE_WEBHOOK_SECRET=your_webhook_secret
 ```
+
+**Note:** You'll need to generate JWT tokens on-the-fly for each API request. See [Coinbase JWT docs](https://docs.cdp.coinbase.com/coinbase-business/authentication-authorization/api-key-authentication) for implementation.
 
 #### Step 3: Configure Webhooks
 
