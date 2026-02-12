@@ -9,21 +9,40 @@ The webhook system is designed to work with both production and development envi
 
 ## Webhook URL Configuration
 
-### Automatic Environment Detection
+### Automatic Environment Detection (Amplify-Friendly)
 
-The webhook URL is automatically configured based on the `NEXT_PUBLIC_APP_URL` environment variable:
+The webhook URL is **automatically detected** from the request origin, making it work seamlessly with AWS Amplify's dynamic URLs without any configuration needed.
 
+**How it works:**
+1. Reads the `origin` header from the incoming request
+2. Falls back to parsing the `referer` header if origin is missing
+3. Falls back to `NEXT_PUBLIC_APP_URL` if set
+4. Final fallback to `https://app.mor.org`
+
+This means:
+- ✅ **Amplify deployments**: Works automatically with any Amplify URL (main, preview branches, custom domains)
+- ✅ **No configuration needed**: URLs adapt to the environment automatically
+- ✅ **Multi-domain support**: Works with both `app.mor.org` and `app.dev.mor.org` simultaneously
+
+**Example for Amplify:**
 ```bash
-# Production
-NEXT_PUBLIC_APP_URL=https://app.mor.org
+# Production: https://app.mor.org
+Request origin: https://app.mor.org
+Webhook URL: https://app.mor.org/api/webhooks/coinbase-notification
 
-# Development
-NEXT_PUBLIC_APP_URL=https://app.dev.mor.org
+# Development: https://app.dev.mor.org  
+Request origin: https://app.dev.mor.org
+Webhook URL: https://app.dev.mor.org/api/webhooks/coinbase-notification
+
+# Preview branch: https://pr-123.d1234567890.amplifyapp.com
+Request origin: https://pr-123.d1234567890.amplifyapp.com
+Webhook URL: https://pr-123.d1234567890.amplifyapp.com/api/webhooks/coinbase-notification
 ```
 
-When a charge is created, the system automatically sets:
-```
-notification_url: ${NEXT_PUBLIC_APP_URL}/api/webhooks/coinbase-notification
+**Optional Override:**
+If you need to force a specific URL (rare), set:
+```bash
+NEXT_PUBLIC_APP_URL=https://your-custom-domain.com
 ```
 
 ## Coinbase Commerce Webhook Events
@@ -97,18 +116,43 @@ The following events are received but ignored (return `{received: true}` without
 
 ### Step 1: Set Environment Variables
 
-#### Production Environment
+#### For AWS Amplify (Recommended)
+
+**Production:**
 ```bash
-# In production .env or hosting platform
-NEXT_PUBLIC_APP_URL=https://app.mor.org
+# In Amplify Console > App Settings > Environment Variables
 COINBASE_COMMERCE_WEBHOOK_SECRET=your_production_webhook_secret
+
+# NEXT_PUBLIC_APP_URL is NOT needed - Amplify auto-detects!
 ```
 
-#### Development Environment
+**Development:**
 ```bash
-# In development .env.local
-NEXT_PUBLIC_APP_URL=https://app.dev.mor.org
+# In Amplify Console > App Settings > Environment Variables
 COINBASE_COMMERCE_WEBHOOK_SECRET=your_dev_webhook_secret
+
+# NEXT_PUBLIC_APP_URL is NOT needed - Amplify auto-detects!
+```
+
+#### For Local Development
+
+```bash
+# In .env.local
+COINBASE_COMMERCE_WEBHOOK_SECRET=your_dev_webhook_secret
+
+# Optional - only if you need to override auto-detection
+# NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+#### Manual Override (Optional)
+
+Only set `NEXT_PUBLIC_APP_URL` if:
+- You need to force a specific URL
+- Auto-detection isn't working correctly
+- Testing with a specific domain locally
+
+```bash
+NEXT_PUBLIC_APP_URL=https://your-custom-domain.com
 ```
 
 ### Step 2: Configure Coinbase Commerce Dashboard
@@ -484,16 +528,37 @@ Coinbase automatically retries failed webhooks:
 ### Environment Support
 - ✅ Production: `https://app.mor.org/api/webhooks/coinbase-notification`
 - ✅ Development: `https://app.dev.mor.org/api/webhooks/coinbase-notification`
+- ✅ **Amplify preview branches**: Automatically work with any URL!
 
-### Configuration Required
-1. Set `NEXT_PUBLIC_APP_URL` for each environment
-2. Set `COINBASE_COMMERCE_WEBHOOK_SECRET` for each environment
+### Configuration Required (Amplify-Optimized)
+
+**Minimal setup for AWS Amplify:**
+1. ✅ **Auto-detected URL** - No `NEXT_PUBLIC_APP_URL` needed!
+2. Set `COINBASE_COMMERCE_WEBHOOK_SECRET` in Amplify environment variables
 3. Add webhook endpoint in Coinbase dashboard for each environment
-4. Test webhook delivery in each environment
+4. Test webhook delivery
+
+**Optional for other platforms:**
+- Set `NEXT_PUBLIC_APP_URL` if you want to override auto-detection
+
+### Quick Setup Checklist
+
+#### AWS Amplify (Recommended)
+- [ ] **Production**: Add `COINBASE_COMMERCE_WEBHOOK_SECRET` to Amplify env vars
+- [ ] **Development**: Add `COINBASE_COMMERCE_WEBHOOK_SECRET` to Amplify env vars  
+- [ ] Configure webhook in Coinbase: `https://app.mor.org/api/webhooks/coinbase-notification`
+- [ ] Configure webhook in Coinbase: `https://app.dev.mor.org/api/webhooks/coinbase-notification`
+- [ ] Test with real payment on each environment
+
+#### Other Platforms (Vercel, etc.)
+- [ ] Set `NEXT_PUBLIC_APP_URL` for each environment (optional)
+- [ ] Set `COINBASE_COMMERCE_WEBHOOK_SECRET` for each environment
+- [ ] Configure Coinbase webhooks
+- [ ] Test webhook delivery
 
 ### Next Steps
 1. Configure production webhook in Coinbase dashboard
 2. Configure development webhook in Coinbase dashboard
-3. Add secrets to environment variables
+3. Add webhook secrets to Amplify environment variables
 4. Test webhook delivery in both environments
 5. Monitor logs for successful webhook processing
