@@ -56,6 +56,12 @@ interface CoinbaseChargeResponse {
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the origin from the request (works with Amplify's dynamic URLs)
+    const origin = request.headers.get('origin') || 
+                   request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+                   process.env.NEXT_PUBLIC_APP_URL ||
+                   'https://app.mor.org';
+    
     let body: CreateChargeRequest;
     try {
       body = await request.json();
@@ -116,9 +122,17 @@ export async function POST(request: NextRequest) {
       metadata: {
         user_id: effectiveUserId,
       },
-      redirect_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=cancelled`,
+      redirect_url: `${origin}/billing?payment=success`,
+      cancel_url: `${origin}/billing?payment=cancelled`,
+      // Add webhook notification URL for real-time payment updates
+      notification_url: `${origin}/api/webhooks/coinbase-notification`,
     };
+
+    console.log('[Coinbase Charge] Creating charge with webhook URL:', {
+      origin,
+      webhookUrl: `${origin}/api/webhooks/coinbase-notification`,
+      userId: effectiveUserId,
+    });
 
     const response = await fetch(`${COINBASE_COMMERCE_API_URL}/charges`, {
       method: 'POST',

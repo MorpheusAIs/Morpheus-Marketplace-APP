@@ -118,7 +118,7 @@ export function useBillingUsageAll(
       const token = await getValidToken();
       if (!token) throw new Error('Not authenticated');
 
-      const PAGE_SIZE = 100;
+      const PAGE_SIZE = 1000;
       const allItems: UsageEntryResponse[] = [];
       let offset = 0;
       let hasMore = true;

@@ -9,6 +9,7 @@ import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
 import { GTMProvider } from '@/components/providers/GTMProvider';
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
+import { CoinbaseNotificationListener } from '@/components/CoinbaseNotificationListener';
 import { headers } from 'next/headers';
 import "./globals.css";
 
@@ -68,6 +69,7 @@ export default async function RootLayout({
                         className: 'custom-sonner-toast',
                       }}
                     />
+                    <CoinbaseNotificationListener />
                     {children}
                     <BuildVersion />
                   </GTMProvider>
