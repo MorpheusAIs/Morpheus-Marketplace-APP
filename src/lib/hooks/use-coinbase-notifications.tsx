@@ -70,7 +70,6 @@ export function useCoinbaseNotifications() {
             </div>,
             {
               duration: 5000,
-              important: true,
             }
           );
 
