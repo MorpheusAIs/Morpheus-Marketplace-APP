@@ -105,6 +105,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org';
+    
     const chargePayload = {
       name: 'Morpheus AI Credits',
       description: description || `Account credit top-up of ${currency} ${amount}`,
@@ -116,8 +118,10 @@ export async function POST(request: NextRequest) {
       metadata: {
         user_id: effectiveUserId,
       },
-      redirect_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=cancelled`,
+      redirect_url: `${appUrl}/billing?payment=success`,
+      cancel_url: `${appUrl}/billing?payment=cancelled`,
+      // Add webhook notification URL for real-time payment updates
+      notification_url: `${appUrl}/api/webhooks/coinbase-notification`,
     };
 
     const response = await fetch(`${COINBASE_COMMERCE_API_URL}/charges`, {
