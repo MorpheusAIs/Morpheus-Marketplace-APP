@@ -116,13 +116,9 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
     }
   }, [dateRange, timeRangeLabel]);
   
-  // Fetch data for client-side aggregation and pagination
-  // API has a max limit of 100 records per request
-  const FETCH_LIMIT = 100;
-  
-  const { data, isLoading, error } = useBillingTransactions({
-    limit: FETCH_LIMIT,
-    offset: 0, // Client-side pagination on aggregated data
+  // MOR-350 FIX: Use useBillingTransactionsAll to fetch ALL transactions across all pages
+  // This ensures we show data spanning the full date range, not just the first 100 records
+  const { data, isLoading, error } = useBillingTransactionsAll({
     entry_type: selectedType === 'all' ? undefined : selectedType,
     from: dateRange?.start.toISOString(),
     to: dateRange?.end.toISOString(),
@@ -154,7 +150,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
       });
       
       // CRITICAL: Detect if backend is ignoring date filter
-      if (dateRange && uniqueDates.size === 1) {
+      if (dateRange && uniqueDates.size === 1 && data.items.length >= 100) {
         const onlyDate = Array.from(uniqueDates)[0];
         console.warn('⚠️ [BACKEND BUG] All transactions from single date:', onlyDate);
         console.warn('⚠️ Expected date range:', expectedStartDate, 'to', expectedEndDate);
@@ -163,27 +159,8 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
     }
   }, [data, dateRange]);
 
-  // MOR-350: Fetch all transactions for CSV export (up to 10,000 rows)
-  // This runs ONLY when user clicks Export CSV (enabled: shouldFetchAll)
-  const [shouldFetchAll, setShouldFetchAll] = useState(false);
-  const { 
-    data: allData, 
-    isLoading: isLoadingAll,
-    error: allError,
-  } = useBillingTransactionsAll(
-    {
-      entry_type: selectedType === 'all' ? undefined : selectedType,
-      from: dateRange?.start.toISOString(),
-      to: dateRange?.end.toISOString(),
-    },
-    { enabled: shouldFetchAll }
-  );
-
-  // Reset fetch state and page when type filter or date range changes
+  // Reset page when type filter or date range changes
   useEffect(() => {
-    if (shouldFetchAll) {
-      setShouldFetchAll(false);
-    }
     setPage(1); // Reset to first page when filter changes
   }, [selectedType, dateRange]);
 
@@ -211,6 +188,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
   const shouldDisplay = validationResult ? shouldDisplayData(validationResult) : true;
 
   // Detect if backend is ignoring date filter (all transactions from same date)
+  // Note: After the MOR-350 pagination fix, this should be much less common
   const dateFilterWarning = useMemo(() => {
     if (!data?.items || data.items.length === 0 || !dateRange) return null;
     
@@ -220,7 +198,8 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
     
     // If we expect multiple days but only got one date, backend likely ignoring filter
     const daysDiff = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysDiff > 1 && uniqueDates.size === 1) {
+    // Only show warning if we have 100+ transactions (indicating significant data volume)
+    if (daysDiff > 1 && uniqueDates.size === 1 && data.items.length >= 100) {
       const onlyDate = Array.from(uniqueDates)[0];
       return {
         message: `All ${data.items.length} transactions are from ${onlyDate}, but the requested date range is ${expectedStartDate} to ${expectedEndDate}. The backend may not be filtering by date correctly.`,
@@ -268,34 +247,14 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
 
   // MOR-350: Export CSV with ALL data (up to 10,000 rows) in GMT timezone
   const handleExportCSV = async () => {
-    // If already loading, don't trigger again
-    if (isLoadingAll) {
-      return;
-    }
-
-    // If there was an error fetching all data, reset and try again
-    if (allError) {
-      console.error('Previous fetch failed, resetting:', allError);
-      setShouldFetchAll(false);
-      setTimeout(() => setShouldFetchAll(true), 100);
-      return;
-    }
-
-    // First click: Trigger fetching all data
-    if (!shouldFetchAll) {
-      setShouldFetchAll(true);
-      return;
-    }
-
-    // Second click: Export if data is ready
-    if (!allData?.items || allData.items.length === 0) {
+    if (!data?.items || data.items.length === 0) {
       console.error('No data available for export');
       return;
     }
 
     try {
       // Filter out staking_refresh entries
-      const filteredItems = allData.items.filter(item => item.entry_type !== 'staking_refresh');
+      const filteredItems = data.items.filter(item => item.entry_type !== 'staking_refresh');
       
       // Convert APIKey[] to APIKeyDB[] format
       const apiKeysFormatted = apiKeys.map(key => ({
@@ -383,22 +342,11 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
               variant="outline" 
               size="sm" 
               onClick={handleExportCSV} 
-              disabled={paginatedData.length === 0 || isLoadingAll}
+              disabled={paginatedData.length === 0 || isLoading}
             >
               <Download className="mr-2 h-4 w-4" />
-              {isLoadingAll 
-                ? 'Loading all data...' 
-                : allError 
-                ? 'Retry Export' 
-                : shouldFetchAll && allData 
-                ? `Export CSV (${allData.items.length} rows)` 
-                : 'Export CSV'}
+              {data?.items ? `Export CSV (${data.items.length} rows)` : 'Export CSV'}
             </Button>
-            {allError && (
-              <span className="text-xs text-red-500" title={allError instanceof Error ? allError.message : 'Export failed'}>
-                Export failed
-              </span>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -418,31 +366,6 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                 <p className="text-xs text-muted-foreground pt-2">
                   If these transactions don't belong to you, please contact support immediately. Reference: <code className="text-xs bg-muted px-1 py-0.5 rounded">MOR-333</code>
                 </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* CSV Export Error */}
-        {allError && (
-          <div className="mb-6 rounded-lg border border-red-500/50 bg-red-500/5 p-4">
-            <div className="flex gap-3">
-              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div className="space-y-2 flex-1">
-                <p className="text-sm font-semibold text-foreground">CSV Export Failed</p>
-                <p className="text-xs text-muted-foreground">
-                  {allError instanceof Error && allError.message.includes('Database connection') 
-                    ? 'Database is temporarily overloaded. Please try again in a few moments.' 
-                    : 'Failed to load transaction data for export. Click "Retry Export" to try again.'}
-                </p>
-                {allError instanceof Error && (
-                  <details className="text-xs text-muted-foreground mt-2">
-                    <summary className="cursor-pointer">Error details</summary>
-                    <code className="block mt-2 p-2 bg-muted rounded text-xs break-all">
-                      {allError.message}
-                    </code>
-                  </details>
-                )}
               </div>
             </div>
           </div>
