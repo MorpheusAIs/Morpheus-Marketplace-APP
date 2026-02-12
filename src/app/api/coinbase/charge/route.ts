@@ -36,7 +36,7 @@ interface CoinbaseChargeResponse {
       time: string;
     }>;
     metadata: {
-      userId: string;
+      user_id: string;
     };
     payments: Array<unknown>;
     payment_threshold: {
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         currency: currency,
       },
       metadata: {
-        userId: effectiveUserId,
+        user_id: effectiveUserId,
       },
       redirect_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.mor.org'}/billing?payment=cancelled`,
