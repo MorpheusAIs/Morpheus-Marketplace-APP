@@ -44,11 +44,19 @@ The `useBillingUsageAll` hook in `src/lib/hooks/use-billing.ts` had a safety lim
 
 **File**: `src/lib/hooks/use-billing.ts`
 
+#### `useBillingUsageAll` (Primary Fix for MOR-354)
 1. **Increased offset safety limit**: 10,000 → **1,000,000** (100x increase)
 2. **Increased page count limit**: 200 → **10,000 pages** (50x increase)
 3. **Added warning for large datasets** (>50,000 records)
 4. **Changed to error logging** when safety limits are hit (indicates backend issue)
 5. **Updated documentation** to explain safety limit rationale
+
+#### `useBillingTransactionsAll` (Consistency Update)
+1. **Increased MAX_ITEMS**: 10,000 → **1,000,000** (100x increase)
+2. **Increased page count limit**: 100 → **1,000 pages** (10x increase)
+3. **Added warning for large datasets** (>50,000 records)
+4. **Changed to error logging** when safety limits are hit
+5. **Note**: This hook uses PAGE_SIZE=1000 (vs 100 for usage)
 
 ### Before:
 ```typescript
@@ -94,11 +102,33 @@ if (pageCount > 10000) {
 }
 ```
 
+## What Each Hook Affects
+
+### `useBillingUsageAll` (Primary Issue - MOR-354)
+**Affects:**
+- **Overview tab**: All graphs and statistics
+- Token counts (total, input, output)
+- API request counts
+- Cost calculations
+- Daily usage charts
+- Model type breakdown
+- API key breakdown
+
+**Used by:** `src/app/usage-analytics/page.tsx` (main page)
+
+### `useBillingTransactionsAll` (Consistency Update)
+**Affects:**
+- **Transactions tab**: Transaction history table
+- CSV exports
+- Ledger entries display
+
+**Used by:** `src/components/billing/TransactionHistoryTable.tsx`
+
 ## Expected Behavior After Fix
 
 1. **All records fetched**: Pagination will continue until `has_more: false` or all records are collected
 2. **Accurate metrics**: Token counts, API request counts, and costs will reflect actual usage
-3. **Safety preserved**: Still protected against infinite loops with 50,000-record limit
+3. **Safety preserved**: Still protected against infinite loops with 1,000,000-record limit
 4. **Console verification**: Logs will show:
    ```
    [useBillingUsageAll] Pagination complete:
