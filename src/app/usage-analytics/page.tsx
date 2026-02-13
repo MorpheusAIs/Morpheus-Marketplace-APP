@@ -17,7 +17,6 @@ import {
   formatLargeNumber,
   aggregateUsageByDate,
 } from '@/lib/utils/billing-utils';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import type { TimeRange, CustomDateRange } from '@/types/billing';
@@ -156,41 +155,37 @@ export default function UsageAnalyticsPage() {
           </Button>
         </div>
 
-        {/* Summary Stats */}
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-[140px] rounded-xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-4">
-            <StatCard
-              title="Total Spend"
-              value={formatCurrency(stats.totalCost)}
-              icon={TrendingUp}
-              description={`${timeRange === '24h' ? '24 hours' : timeRange === '7d' ? '7 days' : '30 days'}`}
-            />
-            <StatCard
-              title="Total Tokens"
-              value={formatLargeNumber(stats.totalTokens)}
-              icon={Zap}
-              description="Input + Output"
-            />
-            <StatCard
-              title="API Requests"
-              value={stats.requestCount.toLocaleString()}
-              icon={Activity}
-              description={`${stats.requestCount} total`}
-            />
-            <StatCard
-              title="Avg Cost/Request"
-              value={formatCurrency(stats.avgCostPerRequest)}
-              icon={TrendingUp}
-              description="Per request"
-            />
-          </div>
-        )}
+        {/* Summary Stats - always show layout, skeleton only on numbers when loading */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <StatCard
+            title="Total Spend"
+            value={formatCurrency(stats.totalCost)}
+            icon={TrendingUp}
+            description={`${timeRange === '24h' ? '24 hours' : timeRange === '7d' ? '7 days' : '30 days'}`}
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Total Tokens"
+            value={formatLargeNumber(stats.totalTokens)}
+            icon={Zap}
+            description="Input + Output"
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="API Requests"
+            value={stats.requestCount.toLocaleString()}
+            icon={Activity}
+            description={isLoading ? '—' : `${stats.requestCount} total`}
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Avg Cost/Request"
+            value={formatCurrency(stats.avgCostPerRequest)}
+            icon={TrendingUp}
+            description="Per request"
+            isLoading={isLoading}
+          />
+        </div>
 
         {/* Tabs for Overview and Detailed Charts */}
         <Tabs defaultValue="overview" className="space-y-6">

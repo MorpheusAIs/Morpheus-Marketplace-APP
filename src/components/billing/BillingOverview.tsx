@@ -309,23 +309,6 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
     };
   }, [dailyData]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-[280px] rounded-xl" />
-          <Skeleton className="h-[280px] rounded-xl" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-[350px] rounded-xl" />
-          <Skeleton className="h-[350px] rounded-xl" />
-          <Skeleton className="h-[350px] rounded-xl" />
-        </div>
-        <Skeleton className="h-[400px] rounded-xl" />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <Card>
@@ -357,13 +340,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                   Total Usage ({timeRangeLabel})
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
-                  {formatLargeNumber(totalTokens)}
+                  {isLoading ? (
+                    <Skeleton className="h-10 w-28 rounded-md" />
+                  ) : (
+                    formatLargeNumber(totalTokens)
+                  )}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">Total tokens processed</p>
               </div>
-              <div className="p-3 rounded-lg bg-green-500/20">
-                <Database className="h-8 w-8 text-green-500" />
-              </div>
+              <Database className="h-6 w-6 text-green-500" />
             </div>
           </CardHeader>
           <CardContent>
@@ -377,7 +362,11 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                     <div key={key.name} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
-                        <span className="font-medium">{formatLargeNumber(key.value)}</span>
+                        {isLoading ? (
+                          <Skeleton className="h-4 w-14 rounded-md" />
+                        ) : (
+                          <span className="font-medium">{formatLargeNumber(key.value)}</span>
+                        )}
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
@@ -407,24 +396,34 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                   Estimated Cost ({timeRangeLabel})
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
-                  {formatCurrency(totalCost)}
+                  {isLoading ? (
+                    <Skeleton className="h-10 w-24 rounded-md" />
+                  ) : (
+                    formatCurrency(totalCost)
+                  )}
                 </CardTitle>
                 <div className="flex items-center gap-4 mt-2 text-sm">
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
                     <span className="text-muted-foreground">Staking:</span>
-                    <span className="font-medium">{formatCurrency(stakingTotal)}</span>
+                    {isLoading ? (
+                      <Skeleton className="h-4 w-16 rounded-md" />
+                    ) : (
+                      <span className="font-medium">{formatCurrency(stakingTotal)}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-orange-500" />
                     <span className="text-muted-foreground">Credits:</span>
-                    <span className="font-medium">{formatCurrency(creditTotal)}</span>
+                    {isLoading ? (
+                      <Skeleton className="h-4 w-16 rounded-md" />
+                    ) : (
+                      <span className="font-medium">{formatCurrency(creditTotal)}</span>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-orange-500/20">
-                <TrendingUp className="h-8 w-8 text-orange-500" />
-              </div>
+              <TrendingUp className="h-6 w-6 text-orange-500" />
             </div>
           </CardHeader>
           <CardContent>
@@ -438,7 +437,11 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                     <div key={key.name} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
-                        <span className="font-medium text-orange-500">{formatCurrency(key.value)}</span>
+                        {isLoading ? (
+                          <Skeleton className="h-4 w-14 rounded-md" />
+                        ) : (
+                          <span className="font-medium text-orange-500">{formatCurrency(key.value)}</span>
+                        )}
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
@@ -495,7 +498,11 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                         />
                         <span className="text-muted-foreground truncate max-w-[120px]">{entry.name}</span>
                       </div>
-                      <span className="font-medium">{formatCurrency(entry.value)}</span>
+                      {isLoading ? (
+                        <Skeleton className="h-4 w-14 rounded-md" />
+                      ) : (
+                        <span className="font-medium">{formatCurrency(entry.value)}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -548,7 +555,11 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                         />
                         <span className="text-muted-foreground truncate max-w-[120px]">{entry.name}</span>
                       </div>
-                      <span className="font-medium">{formatCurrency(entry.value)}</span>
+                      {isLoading ? (
+                        <Skeleton className="h-4 w-14 rounded-md" />
+                      ) : (
+                        <span className="font-medium">{formatCurrency(entry.value)}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -601,7 +612,11 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                         />
                         <span className="text-muted-foreground">{entry.name}</span>
                       </div>
-                      <span className="font-medium">{formatLargeNumber(entry.value)}</span>
+                      {isLoading ? (
+                        <Skeleton className="h-4 w-14 rounded-md" />
+                      ) : (
+                        <span className="font-medium">{formatLargeNumber(entry.value)}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -652,15 +667,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Avg</span>
-              <span className="font-medium">{formatCurrency(dailyStats.cost.avg)}</span>
+              {isLoading ? <Skeleton className="h-4 w-16 rounded-md" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Min</span>
-              <span className="font-medium">{formatCurrency(dailyStats.cost.min)}</span>
+              {isLoading ? <Skeleton className="h-4 w-16 rounded-md" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Max</span>
-              <span className="font-medium">{formatCurrency(dailyStats.cost.max)}</span>
+              {isLoading ? <Skeleton className="h-4 w-16 rounded-md" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.max)}</span>}
             </div>
           </CardContent>
         </Card>
@@ -674,15 +689,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Avg</span>
-              <span className="font-medium">{formatLargeNumber(dailyStats.inputs.avg)}</span>
+              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Min</span>
-              <span className="font-medium">{formatLargeNumber(dailyStats.inputs.min)}</span>
+              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Max</span>
-              <span className="font-medium">{formatLargeNumber(dailyStats.inputs.max)}</span>
+              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.max)}</span>}
             </div>
           </CardContent>
         </Card>
@@ -696,15 +711,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Avg</span>
-              <span className="font-medium">{formatLargeNumber(dailyStats.outputs.avg)}</span>
+              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Min</span>
-              <span className="font-medium">{formatLargeNumber(dailyStats.outputs.min)}</span>
+              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Max</span>
-              <span className="font-medium">{formatLargeNumber(dailyStats.outputs.max)}</span>
+              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.max)}</span>}
             </div>
           </CardContent>
         </Card>
