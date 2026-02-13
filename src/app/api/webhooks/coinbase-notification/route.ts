@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Handle relevant payment events
-    // charge:confirmed - Payment successfully confirmed
+    // charge:pending - Payment detected on chain (fast, ~seconds)
+    // charge:confirmed - Payment fully finalized (slower)
     // charge:failed - Payment failed
-    // charge:pending - Payment pending (optional, for future use)
-    const relevantEvents = ['charge:confirmed', 'charge:failed'];
+    const relevantEvents = ['charge:pending', 'charge:confirmed', 'charge:failed'];
     
     if (!relevantEvents.includes(eventType)) {
       console.log('[Coinbase Webhook] Ignoring event type:', eventType);
@@ -108,14 +108,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true }); // Return success to prevent retries
     }
 
-    // Extract payment details
+    // Extract payment details (pricing fallback for charge:pending when payments may be empty)
     const payments = eventData?.payments || [];
     const payment = payments[0] || {};
-    const amount = payment?.value?.local?.amount || payment?.value?.crypto?.amount || '0';
-    const currency = payment?.value?.local?.currency || payment?.value?.crypto?.currency || 'USD';
+    const pricing = eventData?.pricing?.local || {};
+    const amount =
+      payment?.value?.local?.amount ||
+      payment?.value?.crypto?.amount ||
+      pricing?.amount ||
+      '0';
+    const currency =
+      payment?.value?.local?.currency ||
+      payment?.value?.crypto?.currency ||
+      pricing?.currency ||
+      'USD';
 
     // Determine notification status based on event type
-    const status: 'confirmed' | 'failed' = eventType === 'charge:confirmed' ? 'confirmed' : 'failed';
+    // Both charge:pending and charge:confirmed = successful payment
+    const status: 'confirmed' | 'failed' =
+      eventType === 'charge:confirmed' || eventType === 'charge:pending' ? 'confirmed' : 'failed';
 
     // Create notification
     const notification: PendingNotification = {
