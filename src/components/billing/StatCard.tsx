@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,8 @@ interface StatCardProps {
     isPositive: boolean;
   };
   className?: string;
+  /** When true, shows skeleton only on the value (keeps title, description, icon visible) */
+  isLoading?: boolean;
 }
 
 export function StatCard({
@@ -24,6 +27,7 @@ export function StatCard({
   description,
   trend,
   className,
+  isLoading = false,
 }: StatCardProps) {
   return (
     <Card className={cn('bg-card', className)}>
@@ -31,7 +35,11 @@ export function StatCard({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
+            {isLoading ? (
+              <Skeleton className="mt-2 h-9 w-24 rounded-md" />
+            ) : (
+              <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
+            )}
             {description && (
               <p className="mt-1 text-xs text-muted-foreground">{description}</p>
             )}
@@ -50,9 +58,7 @@ export function StatCard({
             )}
           </div>
           {Icon && (
-            <div className="rounded-lg bg-primary/10 p-3">
-              <Icon className="h-6 w-6 text-primary" />
-            </div>
+            <Icon className="h-[18px] w-[18px] text-primary" />
           )}
         </div>
       </CardContent>
