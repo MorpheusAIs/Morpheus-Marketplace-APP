@@ -115,7 +115,7 @@ export default function UsageAnalyticsPage() {
 
   return (
     <AuthenticatedLayout>
-      <div className="container mx-auto space-y-6 p-6">
+      <div className="container mx-auto space-y-6 p-6 [&_[data-skeleton]]:!bg-muted">
         {/* Header */}
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-foreground">Usage Analytics</h1>
