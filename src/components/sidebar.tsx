@@ -157,7 +157,7 @@ export function Sidebar() {
                     </TooltipTrigger>
                     {!hasDefaultApiKey && (
                       <TooltipContent>
-                        <p>A Default API key must be set and verified before using the &quot;Test&quot; features. Go to API Keys tab to set your Default API Key.</p>
+whw                        <p>A Default API key must be set and verified before using the &quot;Test&quot; features. Go to API Keys tab to set your Default API Key.</p>
                       </TooltipContent>
                     )}
                   </Tooltip>
