@@ -94,6 +94,24 @@ export function Sidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              {/* Models - external link to API docs */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="hover:!bg-white/10"
+                >
+                  <Link
+                    href="https://apidocs.mor.org/documentation/models"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FlaskConical className="h-4 w-4" />
+                    <span>Models</span>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
               {/* Pricing - external link to API docs */}
               <SidebarMenuItem>
                 <SidebarMenuButton

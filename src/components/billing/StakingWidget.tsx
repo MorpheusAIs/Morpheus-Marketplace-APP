@@ -483,7 +483,7 @@ export function StakingWidget({
                     <Alert className="bg-green-500/10 border-green-500/20 md:w-1/2 [&>svg~*]:pl-0">
                       {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
                       <AlertDescription className="text-xs text-muted-foreground">
-                        Your staking rewards refresh daily at midnight UTC
+                        Daily Credit Allowance from staking refreshes daily at midnight UTC
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -500,7 +500,7 @@ export function StakingWidget({
                     <Alert className="bg-green-500/10 border-green-500/20 md:w-1/2 [&>svg~*]:pl-0">
                       {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
                       <AlertDescription className="text-xs text-muted-foreground">
-                        Your staking rewards refresh daily at midnight UTC
+                        Daily Credit Allowance from staking refreshes daily at midnight UTC
                       </AlertDescription>
                     </Alert>
                   </div>
