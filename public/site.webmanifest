@@ -4,7 +4,7 @@
   "description": "Documentation and management interface for the Morpheus Inference API",
   "icons": [
     {
-      "src": "/morpheus_wings_32x32.png",
+      "src": "/logo-black.png",
       "sizes": "32x32",
       "type": "image/png"
     }
