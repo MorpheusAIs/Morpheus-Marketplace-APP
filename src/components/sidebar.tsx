@@ -21,6 +21,7 @@ import {
   FileText,
   ExternalLink,
   DollarSign,
+  Tag,
   BarChart3,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -93,6 +94,24 @@ export function Sidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              {/* Pricing - external link to API docs */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="hover:!bg-white/10"
+                >
+                  <Link
+                    href="https://apidocs.mor.org/documentation/models/pricing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Tag className="h-4 w-4" />
+                    <span>Pricing</span>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
               {/* Usage Analytics */}
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -138,7 +157,7 @@ export function Sidebar() {
                     </TooltipTrigger>
                     {!hasDefaultApiKey && (
                       <TooltipContent>
-                        <p>Set a default API key to use Test</p>
+whw                        <p>A Default API key must be set and verified before using the &quot;Test&quot; features. Go to API Keys tab to set your Default API Key.</p>
                       </TooltipContent>
                     )}
                   </Tooltip>

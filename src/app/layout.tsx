@@ -19,9 +19,9 @@ export const metadata: Metadata = {
   title: "Morpheus Inference API Admin",
   description: "Management interface for the Morpheus Inference API",
   icons: {
-    icon: '/morpheus_wings_32x32.png',
-    shortcut: '/morpheus_wings_32x32.png',
-    apple: '/morpheus_wings_32x32.png',
+    icon: '/logo-black.png',
+    shortcut: '/logo-black.png',
+    apple: '/logo-black.png',
   },
   manifest: '/site.webmanifest',
 };

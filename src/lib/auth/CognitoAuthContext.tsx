@@ -156,7 +156,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           // Show user-friendly notification using the global notification system
           warning(
             'API Key Verification Required',
-            'Your API key needs to be verified before you can use Chat or Test. Please go to the Api Keys page and click "Select" on your preferred API key.',
+            'A Default API key must be set and verified before using the "Test" features. Go to API Keys tab to set your Default API Key.',
             {
               actionLabel: 'Go to Api Keys',
               actionUrl: '/api-keys',
@@ -212,7 +212,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Show informational notification using the global notification system
         info(
           'API Key Available',
-          'An API key is available but needs verification. Visit the Api Keys page to verify it and enable Chat/Test features.',
+          'A Default API key must be set and verified before using the "Test" features. Go to API Keys tab to set your Default API Key.',
           {
             actionLabel: 'Go to Api Keys',
             actionUrl: '/api-keys',

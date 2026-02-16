@@ -547,7 +547,7 @@ export default function TestPage() {
                 API Key Required
               </CardTitle>
               <CardDescription>
-                You need to create and verify an API key before you can use Test.
+                A Default API key must be set and verified before using the &quot;Test&quot; features. Go to API Keys tab to set your Default API Key.
               </CardDescription>
             </CardHeader>
             <CardContent>

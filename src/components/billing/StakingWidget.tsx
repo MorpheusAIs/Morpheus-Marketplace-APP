@@ -346,7 +346,22 @@ export function StakingWidget({
             </Button>
           )}
         </div>
-        <CardDescription>Earn daily credits by staking MOR tokens</CardDescription>
+        <CardDescription className="space-y-1">
+          <span>
+            Earn daily credits by staking MOR tokens in the{' '}
+            <a
+              href="https://dashboard.mor.org/builders/morpheus-marketplace-api?subnet_id=0x415471125cc4d03b89818acb8426981fa28a3eee03a9097176297a9a6ae87c8d&network=Base"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-green-500 hover:underline"
+            >
+              Morpheus Marketplace API Builders Subnet
+            </a>
+          </span>
+          <span className="block">
+            Already staking? Connect your wallet to assign your daily API credits to your account.
+          </span>
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
@@ -564,6 +579,9 @@ export function StakingWidget({
                 </div>
               </div>
             )}
+            <p className="text-xs text-muted-foreground pt-2 border-t border-border mt-4">
+              Stake MOR tokens to receive an ongoing daily allowance of API credits
+            </p>
           </>
         )}
       </CardContent>
