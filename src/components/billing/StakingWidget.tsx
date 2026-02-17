@@ -348,7 +348,7 @@ export function StakingWidget({
         </div>
         <CardDescription className="space-y-1">
           <span>
-            Earn daily credits by staking MOR tokens in the{' '}
+            Earn API daily credits by staking MOR tokens in the{' '}
             <a
               href="https://dashboard.mor.org/builders/morpheus-marketplace-api?subnet_id=0x415471125cc4d03b89818acb8426981fa28a3eee03a9097176297a9a6ae87c8d&network=Base"
               target="_blank"
