@@ -580,7 +580,7 @@ export function StakingWidget({
               </div>
             )}
             <p className="text-xs text-muted-foreground pt-2 border-t border-border mt-4">
-              Stake MOR tokens to receive an ongoing daily allowance of API credits
+              Stake MOR tokens to receive an ongoing daily allowance of daily API credits
             </p>
           </>
         )}
