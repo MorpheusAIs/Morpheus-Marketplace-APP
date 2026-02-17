@@ -158,7 +158,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
             'API Key Verification Required',
             'A Default API key must be set and verified before using the "Test" features. Go to API Keys tab to set your Default API Key.',
             {
-              actionLabel: 'Go to Api Keys',
+              actionLabel: 'Go to API Keys',
               actionUrl: '/api-keys',
               duration: 10000,
             }
@@ -214,7 +214,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           'API Key Available',
           'A Default API key must be set and verified before using the "Test" features. Go to API Keys tab to set your Default API Key.',
           {
-            actionLabel: 'Go to Api Keys',
+            actionLabel: 'Go to API Keys',
             actionUrl: '/api-keys',
             duration: 8000,
           }
@@ -246,7 +246,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         'API Key Setup Error',
         'There was an issue setting up your API key. Please visit the Api Keys page to manually select one.',
         {
-          actionLabel: 'Go to Api Keys',
+          actionLabel: 'Go to API Keys',
           actionUrl: '/api-keys',
           duration: 10000,
         }
