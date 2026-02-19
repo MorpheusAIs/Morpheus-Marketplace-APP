@@ -359,7 +359,7 @@ export function StakingWidget({
             </a>
           </span>
           <span className="block">
-            Already staking? Connect your wallet to assign your daily API credits to your account.
+            Already staking? Link your wallet to assign your daily API credits to your account.
           </span>
         </CardDescription>
       </CardHeader>
@@ -520,7 +520,7 @@ export function StakingWidget({
                       asChild
                     >
                       <a
-                        href="https://mor.org/staking"
+                        href="https://apidocs.mor.org/documentation/getting-started/credits"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
