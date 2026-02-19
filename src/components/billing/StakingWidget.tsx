@@ -520,7 +520,7 @@ export function StakingWidget({
                       asChild
                     >
                       <a
-                        href="https://mor.org/staking"
+                        href="https://apidocs.mor.org/documentation/getting-started/credits"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
