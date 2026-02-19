@@ -10,7 +10,7 @@ interface PendingNotification {
   amount: string;
   currency: string;
   timestamp: number;
-  status: 'confirmed' | 'failed';
+  status: 'pending' | 'confirmed' | 'failed';
 }
 
 // Store notifications for 5 minutes
@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Handle relevant payment events
-    // charge:pending - Payment detected on chain (fast, ~seconds)
-    // charge:confirmed - Payment fully finalized (slower)
+    // charge:pending - Payment detected on chain (triggers loading toast; ~12 min until confirmed)
+    // charge:confirmed - Payment fully confirmed (only this triggers balance update)
     // charge:failed - Payment failed
     const relevantEvents = ['charge:pending', 'charge:confirmed', 'charge:failed'];
     
@@ -123,10 +123,13 @@ export async function POST(request: NextRequest) {
       pricing?.currency ||
       'USD';
 
-    // Determine notification status based on event type
-    // Both charge:pending and charge:confirmed = successful payment
-    const status: 'confirmed' | 'failed' =
-      eventType === 'charge:confirmed' || eventType === 'charge:pending' ? 'confirmed' : 'failed';
+    // Determine notification status - only charge:confirmed is successful (triggers balance update)
+    const status: 'pending' | 'confirmed' | 'failed' =
+      eventType === 'charge:confirmed'
+        ? 'confirmed'
+        : eventType === 'charge:pending'
+          ? 'pending'
+          : 'failed';
 
     // Create notification
     const notification: PendingNotification = {

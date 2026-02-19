@@ -16,7 +16,7 @@ interface CoinbaseNotification {
   amount: string;
   currency: string;
   timestamp: number;
-  status: 'confirmed' | 'failed';
+  status: 'pending' | 'confirmed' | 'failed';
 }
 
 interface NotificationResponse {
@@ -24,11 +24,14 @@ interface NotificationResponse {
   count: number;
 }
 
+const COINBASE_CONFIRMATION_MINS = 12;
+
 export function useCoinbaseNotifications() {
   const { user } = useCognitoAuth();
   const queryClient = useQueryClient();
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownNotificationRef = useRef<Set<string>>(new Set());
+  const pendingToastIdsRef = useRef<Map<string, string | number>>(new Map());
 
   const pollForNotifications = useCallback(async () => {
     if (!user?.sub) return;
@@ -48,7 +51,7 @@ export function useCoinbaseNotifications() {
       // Process each notification
       for (const notification of data.notifications) {
         // Skip if we've already shown this notification
-        const notificationKey = `${notification.chargeId}-${notification.timestamp}`;
+        const notificationKey = `${notification.chargeId}-${notification.status}-${notification.timestamp}`;
         if (hasShownNotificationRef.current.has(notificationKey)) {
           continue;
         }
@@ -56,8 +59,29 @@ export function useCoinbaseNotifications() {
         // Mark as shown
         hasShownNotificationRef.current.add(notificationKey);
 
-        // Show toast with animation
-        if (notification.status === 'confirmed') {
+        if (notification.status === 'pending') {
+          // charge:pending - Show loading toast that stays until charge:confirmed
+          const toastId = toast.loading(
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <div>
+                <div className="font-semibold">Payment Detected</div>
+                <div className="text-sm text-muted-foreground">
+                  Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your funds are updated.
+                </div>
+              </div>
+            </div>,
+            { duration: Infinity }
+          );
+          pendingToastIdsRef.current.set(notification.chargeId, toastId);
+        } else if (notification.status === 'confirmed') {
+          // charge:confirmed - Dismiss pending toast, show success, refresh balance
+          const pendingToastId = pendingToastIdsRef.current.get(notification.chargeId);
+          if (pendingToastId !== undefined) {
+            toast.dismiss(pendingToastId);
+            pendingToastIdsRef.current.delete(notification.chargeId);
+          }
+
           toast.success(
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-green-500" />
@@ -68,9 +92,7 @@ export function useCoinbaseNotifications() {
                 </div>
               </div>
             </div>,
-            {
-              duration: 5000,
-            }
+            { duration: 5000 }
           );
 
           // Refresh balance after a short delay to ensure backend has processed the payment
@@ -79,6 +101,13 @@ export function useCoinbaseNotifications() {
             queryClient.invalidateQueries({ queryKey: ['billing', 'transactions'] });
           }, 1500);
         } else {
+          // charge:failed
+          const pendingToastId = pendingToastIdsRef.current.get(notification.chargeId);
+          if (pendingToastId !== undefined) {
+            toast.dismiss(pendingToastId);
+            pendingToastIdsRef.current.delete(notification.chargeId);
+          }
+
           toast.error(
             <div className="flex items-center gap-3">
               <div>
@@ -88,9 +117,7 @@ export function useCoinbaseNotifications() {
                 </div>
               </div>
             </div>,
-            {
-              duration: 5000,
-            }
+            { duration: 5000 }
           );
         }
       }
@@ -107,11 +134,15 @@ export function useCoinbaseNotifications() {
 
   useEffect(() => {
     if (!user?.sub) {
-      // Clear polling if user logs out
+      // Clear polling and pending toasts if user logs out
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
+      for (const toastId of pendingToastIdsRef.current.values()) {
+        toast.dismiss(toastId);
+      }
+      pendingToastIdsRef.current.clear();
       return;
     }
 
