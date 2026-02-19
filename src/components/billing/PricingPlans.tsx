@@ -19,30 +19,28 @@ export function PricingPlans() {
         </div>
         <CardDescription className="pt-4 space-y-3">
           <p>
-            View the current model pricing and associated rate limits on apidocs.mor.org. Daily Credit Allowance from Staking is spent first, followed by the pre-paid Available Credit (when allow overages is enabled).
+            View the current model pricing and associated rate limits at the links below. Daily Credit Allowance from Staking is spent first, followed by the pre-paid Available Credit (when allow overages is enabled).
           </p>
           <div className="space-y-1">
             <div>
-              <span className="font-medium">Model Pricing:</span>{' '}
               <a
                 href="https://apidocs.mor.org/documentation/models/pricing"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-green-500 hover:underline inline-flex items-center gap-1"
               >
-                apidocs.mor.org/documentation/models/pricing
+                Model Pricing
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
             <div>
-              <span className="font-medium">Rate Limits:</span>{' '}
               <a
                 href="https://apidocs.mor.org/documentation/models/rate-limits"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-green-500 hover:underline inline-flex items-center gap-1"
               >
-                apidocs.mor.org/documentation/models/rate-limits
+                Rate Limits
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>

@@ -91,9 +91,13 @@ export default function UsageAnalyticsPage() {
       };
     }
 
-    const totalCost = usageData.items.reduce(
-      (sum, item) => sum + parseFloat(item.amount_total),
-      0
+    // MOR-339: Use absolute values for spending metrics - API returns negative values (deductions)
+    // but users expect to see positive spend amounts (e.g. $10.00 not -$10.00)
+    const totalCost = Math.abs(
+      usageData.items.reduce(
+        (sum, item) => sum + parseFloat(item.amount_total),
+        0
+      )
     );
     const totalTokens = usageData.items.reduce(
       (sum, item) => sum + (item.tokens_total ?? 0),
@@ -104,7 +108,7 @@ export default function UsageAnalyticsPage() {
     return {
       totalCost,
       totalTokens,
-      avgCostPerRequest: requestCount > 0 ? totalCost / requestCount : 0,
+      avgCostPerRequest: requestCount > 0 ? Math.abs(totalCost / requestCount) : 0,
       requestCount,
     };
   }, [usageData]);
