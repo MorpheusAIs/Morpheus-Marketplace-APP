@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { hasSuccessPageToast, getAndClearSuccessPageToastId } from '@/lib/payment-success-toast-store';
 
 interface CoinbaseNotification {
   userId: string;
@@ -60,26 +61,32 @@ export function useCoinbaseNotifications() {
         hasShownNotificationRef.current.add(notificationKey);
 
         if (notification.status === 'pending') {
-          // charge:pending - Show loading toast that stays until charge:confirmed
-          const toastId = toast.loading(
-            <div className="flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <div>
-                <div className="font-semibold">Payment Detected</div>
-                <div className="text-sm text-muted-foreground">
-                  Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your funds are updated.
+          // charge:pending - Show loading toast (skip if success page already showed one)
+          if (!hasSuccessPageToast()) {
+            const toastId = toast.loading(
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <div>
+                  <div className="font-semibold">Payment Detected</div>
+                  <div className="text-sm text-muted-foreground">
+                    Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your funds are updated.
+                  </div>
                 </div>
-              </div>
-            </div>,
-            { duration: Infinity }
-          );
-          pendingToastIdsRef.current.set(notification.chargeId, toastId);
+              </div>,
+              { duration: Infinity }
+            );
+            pendingToastIdsRef.current.set(notification.chargeId, toastId);
+          }
         } else if (notification.status === 'confirmed') {
-          // charge:confirmed - Dismiss pending toast, show success, refresh balance
+          // charge:confirmed - Dismiss pending toasts (from webhook or success page), show success, refresh balance
           const pendingToastId = pendingToastIdsRef.current.get(notification.chargeId);
           if (pendingToastId !== undefined) {
             toast.dismiss(pendingToastId);
             pendingToastIdsRef.current.delete(notification.chargeId);
+          }
+          const successPageToastId = getAndClearSuccessPageToastId();
+          if (successPageToastId !== null) {
+            toast.dismiss(successPageToastId);
           }
 
           toast.success(
@@ -101,11 +108,15 @@ export function useCoinbaseNotifications() {
             queryClient.invalidateQueries({ queryKey: ['billing', 'transactions'] });
           }, 1500);
         } else {
-          // charge:failed
+          // charge:failed - Dismiss pending toasts (from webhook or success page)
           const pendingToastId = pendingToastIdsRef.current.get(notification.chargeId);
           if (pendingToastId !== undefined) {
             toast.dismiss(pendingToastId);
             pendingToastIdsRef.current.delete(notification.chargeId);
+          }
+          const successPageToastId = getAndClearSuccessPageToastId();
+          if (successPageToastId !== null) {
+            toast.dismiss(successPageToastId);
           }
 
           toast.error(

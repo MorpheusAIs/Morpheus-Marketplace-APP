@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DollarSign, TrendingUp, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { DollarSign, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { AuthenticatedLayout } from '@/components/authenticated-layout';
 import { StatCard } from '@/components/billing/StatCard';
 import { FundingSection } from '@/components/billing/FundingSection';
@@ -14,12 +16,15 @@ import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { setSuccessPageToastId, wasPaymentAlreadyConfirmed, clearPaymentConfirmed } from '@/lib/payment-success-toast-store';
+
+const COINBASE_CONFIRMATION_MINS = 12;
 
 export default function BillingPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
-  const [redirectCountdown, setRedirectCountdown] = useState(5);
+  const hasShownSuccessToastRef = useRef(false);
   
   const { data: balance, isLoading: isLoadingBalance, error: balanceError, refetch: refetchBalance } = useBillingBalance();
   const { data: walletStatus, isLoading: isLoadingWallet, refetch: refetchWallet } = useWalletStatus();
@@ -49,29 +54,32 @@ export default function BillingPage() {
     const payment = searchParams.get('payment');
     if (payment === 'success') {
       setShowSuccess(true);
-      // Refetch balance to show updated amount
       refetchBalance();
-      
-      // Start countdown and redirect
-      const countdownInterval = setInterval(() => {
-        setRedirectCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdownInterval);
-            // Hide success message and remove query parameter
-            setShowSuccess(false);
-            router.replace('/billing');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
 
-      return () => clearInterval(countdownInterval);
+      // Show persistent loading toast (stays across navigation, updated when charge:confirmed)
+      // Skip if payment was already confirmed (e.g. user navigated back after confirmation)
+      if (!hasShownSuccessToastRef.current && !wasPaymentAlreadyConfirmed()) {
+        hasShownSuccessToastRef.current = true;
+        const toastId = toast.loading(
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div>
+              <div className="font-semibold">Payment Detected</div>
+              <div className="text-sm text-muted-foreground">
+                Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your funds are updated.
+              </div>
+            </div>
+          </div>,
+          { duration: Infinity }
+        );
+        setSuccessPageToastId(toastId);
+      }
     }
-  }, [searchParams, router, refetchBalance]);
+  }, [searchParams, refetchBalance]);
 
-  const handleManualRedirect = () => {
+  const handleViewBilling = () => {
     setShowSuccess(false);
+    clearPaymentConfirmed();
     router.replace('/billing');
   };
 
@@ -87,21 +95,16 @@ export default function BillingPage() {
               </div>
               <CardTitle className="text-2xl">Payment Successful!</CardTitle>
               <CardDescription className="text-base">
-                Your payment has been processed successfully. Your account balance will be updated shortly.
+                Your payment has been processed successfully. Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your balance is updated. A notification will appear when your funds are ready.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Redirecting to billing page in {redirectCountdown} second{redirectCountdown !== 1 ? 's' : ''}...
-                </p>
-              </div>
-              <Button 
-                onClick={handleManualRedirect}
+            <CardContent>
+              <Button
+                onClick={handleViewBilling}
                 className="w-full"
                 variant="default"
               >
-                Go to Billing Page Now
+                View Billing
               </Button>
             </CardContent>
           </Card>
