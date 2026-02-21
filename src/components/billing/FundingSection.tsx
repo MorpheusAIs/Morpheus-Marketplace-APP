@@ -28,6 +28,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(null);
 
+  const stripePaymentLinkUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_URL;
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get('payment');
@@ -75,8 +77,11 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   };
 
   const openStripeCheckout = async (amount?: string) => {
-    const baseUrl = 'https://buy.stripe.com/test_9B6bJ0eU08TG6Pi4EIgnK00';
-    const url = userId ? `${baseUrl}?client_reference_id=${encodeURIComponent(userId)}` : baseUrl;
+    if (!stripePaymentLinkUrl) {
+      setError('Stripe payment link is not configured. Please contact support.');
+      return;
+    }
+    const url = userId ? `${stripePaymentLinkUrl}?client_reference_id=${encodeURIComponent(userId)}` : stripePaymentLinkUrl;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -163,6 +168,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
               variant="outline"
               className="w-full justify-between h-auto p-4"
               onClick={() => openStripeCheckout()}
+              disabled={!stripePaymentLinkUrl}
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-muted rounded-md">
@@ -170,7 +176,9 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                 </div>
                 <div className="text-left">
                   <p className="font-medium">Credit Card</p>
-                  <p className="text-xs text-muted-foreground">Powered by Stripe</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stripePaymentLinkUrl ? 'Powered by Stripe' : 'Not configured'}
+                  </p>
                 </div>
               </div>
               <ArrowRight className="h-4 w-4" />
