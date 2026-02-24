@@ -271,11 +271,18 @@ export default function SignUpPage() {
                     <span className="sr-only">Sign up with Google</span>
                   </Button>
                 </Field> */}
-                <FieldDescription className="text-center">
-                  Already have an account?{" "}
-                  <Link href="/signin" className="text-green-500 hover:underline">
-                    Sign in
-                  </Link>
+                <FieldDescription className="text-center space-y-2">
+                  <span className="block">
+                    Already have an account?{" "}
+                    <Link href="/signin" className="text-green-500 hover:underline">
+                      Sign in
+                    </Link>
+                  </span>
+                  <span className="block">
+                    <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-xs">
+                      Privacy Policy
+                    </Link>
+                  </span>
                 </FieldDescription>
               </FieldGroup>
             </form>
