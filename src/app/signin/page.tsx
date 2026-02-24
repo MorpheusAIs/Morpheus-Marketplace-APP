@@ -228,11 +228,18 @@ export default function SignInPage() {
                     <span className="sr-only">Login with Google</span>
                   </Button>
                 </Field> */}
-                <FieldDescription className="text-center">
-                  Don&apos;t have an account?{" "}
-                  <Link href="/signup" className="text-green-500 hover:underline">
-                    Sign up
-                  </Link>
+                <FieldDescription className="text-center space-y-2">
+                  <span className="block">
+                    Don&apos;t have an account?{" "}
+                    <Link href="/signup" className="text-green-500 hover:underline">
+                      Sign up
+                    </Link>
+                  </span>
+                  <span className="block">
+                    <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-xs">
+                      Privacy Policy
+                    </Link>
+                  </span>
                 </FieldDescription>
               </FieldGroup>
             </form>
