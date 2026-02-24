@@ -1,7 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { CognitoDirectAuth } from './cognito-direct-auth';
+import { authEvents } from './auth-events';
 import { API_URLS } from '@/lib/api/config';
 import { apiGet } from '@/lib/api/apiService';
 import { useNotification } from '@/lib/NotificationContext';
@@ -47,6 +49,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   const [defaultApiKey, setDefaultApiKey] = useState<ApiKey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  const router = useRouter();
+
   // Access the global notification system
   const { success, error, warning, info } = useNotification();
 
@@ -54,6 +58,23 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     initializeAuth();
   }, []);
+
+  // Listen for 401 Unauthorized events from the API layer.
+  // When a session expires mid-use, this clears auth state and redirects to sign-in
+  // so users don't remain in a "ghost" session with broken data.
+  useEffect(() => {
+    const unsubscribe = authEvents.onUnauthorized(() => {
+      console.warn('Session expired — logging out and redirecting to sign-in');
+      logout();
+      warning(
+        'Session Expired',
+        'Your session has expired. Please sign in again.',
+        { duration: 6000 }
+      );
+      router.push('/signin');
+    });
+    return unsubscribe;
+  }, [router]);
 
   const initializeAuth = async () => {
     setIsLoading(true);

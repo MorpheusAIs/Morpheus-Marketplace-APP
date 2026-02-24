@@ -1,6 +1,15 @@
 'use client';
 
 import { safeJsonParse, safeJsonParseOrNull, validateJsonDepth } from '../utils/safe-json';
+import { authEvents } from '../auth/auth-events';
+
+/** URL patterns that should NOT trigger session invalidation on 401 (auth endpoints). */
+const AUTH_ENDPOINT_PATTERNS = ['/auth/', '/signin', '/signup', '/login', '/token', '/oauth2/'];
+
+function isAuthEndpoint(url: string): boolean {
+  const path = url.toLowerCase();
+  return AUTH_ENDPOINT_PATTERNS.some((pattern) => path.includes(pattern));
+}
 
 export interface ApiResponse<T> {
   data: T | null;
@@ -228,6 +237,14 @@ export async function apiRequest<T = any>(
           body: responseData || responseText || null,
         },
       };
+
+      // Detect expired/invalid session and notify auth layer
+      if (response.status === 401 && !isAuthEndpoint(url)) {
+        console.warn('⚠️ Received 401 Unauthorized — session may be expired');
+        authEvents.emitUnauthorized();
+        console.groupEnd();
+        return result;
+      }
 
       // Check if we should retry on server errors
       if (!response.ok && isRetryableError(null, response.status) && attempt < maxRetries) {
