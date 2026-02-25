@@ -47,7 +47,7 @@ interface ApiKeyResponse {
 }
 
 export default function ApiKeysPage() {
-  const { apiKeys, accessToken, refreshApiKeys, defaultApiKey } = useCognitoAuth();
+  const { apiKeys, refreshApiKeys, defaultApiKey, getValidToken } = useCognitoAuth();
   const { success, error, warning } = useNotification();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isNewKeyModalOpen, setIsNewKeyModalOpen] = useState(false);
@@ -67,7 +67,8 @@ export default function ApiKeysPage() {
   const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
 
   const handleCreateKey = async (name: string) => {
-    if (!accessToken) {
+    const token = await getValidToken();
+    if (!token) {
       error("Authentication Required", "Please sign in to create API keys");
       return;
     }
@@ -76,7 +77,7 @@ export default function ApiKeysPage() {
       const response = await apiPost<ApiKeyResponse>(
         API_URLS.keys(),
         { name },
-        accessToken
+        token
       );
 
       if (response.error) {
@@ -105,7 +106,9 @@ export default function ApiKeysPage() {
   };
 
   const confirmDelete = async () => {
-    if (!keyToDelete || !accessToken) {
+    if (!keyToDelete) return;
+    const token = await getValidToken();
+    if (!token) {
       error("Authentication Required", "Please sign in to delete keys");
       return;
     }
@@ -113,7 +116,7 @@ export default function ApiKeysPage() {
     const wasDefaultKey = keyToDelete.isDefault;
 
     try {
-      const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), accessToken);
+      const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), token);
       if (response.error) {
         throw new Error(response.error);
       }
@@ -205,13 +208,14 @@ export default function ApiKeysPage() {
   };
 
   const handleSetDefaultKey = async (keyId: number, keyName: string) => {
-    if (!accessToken) {
+    const token = await getValidToken();
+    if (!token) {
       error("Authentication Required", "Please sign in to set default key");
       return;
     }
 
     try {
-      const response = await apiPut(API_URLS.setDefaultKey(keyId), {}, accessToken);
+      const response = await apiPut(API_URLS.setDefaultKey(keyId), {}, token);
       if (response.error) {
         throw new Error(response.error);
       }
