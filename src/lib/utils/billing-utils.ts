@@ -26,6 +26,23 @@ export function parseISODateManually(isoString: string): Date {
 }
 
 /**
+ * Ensure a timestamp string is parsed as UTC (MOR-368).
+ *
+ * The API may return timestamps without timezone info (e.g. "2026-02-25T00:10:00").
+ * JavaScript treats such strings as *local* time, not UTC, which shifts the date
+ * by the user's UTC offset and causes display bugs like "-1 days ago".
+ *
+ * This function appends "Z" when no timezone indicator is present so the string
+ * is always interpreted as UTC, matching the server's intent.
+ */
+export function ensureUTCTimestamp(dateString: string): string {
+  // Already has timezone info: "Z" suffix or "+/-HH:MM" / "+/-HHMM" offset
+  if (/Z$|[+-]\d{2}:?\d{2}$/.test(dateString)) return dateString;
+  // Normalise space-separated format ("2026-02-25 00:10:00") to ISO, then mark UTC
+  return dateString.replace(' ', 'T') + 'Z';
+}
+
+/**
  * Format date as MM/DD for chart displays
  */
 export function formatChartDate(dateString: string): string {

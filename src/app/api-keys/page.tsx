@@ -16,7 +16,7 @@ import { Trash2, Plus, Pencil, X } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { apiPost, apiDelete, apiPut } from "@/lib/api/apiService";
-import { formatLocaleDate } from "@/lib/utils/billing-utils";
+import { formatLocaleDate, ensureUTCTimestamp } from "@/lib/utils/billing-utils";
 import {
   Select,
   SelectContent,
@@ -188,9 +188,12 @@ export default function ApiKeysPage() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse as UTC so that API timestamps without timezone info aren't shifted
+    // by the browser's local offset (MOR-368: fixes "-1 days ago" / "Yesterday"
+    // for keys created just after midnight UTC by users in negative UTC offsets)
+    const date = new Date(ensureUTCTimestamp(dateString));
     const now = new Date();
-    // Compare calendar dates in local timezone (MOR-368: fixes "Yesterday" for newly created keys)
+    // Compare calendar dates in the user's local timezone
     const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const diffDays = Math.floor((today.getTime() - dateDay.getTime()) / (1000 * 60 * 60 * 24));
