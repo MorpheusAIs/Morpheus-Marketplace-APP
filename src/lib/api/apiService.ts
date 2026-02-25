@@ -240,7 +240,77 @@ export async function apiRequest<T = any>(
 
       // Detect expired/invalid session and notify auth layer
       if (response.status === 401 && !isAuthEndpoint(url)) {
-        console.warn('⚠️ Received 401 Unauthorized — session may be expired');
+        console.warn('⚠️ Received 401 Unauthorized — attempting token refresh before logout');
+
+        // Try to silently refresh the access token (Cognito refresh token is valid for ~30 days).
+        // Only emit unauthorized if the refresh itself fails.
+        let newToken: string | null = null;
+        try {
+          const { CognitoDirectAuth } = await import('../auth/cognito-direct-auth');
+          newToken = await CognitoDirectAuth.getValidAccessToken();
+        } catch {
+          // Fall through to logout below
+        }
+
+        if (newToken) {
+          // Retry the original request once with the refreshed token
+          const freshHeaders: Record<string, string> = {
+            ...(headers as Record<string, string>),
+            Authorization: `Bearer ${newToken}`,
+          };
+          try {
+            const retryController = new AbortController();
+            const retryResp = await fetch(url, {
+              ...options,
+              headers: freshHeaders,
+              signal: retryController.signal,
+            });
+
+            if (retryResp.status !== 401) {
+              const retryText = await retryResp.text();
+              let retryData: any = null;
+              if (retryText) {
+                try {
+                  retryData = safeJsonParse(retryText, { maxDepth: 100, maxSize: 10 * 1024 * 1024 });
+                } catch {}
+              }
+              const retryRespHeaders: Record<string, string> = {};
+              retryResp.headers.forEach((v, k) => { retryRespHeaders[k] = v; });
+              let retryError: string | null = null;
+              if (!retryResp.ok) {
+                const d = retryData?.detail;
+                if (typeof d === 'string') {
+                  retryError = d;
+                } else if (Array.isArray(d)) {
+                  retryError = d.map((x: any) => x?.msg || x?.message || JSON.stringify(x)).join('; ');
+                } else if (retryData?.message) {
+                  retryError = String(retryData.message);
+                } else {
+                  retryError = `Error ${retryResp.status}`;
+                }
+              }
+              console.log('✅ Token refreshed — request retried successfully');
+              console.groupEnd();
+              return {
+                data: retryResp.ok ? retryData : null,
+                error: retryError,
+                status: retryResp.status,
+                request: {
+                  url,
+                  method,
+                  headers: freshHeaders,
+                  body: body ? (typeof body === 'string' ? safeJsonParseOrNull(body) ?? body : body) : undefined,
+                },
+                response: { headers: retryRespHeaders, body: retryData || retryText || null },
+              };
+            }
+          } catch {
+            // Retry fetch itself failed — fall through to logout
+          }
+        }
+
+        // Refresh failed or retry still returned 401 — the session is truly invalid
+        console.warn('⚠️ Token refresh failed or retry still 401 — logging out');
         authEvents.emitUnauthorized();
         console.groupEnd();
         return result;
