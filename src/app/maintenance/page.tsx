@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wrench } from 'lucide-react';
+import ConstructionAnimation from '@/components/maintenance/ConstructionAnimation';
 
 export default function MaintenancePage() {
   return (
@@ -19,9 +19,7 @@ export default function MaintenancePage() {
       <Card className="w-full max-w-[500px] mx-auto bg-card text-card-foreground rounded-lg shadow-lg">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="rounded-full bg-green-500/10 p-4">
-              <Wrench className="h-12 w-12 text-green-500" />
-            </div>
+            <ConstructionAnimation />
           </div>
           <CardTitle className="text-3xl font-bold text-card-foreground">
             Under Maintenance
