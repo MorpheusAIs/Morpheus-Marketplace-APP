@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { PRIVACY_POLICY_CONTENT } from "@/content/privacy-policy";
+import { TERMS_OF_SERVICE_CONTENT } from "@/content/terms-of-service";
 
 // Defer entire page render until after hydration to avoid mismatch from browser
 // extensions (e.g. Cursor IDE) that inject data-cursor-ref into the DOM
@@ -84,7 +84,7 @@ const markdownComponents = {
   ),
 };
 
-export function PrivacyPageClient() {
+export function TermsPageClient() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -136,17 +136,20 @@ export function PrivacyPageClient() {
 
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <article className="text-base">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-            {PRIVACY_POLICY_CONTENT}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={markdownComponents}
+          >
+            {TERMS_OF_SERVICE_CONTENT}
           </ReactMarkdown>
         </article>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-x-4 gap-y-2 justify-center text-sm">
           <Link
-            href="/terms"
+            href="/privacy"
             className="text-green-500 hover:text-green-400 hover:underline font-medium"
           >
-            Terms of Service
+            Privacy Policy
           </Link>
           <span className="text-muted-foreground">·</span>
           <Link
