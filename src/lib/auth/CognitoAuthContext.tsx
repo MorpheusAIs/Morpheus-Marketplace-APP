@@ -453,6 +453,15 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     if (token && token !== accessToken) {
       setAccessToken(token);
     }
+    // If token refresh failed while the user appeared authenticated, the
+    // Cognito refresh token has also expired (hours-long idle session).
+    // Emit the unauthorized event so the auth listener triggers logout +
+    // redirect to sign-in — preventing a ghost session where the UI stays
+    // accessible but all API calls fail silently.
+    if (!token && (user !== null || accessToken !== null)) {
+      console.warn('getValidToken: refresh token expired — emitting unauthorized event');
+      authEvents.emitUnauthorized();
+    }
     return token;
   };
 
