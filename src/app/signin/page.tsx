@@ -235,9 +235,13 @@ export default function SignInPage() {
                       Sign up
                     </Link>
                   </span>
-                  <span className="block">
+                  <span className="block flex flex-wrap gap-x-2 justify-center">
                     <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-xs">
                       Privacy Policy
+                    </Link>
+                    <span className="text-muted-foreground">·</span>
+                    <Link href="/terms" className="text-muted-foreground hover:text-foreground text-xs">
+                      Terms of Service
                     </Link>
                   </span>
                 </FieldDescription>
