@@ -26,6 +26,11 @@ function getCognitoClient(): CognitoIdentityProviderClient {
   return cognitoClient;
 }
 
+// Mutex to prevent concurrent token refresh attempts from racing each other.
+// When multiple callers (session monitor, API interceptor, user action) all
+// detect an expiring token at the same time, only one refresh request is sent.
+let refreshPromise: Promise<string | null> | null = null;
+
 export class CognitoDirectAuth {
   /**
    * Sign in with email and password
@@ -201,17 +206,66 @@ export class CognitoDirectAuth {
   }
 
   /**
-   * Get valid access token, refreshing if necessary
+   * Check if access token will expire within the given buffer period.
+   * Used for proactive refresh — when both access and refresh tokens share
+   * a similar TTL (~1 hour), waiting until the access token is fully expired
+   * means the refresh token is ALSO expired and the refresh call fails.
+   * By refreshing early we get a fresh access token while the refresh token
+   * is still valid.
+   */
+  static isTokenExpiringSoon(token: string, bufferMs: number = 5 * 60 * 1000): boolean {
+    try {
+      const payload = token.split('.')[1];
+      const decodedPayload = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      const decoded = safeJsonParseOrNull(decodedPayload, { maxDepth: 10, maxSize: 8192 });
+      if (!decoded) {
+        return true; // Assume expiring if we can't parse
+      }
+      const exp = decoded.exp * 1000; // Convert to milliseconds
+      return Date.now() >= (exp - bufferMs);
+    } catch {
+      return true; // Assume expiring if we can't parse
+    }
+  }
+
+  /**
+   * Get valid access token, refreshing proactively if it will expire soon.
+   *
+   * Key behaviour:
+   * - If the token is fresh (>5 min remaining) → return it immediately.
+   * - If the token will expire within 5 min → proactively refresh so the
+   *   session survives even when the Cognito refresh-token TTL is short (~1h).
+   * - Concurrent callers share a single in-flight refresh (mutex) to avoid
+   *   race conditions where parallel refreshes invalidate each other.
+   * - If proactive refresh fails but the access token hasn't expired yet,
+   *   the current token is returned instead of logging the user out.
    */
   static async getValidAccessToken(): Promise<string | null> {
     const tokens = this.getStoredTokens();
     if (!tokens) return null;
 
-    if (!this.isTokenExpired(tokens.accessToken)) {
+    // Token is fresh — no refresh needed
+    if (!this.isTokenExpiringSoon(tokens.accessToken)) {
       return tokens.accessToken;
     }
 
-    // Token is expired, try to refresh
+    // Token is expiring soon (or already expired) — need to refresh.
+    // Deduplicate concurrent refresh requests via a shared promise.
+    if (refreshPromise) {
+      return refreshPromise;
+    }
+
+    refreshPromise = this._performTokenRefresh(tokens).finally(() => {
+      refreshPromise = null;
+    });
+
+    return refreshPromise;
+  }
+
+  /**
+   * Internal: performs the actual token refresh with graceful fallback.
+   */
+  private static async _performTokenRefresh(tokens: CognitoTokens): Promise<string | null> {
     try {
       const newTokens = await this.refreshTokens(tokens.refreshToken);
       const email = this.getStoredEmail();
@@ -220,13 +274,19 @@ export class CognitoDirectAuth {
       }
       return newTokens.accessToken;
     } catch (err) {
-      // Refresh failed (e.g., refresh token invalidated after password reset)
-      // Silently clear tokens and return null - this is expected behavior
-      // Don't log NotAuthorizedException as it's expected after password reset
       const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
       if (errorName !== 'NotAuthorizedException') {
         console.error('Error refreshing token:', err);
       }
+
+      // If the access token hasn't actually expired yet (we were refreshing
+      // proactively), return it so the user's session continues until it does.
+      if (!this.isTokenExpired(tokens.accessToken)) {
+        console.log('Proactive refresh failed but access token still valid — continuing session');
+        return tokens.accessToken;
+      }
+
+      // Token is truly expired and refresh failed — session is dead
       this.clearTokens();
       return null;
     }
