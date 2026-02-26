@@ -40,6 +40,7 @@ frontend:
         - printf "STRIPE_WEBHOOK_SECRET=%s\n" "$STRIPE_WEBHOOK_SECRET" >> .env.production
         - printf "STRIPE_SECRET_KEY=%s\n" "$STRIPE_SECRET_KEY" >> .env.production
         - printf "ADMIN_API_SECRET=%s\n" "$ADMIN_API_SECRET" >> .env.production
+        - printf "IS_MAINTENANCE_MODE=%s\n" "$IS_MAINTENANCE_MODE" >> .env.production
         - echo "Environment variables written to .env.production for Lambda runtime"
 
         # Generate build version for cache busting and debugging
