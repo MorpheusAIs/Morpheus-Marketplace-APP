@@ -103,28 +103,42 @@ export class CognitoDirectAuth {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token using refresh token.
+   *
+   * Uses REFRESH_TOKEN (not REFRESH_TOKEN_AUTH) because this is a public
+   * client-side app without a client secret.
    */
   static async refreshTokens(refreshToken: string): Promise<CognitoTokens> {
     const command = new InitiateAuthCommand({
-      AuthFlow: AuthFlowType.REFRESH_TOKEN_AUTH,
+      AuthFlow: AuthFlowType.REFRESH_TOKEN,
       ClientId: cognitoConfig.userPoolClientId,
       AuthParameters: {
         REFRESH_TOKEN: refreshToken,
       },
     });
 
-    const response = await getCognitoClient().send(command);
+    try {
+      const response = await getCognitoClient().send(command);
 
-    if (!response.AuthenticationResult) {
-      throw new Error('Token refresh failed');
+      if (!response.AuthenticationResult) {
+        throw new Error('Token refresh failed — no AuthenticationResult');
+      }
+
+      return {
+        accessToken: response.AuthenticationResult.AccessToken!,
+        idToken: response.AuthenticationResult.IdToken!,
+        refreshToken: refreshToken, // Keep the same refresh token
+      };
+    } catch (err) {
+      console.error('Cognito refreshTokens error:', {
+        name: err && typeof err === 'object' && 'name' in err ? (err as any).name : undefined,
+        message: err instanceof Error ? err.message : String(err),
+        code: err && typeof err === 'object' && '$metadata' in err
+          ? (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+          : undefined,
+      });
+      throw err;
     }
-
-    return {
-      accessToken: response.AuthenticationResult.AccessToken!,
-      idToken: response.AuthenticationResult.IdToken!,
-      refreshToken: refreshToken, // Keep the same refresh token
-    };
   }
 
   /**
@@ -268,9 +282,14 @@ export class CognitoDirectAuth {
   private static async _performTokenRefresh(tokens: CognitoTokens): Promise<string | null> {
     try {
       const newTokens = await this.refreshTokens(tokens.refreshToken);
-      const email = this.getStoredEmail();
-      if (email) {
-        this.storeTokens(newTokens, email);
+      // Always persist refreshed tokens to localStorage so that subsequent
+      // reads return the fresh tokens instead of the old expired ones.
+      // Write token keys directly to avoid storeTokens() clearing the stored
+      // email when it's not available (common for social/OAuth login users).
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cognito_access_token', newTokens.accessToken);
+        localStorage.setItem('cognito_id_token', newTokens.idToken);
+        localStorage.setItem('cognito_refresh_token', newTokens.refreshToken);
       }
       return newTokens.accessToken;
     } catch (err) {
