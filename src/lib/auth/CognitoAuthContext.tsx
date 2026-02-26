@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CognitoDirectAuth } from './cognito-direct-auth';
 import { authEvents } from './auth-events';
@@ -75,6 +75,50 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     });
     return unsubscribe;
   }, [router]);
+
+  // Proactive session health monitor.
+  // Detects expired sessions while the user is idle (e.g., leaving the API keys
+  // page open for >1 hour) so the UI redirects to sign-in immediately instead of
+  // waiting until the user tries an action and gets an error (MOR-334 follow-up).
+  const isAuthenticatedRef = useRef(false);
+  useEffect(() => {
+    isAuthenticatedRef.current = !!user || !!accessToken;
+  }, [user, accessToken]);
+
+  useEffect(() => {
+    // Only run the monitor on the client
+    if (typeof document === 'undefined') return;
+
+    const checkSession = async () => {
+      // Skip if user is not authenticated (nothing to monitor)
+      if (!isAuthenticatedRef.current) return;
+
+      const token = await CognitoDirectAuth.getValidAccessToken();
+      if (!token && isAuthenticatedRef.current) {
+        console.warn('Session monitor: token refresh failed — emitting unauthorized event');
+        authEvents.emitUnauthorized();
+      }
+    };
+
+    // Check when the tab becomes visible again (covers the "left browser open
+    // for 61 min, then switched back" scenario)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkSession();
+      }
+    };
+
+    // Periodic check every 60 seconds as a fallback for users who stay on the
+    // same tab without switching away
+    const intervalId = setInterval(checkSession, 60_000);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const initializeAuth = async () => {
     setIsLoading(true);
