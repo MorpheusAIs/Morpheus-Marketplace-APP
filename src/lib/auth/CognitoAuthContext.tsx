@@ -97,6 +97,15 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       if (!token && isAuthenticatedRef.current) {
         console.warn('Session monitor: token refresh failed — emitting unauthorized event');
         authEvents.emitUnauthorized();
+      } else if (token) {
+        // Keep React state in sync with the (possibly refreshed) token so that
+        // components reading `accessToken` from context always get the latest
+        // value instead of the stale original token from sign-in.
+        setAccessToken(prev => prev !== token ? token : prev);
+        const tokens = CognitoDirectAuth.getStoredTokens();
+        if (tokens) {
+          setIdToken(prev => prev !== tokens.idToken ? tokens.idToken : prev);
+        }
       }
     };
 

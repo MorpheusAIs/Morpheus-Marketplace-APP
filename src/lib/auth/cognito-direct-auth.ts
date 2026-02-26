@@ -105,12 +105,13 @@ export class CognitoDirectAuth {
   /**
    * Refresh access token using refresh token.
    *
-   * Uses REFRESH_TOKEN (not REFRESH_TOKEN_AUTH) because this is a public
-   * client-side app without a client secret.
+   * Uses REFRESH_TOKEN_AUTH which is the standard auth flow for refreshing
+   * tokens in a public client-side app without a client secret.
+   * Requires ALLOW_REFRESH_TOKEN_AUTH in the Cognito App Client's ExplicitAuthFlows.
    */
   static async refreshTokens(refreshToken: string): Promise<CognitoTokens> {
     const command = new InitiateAuthCommand({
-      AuthFlow: AuthFlowType.REFRESH_TOKEN,
+      AuthFlow: AuthFlowType.REFRESH_TOKEN_AUTH,
       ClientId: cognitoConfig.userPoolClientId,
       AuthParameters: {
         REFRESH_TOKEN: refreshToken,
@@ -221,11 +222,10 @@ export class CognitoDirectAuth {
 
   /**
    * Check if access token will expire within the given buffer period.
-   * Used for proactive refresh — when both access and refresh tokens share
-   * a similar TTL (~1 hour), waiting until the access token is fully expired
-   * means the refresh token is ALSO expired and the refresh call fails.
-   * By refreshing early we get a fresh access token while the refresh token
-   * is still valid.
+   * Used for proactive refresh — by refreshing before the access token
+   * expires we avoid a window where API calls fail with 401 before the
+   * background monitor triggers a refresh.  The refresh token has a much
+   * longer TTL (30 days) so it should always be valid when this fires.
    */
   static isTokenExpiringSoon(token: string, bufferMs: number = 5 * 60 * 1000): boolean {
     try {
@@ -247,8 +247,8 @@ export class CognitoDirectAuth {
    *
    * Key behaviour:
    * - If the token is fresh (>5 min remaining) → return it immediately.
-   * - If the token will expire within 5 min → proactively refresh so the
-   *   session survives even when the Cognito refresh-token TTL is short (~1h).
+   * - If the token will expire within 5 min → proactively refresh using the
+   *   long-lived refresh token (30 days) so sessions survive seamlessly.
    * - Concurrent callers share a single in-flight refresh (mutex) to avoid
    *   race conditions where parallel refreshes invalidate each other.
    * - If proactive refresh fails but the access token hasn't expired yet,
@@ -291,12 +291,20 @@ export class CognitoDirectAuth {
         localStorage.setItem('cognito_id_token', newTokens.idToken);
         localStorage.setItem('cognito_refresh_token', newTokens.refreshToken);
       }
+      console.log('Token refresh succeeded — new access token stored');
       return newTokens.accessToken;
     } catch (err) {
       const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
-      if (errorName !== 'NotAuthorizedException') {
-        console.error('Error refreshing token:', err);
-      }
+      const errorMessage = err instanceof Error ? err.message : String(err);
+
+      // Always log refresh failures with full context to aid debugging
+      console.warn('Token refresh failed:', {
+        error: errorName || 'Unknown',
+        message: errorMessage,
+        accessTokenExpired: this.isTokenExpired(tokens.accessToken),
+        hasRefreshToken: !!tokens.refreshToken,
+        refreshTokenLength: tokens.refreshToken?.length ?? 0,
+      });
 
       // If the access token hasn't actually expired yet (we were refreshing
       // proactively), return it so the user's session continues until it does.
@@ -306,6 +314,7 @@ export class CognitoDirectAuth {
       }
 
       // Token is truly expired and refresh failed — session is dead
+      console.warn('Access token expired and refresh failed — clearing session');
       this.clearTokens();
       return null;
     }
