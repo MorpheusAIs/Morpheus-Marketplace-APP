@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -58,6 +58,41 @@ export default function ApiKeysPage() {
   const [pendingDefaultKeyId, setPendingDefaultKeyId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string; isDefault: boolean } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const validateSession = async () => {
+      if (!mounted) return;
+      await getValidToken();
+    };
+
+    void validateSession();
+
+    const intervalId = window.setInterval(() => {
+      void validateSession();
+    }, 60_000);
+
+    const onFocus = () => {
+      void validateSession();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void validateSession();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [getValidToken]);
 
   // Filter to only show active API keys in the UI
   // Deleted keys are kept in the context for usage analytics matching
@@ -505,4 +540,3 @@ export default function ApiKeysPage() {
     </AuthenticatedLayout>
   );
 }
-
