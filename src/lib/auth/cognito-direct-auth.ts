@@ -7,6 +7,7 @@ import {
   ConfirmSignUpCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
+  RevokeTokenCommand,
   AuthFlowType,
   ChallengeNameType,
 } from '@aws-sdk/client-cognito-identity-provider';
@@ -30,6 +31,19 @@ function getCognitoClient(): CognitoIdentityProviderClient {
 // When multiple callers (session monitor, API interceptor, user action) all
 // detect an expiring token at the same time, only one refresh request is sent.
 let refreshPromise: Promise<string | null> | null = null;
+
+/**
+ * Thrown when Cognito returns a ChallengeName instead of tokens during a
+ * token refresh. This means re-authentication is required (e.g. MFA, device
+ * verification). Callers should treat this as a session expiry and redirect
+ * the user to sign-in rather than retrying the refresh silently.
+ */
+export class RefreshChallengeError extends Error {
+  constructor(public readonly challengeName: ChallengeNameType) {
+    super(`Re-authentication required: ${challengeName}`);
+    this.name = 'RefreshChallengeError';
+  }
+}
 
 export class CognitoDirectAuth {
   /**
@@ -121,6 +135,13 @@ export class CognitoDirectAuth {
     try {
       const response = await getCognitoClient().send(command);
 
+      // Cognito may return a challenge (e.g. MFA, device verification) instead
+      // of tokens. Silent refresh cannot satisfy a challenge — the user must
+      // re-authenticate interactively.
+      if (response.ChallengeName) {
+        throw new RefreshChallengeError(response.ChallengeName as ChallengeNameType);
+      }
+
       if (!response.AuthenticationResult) {
         throw new Error('Token refresh failed — no AuthenticationResult');
       }
@@ -128,7 +149,10 @@ export class CognitoDirectAuth {
       return {
         accessToken: response.AuthenticationResult.AccessToken!,
         idToken: response.AuthenticationResult.IdToken!,
-        refreshToken: refreshToken, // Keep the same refresh token
+        // Cognito rotates the refresh token when token revocation is enabled.
+        // Prefer the new token if provided; fall back to the original so that
+        // callers are always left with a usable refresh token.
+        refreshToken: response.AuthenticationResult.RefreshToken ?? refreshToken,
       };
     } catch (err) {
       console.error('Cognito refreshTokens error:', {
@@ -226,8 +250,13 @@ export class CognitoDirectAuth {
    * expires we avoid a window where API calls fail with 401 before the
    * background monitor triggers a refresh.  The refresh token has a much
    * longer TTL (30 days) so it should always be valid when this fires.
+   *
+   * Buffer is set to 10 min (previously 5 min) to give more runway ahead
+   * of the 60-minute access token boundary.  This means refresh fires at
+   * T+50min, well before the T+60min expiry where JWKS cache misses and
+   * ALB reconnects previously converged.
    */
-  static isTokenExpiringSoon(token: string, bufferMs: number = 5 * 60 * 1000): boolean {
+  static isTokenExpiringSoon(token: string, bufferMs: number = 10 * 60 * 1000): boolean {
     try {
       const payload = token.split('.')[1];
       const decodedPayload = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
@@ -246,8 +275,8 @@ export class CognitoDirectAuth {
    * Get valid access token, refreshing proactively if it will expire soon.
    *
    * Key behaviour:
-   * - If the token is fresh (>5 min remaining) → return it immediately.
-   * - If the token will expire within 5 min → proactively refresh using the
+   * - If the token is fresh (>10 min remaining) → return it immediately.
+   * - If the token will expire within 10 min → proactively refresh using the
    *   long-lived refresh token (30 days) so sessions survive seamlessly.
    * - Concurrent callers share a single in-flight refresh (mutex) to avoid
    *   race conditions where parallel refreshes invalidate each other.
@@ -294,6 +323,16 @@ export class CognitoDirectAuth {
       console.log('Token refresh succeeded — new access token stored');
       return newTokens.accessToken;
     } catch (err) {
+      // A challenge response means the user must re-authenticate interactively
+      // (e.g. MFA, device verification).  Silent refresh cannot satisfy this,
+      // so we clear the session immediately and surface a message via the
+      // returned null so callers trigger the unauthorized flow.
+      if (err instanceof RefreshChallengeError) {
+        console.warn(`Token refresh returned challenge '${err.challengeName}' — re-authentication required`);
+        this.clearTokens();
+        return null;
+      }
+
       const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
       const errorMessage = err instanceof Error ? err.message : String(err);
 
@@ -444,6 +483,23 @@ export class CognitoDirectAuth {
       Username: email,
     });
 
+    await getCognitoClient().send(command);
+  }
+
+  /**
+   * Revoke a refresh token at the Cognito server side.
+   * Call this on explicit user-initiated logout so that the token cannot be
+   * used to obtain new access tokens from any device or browser tab, even if
+   * the localStorage entry is still present in another tab.
+   *
+   * This is a best-effort call — logout should proceed even if it fails.
+   * Cognito requires `EnableTokenRevocation = true` on the app client (already set).
+   */
+  static async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const command = new RevokeTokenCommand({
+      Token: refreshToken,
+      ClientId: cognitoConfig.userPoolClientId,
+    });
     await getCognitoClient().send(command);
   }
 

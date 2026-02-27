@@ -433,6 +433,16 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   };
 
   const logout = () => {
+    // Fire-and-forget refresh token revocation so the server-side token is
+    // invalidated immediately.  We read and revoke before clearTokens() so
+    // the token is still available.  Logout must not block on a network call.
+    const storedTokens = CognitoDirectAuth.getStoredTokens();
+    if (storedTokens?.refreshToken) {
+      CognitoDirectAuth.revokeRefreshToken(storedTokens.refreshToken).catch(err => {
+        console.warn('Failed to revoke refresh token on logout (non-fatal):', err);
+      });
+    }
+
     setUser(null);
     setAccessToken(null);
     setIdToken(null);
