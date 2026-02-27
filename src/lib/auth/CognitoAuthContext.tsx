@@ -433,18 +433,28 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   };
 
   const logout = () => {
+    // Fire-and-forget server-side token revocation so the refresh token is
+    // invalidated immediately across all sessions/devices.  Read before
+    // clearTokens() so the token is still in localStorage.
+    const storedTokens = CognitoDirectAuth.getStoredTokens();
+    if (storedTokens?.refreshToken) {
+      CognitoDirectAuth.revokeRefreshToken(storedTokens.refreshToken).catch(err => {
+        console.warn('Failed to revoke refresh token on logout (non-fatal):', err);
+      });
+    }
+
     setUser(null);
     setAccessToken(null);
     setIdToken(null);
     setApiKeys([]);
     setDefaultApiKey(null);
-    
+
     // Clear API key storage
     sessionStorage.removeItem('verified_api_key');
     sessionStorage.removeItem('verified_api_key_prefix');
     sessionStorage.removeItem('verified_api_key_timestamp');
     localStorage.removeItem('selected_api_key_prefix');
-    
+
     // Clear Cognito tokens
     CognitoDirectAuth.clearTokens();
   };

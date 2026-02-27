@@ -7,6 +7,7 @@ import {
   ConfirmSignUpCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
+  RevokeTokenCommand,
   AuthFlowType,
   ChallengeNameType,
 } from '@aws-sdk/client-cognito-identity-provider';
@@ -294,7 +295,7 @@ export class CognitoDirectAuth {
    * background monitor triggers a refresh.  The refresh token has a much
    * longer TTL (30 days) so it should always be valid when this fires.
    */
-  static isTokenExpiringSoon(token: string, bufferMs: number = 5 * 60 * 1000): boolean {
+  static isTokenExpiringSoon(token: string, bufferMs: number = 10 * 60 * 1000): boolean {
     try {
       const payload = token.split('.')[1];
       const decodedPayload = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
@@ -313,8 +314,8 @@ export class CognitoDirectAuth {
    * Get valid access token, refreshing proactively if it will expire soon.
    *
    * Key behaviour:
-   * - If the token is fresh (>5 min remaining) → return it immediately.
-   * - If the token will expire within 5 min → proactively refresh using the
+   * - If the token is fresh (>10 min remaining) → return it immediately.
+   * - If the token will expire within 10 min → proactively refresh using the
    *   long-lived refresh token (30 days) so sessions survive seamlessly.
    * - Concurrent callers share a single in-flight refresh (mutex) to avoid
    *   race conditions where parallel refreshes invalidate each other.
@@ -534,6 +535,19 @@ export class CognitoDirectAuth {
     authUrl.searchParams.set('identity_provider', cognitoProviderName);
 
     window.location.href = authUrl.toString();
+  }
+
+  /**
+   * Revoke a refresh token server-side so it cannot be used again.
+   * Called on explicit logout to invalidate the token immediately across
+   * all sessions/devices. Fire-and-forget — callers should .catch() errors.
+   */
+  static async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const command = new RevokeTokenCommand({
+      Token: refreshToken,
+      ClientId: cognitoConfig.userPoolClientId,
+    });
+    await getCognitoClient().send(command);
   }
 
   /**
