@@ -67,7 +67,7 @@ interface SessionCreateResponse {
 export default function TestPage() {
   const router = useRouter();
   const { error: showError } = useNotification();
-  const { apiKeys, accessToken } = useCognitoAuth();
+  const { apiKeys, getValidToken } = useCognitoAuth();
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [apiKeyPrefix, setApiKeyPrefix] = useState("");
   const [apiKeyName, setApiKeyName] = useState("");
@@ -245,7 +245,8 @@ export default function TestPage() {
 
   // Check if automation is enabled
   const checkAutomationSettings = async (): Promise<AutomationSettings | null> => {
-    if (!accessToken) {
+    const token = await getValidToken();
+    if (!token) {
       // If no access token, assume automation is enabled (default behavior)
       return null;
     }
@@ -253,7 +254,7 @@ export default function TestPage() {
     try {
       const response = await apiGet<AutomationSettings>(
         API_URLS.automationSettings(),
-        accessToken
+        token
       );
 
       if (response.error || !response.data) {
