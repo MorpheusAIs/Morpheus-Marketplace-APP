@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CognitoDirectAuth } from '@/lib/auth/cognito-direct-auth';
+import type { CognitoTokens, CognitoUser } from '@/lib/types/cognito';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (tokens: any, userInfo: any) => void;
+  onSuccess: (tokens: CognitoTokens, userInfo: CognitoUser) => void;
 }
 
 type AuthMode = 'signin' | 'signup' | 'confirm' | 'forgot' | 'reset';
@@ -26,26 +27,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   if (typeof window === 'undefined') return null;
   if (!isOpen) return null;
 
-  // Email validation regex
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const isValidEmail = (value: string): boolean =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  // Password validation function to match Cognito password policy
-  const validatePassword = (password: string): string | null => {
-    if (password.length < 15) {
-      return 'Password must be at least 15 characters long';
-    }
-    if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
-    }
-    if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number';
-    }
+  const validatePassword = (value: string): string | null => {
+    if (value.length < 15) return 'Password must be at least 15 characters long';
+    if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
+    if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
+    if (!/[0-9]/.test(value)) return 'Password must contain at least one number';
     return null;
   };
 
@@ -63,13 +52,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     try {
       const tokens = await CognitoDirectAuth.signIn(email, password);
       const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
-      
       onSuccess(tokens, userInfo);
       onClose();
       resetForm();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Sign in failed';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +73,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       return;
     }
 
-    // Validate password
     const passwordError = validatePassword(password);
     if (passwordError) {
       setError(passwordError);
@@ -109,10 +95,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     try {
       await CognitoDirectAuth.signUp(email, password);
       setMode('confirm');
-      setError(''); // Clear any previous errors
+      setError('');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Sign up failed';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Sign up failed');
     } finally {
       setIsLoading(false);
     }
@@ -125,21 +110,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
     try {
       await CognitoDirectAuth.confirmSignUp(email, confirmationCode);
-      
-      // After confirmation, automatically sign in
+
       try {
         const tokens = await CognitoDirectAuth.signIn(email, password);
         const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
         onSuccess(tokens, userInfo);
         onClose();
         resetForm();
-      } catch (signInErr) {
+      } catch {
         setMode('signin');
         setError('Account confirmed! Please sign in.');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Confirmation failed';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Confirmation failed');
     } finally {
       setIsLoading(false);
     }
@@ -159,10 +142,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     try {
       await CognitoDirectAuth.forgotPassword(email);
       setMode('reset');
-      setError(''); // Clear any previous errors
+      setError('');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send reset code';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to send reset code');
     } finally {
       setIsLoading(false);
     }
@@ -173,7 +155,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setIsLoading(true);
     setError('');
 
-    // Validate password
     const passwordError = validatePassword(newPassword);
     if (passwordError) {
       setError(passwordError);
@@ -190,15 +171,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     try {
       await CognitoDirectAuth.confirmForgotPassword(email, confirmationCode, newPassword);
       setMode('signin');
-      setError(''); // Clear any previous errors
-      // Show success message briefly
-      setPassword(''); // Clear password fields for security
+      setError('');
+      setPassword('');
       setConfirmPassword('');
       setNewPassword('');
       setConfirmationCode('');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Password reset failed';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Password reset failed');
     } finally {
       setIsLoading(false);
     }
@@ -226,9 +205,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         <div className="text-center mb-6">
           {/* Morpheus Logo */}
           <div className="w-4/5 mx-auto mb-6 flex items-center justify-center" style={{height: '80px'}}>
-            <img 
-              src="/images/mor_mark_white.png" 
-              alt="Morpheus AI" 
+            <img
+              src="/images/mor_mark_white.png"
+              alt="Morpheus AI"
               className="w-full h-full object-contain"
             />
           </div>
@@ -242,7 +221,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           </h2>
 
           {/* Close button */}
-          <button 
+          <button
+            type="button"
             onClick={handleClose}
             className="absolute top-4 right-4 text-white hover:text-gray-300 text-xl"
           >
@@ -261,29 +241,29 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         {mode === 'signin' && (
           <form onSubmit={handleSignIn} className="space-y-4">
             <div>
-              <label className="block text-white text-sm mb-1">Email</label>
+              <label htmlFor="signin-email" className="block text-white text-sm mb-1">Email</label>
               <input
+                id="signin-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
                 className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-
                 placeholder="name@host.com"
               />
             </div>
 
             <div>
-              <label className="block text-white text-sm mb-1">Password</label>
+              <label htmlFor="signin-password" className="block text-white text-sm mb-1">Password</label>
               <input
+                id="signin-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
                 className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-
                 placeholder="Password"
               />
             </div>
@@ -323,50 +303,51 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         {mode === 'signup' && (
           <form onSubmit={handleSignUp} className="space-y-4">
             <div>
-              <label className="block text-white text-sm mb-1">Email</label>
+              <label htmlFor="signup-email" className="block text-white text-sm mb-1">Email</label>
               <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-
-                  placeholder="name@host.com"
+                id="signup-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="name@host.com"
               />
             </div>
 
             <div>
-              <label className="block text-white text-sm mb-1">Password</label>
+              <label htmlFor="signup-password" className="block text-white text-sm mb-1">Password</label>
               <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={15}
-                  autoComplete="new-password"
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-
-                  placeholder="Min 15 chars, upper/lower/number"
+                id="signup-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={15}
+                autoComplete="new-password"
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="Min 15 chars, upper/lower/number"
               />
             </div>
 
             <div>
-              <label className="block text-white text-sm mb-1">Confirm Password</label>
+              <label htmlFor="signup-confirm-password" className="block text-white text-sm mb-1">Confirm Password</label>
               <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  autoComplete="new-password"
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-
-                  placeholder="Confirm Password"
+                id="signup-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="Confirm Password"
               />
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer">
+            <label htmlFor="age-consent" className="flex items-start gap-3 cursor-pointer">
               <input
+                id="age-consent"
                 type="checkbox"
                 checked={ageConsent}
                 onChange={(e) => {
@@ -382,20 +363,20 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
             <button
               type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
-              >
-                {isLoading ? 'Creating account...' : 'Create account'}
+              disabled={isLoading}
+              className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Creating account...' : 'Create account'}
             </button>
 
             <div className="text-center text-white text-sm">
-                Already have an account?{' '}
+              Already have an account?{' '}
               <button
                 type="button"
-                  onClick={() => setMode('signin')}
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  Sign in
+                onClick={() => setMode('signin')}
+                className="text-blue-400 hover:text-blue-300 underline"
+              >
+                Sign in
               </button>
             </div>
           </form>
@@ -405,38 +386,38 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         {mode === 'confirm' && (
           <form onSubmit={handleConfirmSignUp} className="space-y-4">
             <div className="text-white text-sm mb-4">
-                We've sent a confirmation code to <strong>{email}</strong>. Please enter it below.
+              We&apos;ve sent a confirmation code to <strong>{email}</strong>. Please enter it below.
             </div>
-              
-            <div>
-              <label className="block text-white text-sm mb-1">Confirmation Code</label>
-              <input
-                  type="text"
-                  value={confirmationCode}
-                  onChange={(e) => setConfirmationCode(e.target.value)}
-                  required
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold text-center text-lg tracking-widest focus:outline-none focus:ring-0 focus:bg-white"
 
-                  placeholder="123456"
-                  maxLength={6}
+            <div>
+              <label htmlFor="confirm-code" className="block text-white text-sm mb-1">Confirmation Code</label>
+              <input
+                id="confirm-code"
+                type="text"
+                value={confirmationCode}
+                onChange={(e) => setConfirmationCode(e.target.value)}
+                required
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold text-center text-lg tracking-widest focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="123456"
+                maxLength={6}
               />
             </div>
 
             <button
               type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
-              >
-                {isLoading ? 'Confirming...' : 'Confirm Account'}
+              disabled={isLoading}
+              className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Confirming...' : 'Confirm Account'}
             </button>
 
             <div className="text-center text-white text-sm">
               <button
                 type="button"
-                  onClick={() => setMode('signin')}
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  Back to sign in
+                onClick={() => setMode('signin')}
+                className="text-blue-400 hover:text-blue-300 underline"
+              >
+                Back to sign in
               </button>
             </div>
           </form>
@@ -446,38 +427,38 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         {mode === 'forgot' && (
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <div className="text-white text-sm mb-4">
-                Enter your email address and we'll send you a password reset code.
+              Enter your email address and we&apos;ll send you a password reset code.
             </div>
-              
-            <div>
-              <label className="block text-white text-sm mb-1">Email</label>
-              <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
 
-                  placeholder="name@host.com"
+            <div>
+              <label htmlFor="forgot-email" className="block text-white text-sm mb-1">Email</label>
+              <input
+                id="forgot-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="name@host.com"
               />
             </div>
 
             <button
               type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
-              >
-                {isLoading ? 'Sending...' : 'Send Reset Code'}
+              disabled={isLoading}
+              className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Sending...' : 'Send Reset Code'}
             </button>
 
             <div className="text-center text-white text-sm">
               <button
                 type="button"
-                  onClick={() => setMode('signin')}
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  Back to sign in
+                onClick={() => setMode('signin')}
+                className="text-blue-400 hover:text-blue-300 underline"
+              >
+                Back to sign in
               </button>
             </div>
           </form>
@@ -487,72 +468,75 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         {mode === 'reset' && (
           <form onSubmit={handleConfirmPasswordReset} className="space-y-4">
             <div className="text-white text-sm mb-4">
-                We've sent a password reset code to <strong>{email}</strong>. Enter it below with your new password.
+              We&apos;ve sent a password reset code to <strong>{email}</strong>. Enter it below with your new password.
             </div>
-              
+
             <div>
-              <label className="block text-white text-sm mb-1">Reset Code</label>
+              <label htmlFor="reset-code" className="block text-white text-sm mb-1">Reset Code</label>
               <input
-                  type="text"
-                  value={confirmationCode}
-                  onChange={(e) => setConfirmationCode(e.target.value)}
-                  required
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold text-center text-lg tracking-widest focus:outline-none focus:ring-0 focus:bg-white"
-                  placeholder="123456"
-                  maxLength={6}
+                id="reset-code"
+                type="text"
+                value={confirmationCode}
+                onChange={(e) => setConfirmationCode(e.target.value)}
+                required
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold text-center text-lg tracking-widest focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="123456"
+                maxLength={6}
               />
             </div>
 
             <div>
-              <label className="block text-white text-sm mb-1">New Password</label>
+              <label htmlFor="reset-new-password" className="block text-white text-sm mb-1">New Password</label>
               <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={15}
-                  autoComplete="new-password"
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-                  placeholder="Min 15 chars, upper/lower/number"
+                id="reset-new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={15}
+                autoComplete="new-password"
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="Min 15 chars, upper/lower/number"
               />
             </div>
 
             <div>
-              <label className="block text-white text-sm mb-1">Confirm New Password</label>
+              <label htmlFor="reset-confirm-password" className="block text-white text-sm mb-1">Confirm New Password</label>
               <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  autoComplete="new-password"
-                  className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
-                  placeholder="Confirm New Password"
+                id="reset-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="w-full p-3 bg-gray-100 border-0 rounded font-semibold focus:outline-none focus:ring-0 focus:bg-white"
+                placeholder="Confirm New Password"
               />
             </div>
 
             <button
               type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
-              >
-                {isLoading ? 'Resetting password...' : 'Reset Password'}
+              disabled={isLoading}
+              className="w-full bg-[#106F48] hover:bg-[#0e5a3c] text-white p-3 rounded font-medium transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Resetting password...' : 'Reset Password'}
             </button>
 
             <div className="text-center text-white text-sm">
               <button
                 type="button"
-                  onClick={() => setMode('forgot')}
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  Resend reset code
+                onClick={() => setMode('forgot')}
+                className="text-blue-400 hover:text-blue-300 underline"
+              >
+                Resend reset code
               </button>
               {' | '}
               <button
                 type="button"
-                  onClick={() => setMode('signin')}
-                  className="text-blue-400 hover:text-blue-300 underline"
-                >
-                  Back to sign in
+                onClick={() => setMode('signin')}
+                className="text-blue-400 hover:text-blue-300 underline"
+              >
+                Back to sign in
               </button>
             </div>
           </form>
