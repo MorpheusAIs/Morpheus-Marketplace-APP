@@ -20,6 +20,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [newPassword, setNewPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [ageConsent, setAgeConsent] = useState(false);
 
   // Prevent SSR issues
   if (typeof window === 'undefined') return null;
@@ -95,6 +96,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!ageConsent) {
+      setError('You must certify that you are at least 18 years old to create an account');
       setIsLoading(false);
       return;
     }
@@ -204,6 +211,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setConfirmationCode('');
     setNewPassword('');
     setError('');
+    setAgeConsent(false);
     setMode('signin');
   };
 
@@ -356,6 +364,21 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   placeholder="Confirm Password"
               />
             </div>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={ageConsent}
+                onChange={(e) => {
+                  setAgeConsent(e.target.checked);
+                  if (e.target.checked) setError('');
+                }}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-green-500 cursor-pointer"
+              />
+              <span className="text-xs text-white leading-relaxed opacity-80">
+                <em>I certify that I am at least 18 years old and the minimum age required in my country to consent to use the Services.</em>
+              </span>
+            </label>
 
             <button
               type="submit"
