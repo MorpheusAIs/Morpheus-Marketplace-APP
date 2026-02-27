@@ -31,6 +31,17 @@ function getCognitoClient(): CognitoIdentityProviderClient {
 // detect an expiring token at the same time, only one refresh request is sent.
 let refreshPromise: Promise<string | null> | null = null;
 
+/**
+ * Return a short fingerprint of a token for safe diagnostic logging.
+ * Shows length + first/last 8 chars so we can compare tokens without
+ * exposing the full value.
+ */
+function tokenFingerprint(token: string | null | undefined): string {
+  if (!token) return '(empty)';
+  if (token.length < 20) return `(${token.length} chars — suspiciously short)`;
+  return `${token.length} chars [${token.slice(0, 8)}…${token.slice(-8)}]`;
+}
+
 export class CognitoDirectAuth {
   /**
    * Sign in with email and password
@@ -52,11 +63,13 @@ export class CognitoDirectAuth {
         throw new Error('Authentication failed - no tokens received');
       }
 
-      return {
+      const tokens = {
         accessToken: response.AuthenticationResult.AccessToken!,
         idToken: response.AuthenticationResult.IdToken!,
         refreshToken: response.AuthenticationResult.RefreshToken!,
       };
+      console.log('[Auth] Sign-in succeeded — refresh token fingerprint:', tokenFingerprint(tokens.refreshToken));
+      return tokens;
     } catch (err) {
       // Log full error details for debugging
       console.error('Cognito signIn error details:', {
@@ -200,7 +213,8 @@ export class CognitoDirectAuth {
    */
   static storeTokens(tokens: CognitoTokens, email?: string): void {
     if (typeof window === 'undefined') return;
-    
+    console.log('[Auth] Storing tokens — refresh token fingerprint:', tokenFingerprint(tokens.refreshToken));
+
     localStorage.setItem('cognito_access_token', tokens.accessToken);
     localStorage.setItem('cognito_id_token', tokens.idToken);
     localStorage.setItem('cognito_refresh_token', tokens.refreshToken);
@@ -334,6 +348,7 @@ export class CognitoDirectAuth {
    */
   private static _persistTokens(newTokens: CognitoTokens): void {
     if (typeof window !== 'undefined') {
+      console.log('[Auth] Persisting refreshed tokens — new refresh token fingerprint:', tokenFingerprint(newTokens.refreshToken));
       localStorage.setItem('cognito_access_token', newTokens.accessToken);
       localStorage.setItem('cognito_id_token', newTokens.idToken);
       localStorage.setItem('cognito_refresh_token', newTokens.refreshToken);
@@ -351,11 +366,20 @@ export class CognitoDirectAuth {
    * 4. If the access token is also expired, clear the session.
    */
   private static async _performTokenRefresh(tokens: CognitoTokens): Promise<string | null> {
+    // Log the refresh token fingerprint so we can compare it to the one
+    // stored at sign-in — if they differ, something is corrupting/replacing it.
+    const storedRT = typeof window !== 'undefined' ? localStorage.getItem('cognito_refresh_token') : null;
+    console.log('[Auth] Attempting token refresh:', {
+      refreshTokenFromMemory: tokenFingerprint(tokens.refreshToken),
+      refreshTokenFromStorage: tokenFingerprint(storedRT),
+      match: tokens.refreshToken === storedRT,
+    });
+
     // Attempt 1: InitiateAuth API
     try {
       const newTokens = await this.refreshTokens(tokens.refreshToken);
       this._persistTokens(newTokens);
-      console.log('Token refresh succeeded via InitiateAuth');
+      console.log('[Auth] Token refresh succeeded via InitiateAuth');
       return newTokens.accessToken;
     } catch (err) {
       const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
