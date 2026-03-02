@@ -321,7 +321,7 @@ export default function ApiKeysPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="text-foreground">{apiKey.name}</span>
-                            {apiKey.is_default && (
+                            {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
                               <Badge variant="default" className="bg-green-600 text-white">
                                 Default
                               </Badge>
@@ -365,7 +365,7 @@ export default function ApiKeysPage() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <CardTitle className="text-base font-semibold truncate">{apiKey.name}</CardTitle>
-                        {apiKey.is_default && (
+                        {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
                           <Badge variant="default" className="bg-green-600 text-white shrink-0">
                             Default
                           </Badge>
