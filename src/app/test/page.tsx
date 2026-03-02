@@ -67,7 +67,7 @@ interface SessionCreateResponse {
 export default function TestPage() {
   const router = useRouter();
   const { error: showError } = useNotification();
-  const { apiKeys, accessToken } = useCognitoAuth();
+  const { apiKeys, getValidToken } = useCognitoAuth();
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [apiKeyPrefix, setApiKeyPrefix] = useState("");
   const [apiKeyName, setApiKeyName] = useState("");
@@ -245,7 +245,8 @@ export default function TestPage() {
 
   // Check if automation is enabled
   const checkAutomationSettings = async (): Promise<AutomationSettings | null> => {
-    if (!accessToken) {
+    const token = await getValidToken();
+    if (!token) {
       // If no access token, assume automation is enabled (default behavior)
       return null;
     }
@@ -253,7 +254,7 @@ export default function TestPage() {
     try {
       const response = await apiGet<AutomationSettings>(
         API_URLS.automationSettings(),
-        accessToken
+        token
       );
 
       if (response.error || !response.data) {
@@ -360,8 +361,19 @@ export default function TestPage() {
   const ensureSessionExists = async (): Promise<void> => {
     const automationSettings = await checkAutomationSettings();
     
+    // Get default automation enabled from environment variable for development
+    const envDefaultEnabled = process.env.NEXT_PUBLIC_DEFAULT_AUTOMATION_ENABLED === 'true';
+    const isDevelopment = process.env.NEXT_PUBLIC_API_BASE_URL?.includes('dev') || 
+                          process.env.NEXT_PUBLIC_API_BASE_URL?.includes('localhost');
+    
+    // Determine if automation is effectively enabled
+    // In development with env var set, treat as enabled even if backend says false
+    const isAutomationEnabled = automationSettings === null || 
+      (isDevelopment && envDefaultEnabled) ||
+      automationSettings.is_enabled;
+    
     // If automation is enabled, no need to check/create session
-    if (automationSettings === null || automationSettings.is_enabled) {
+    if (isAutomationEnabled) {
       return;
     }
 
@@ -536,7 +548,7 @@ export default function TestPage() {
                 API Key Required
               </CardTitle>
               <CardDescription>
-                You need to create and verify an API key before you can use Test.
+                A Default API key must be set and verified before using the &quot;Test&quot; features. Go to API Keys tab to set your Default API Key.
               </CardDescription>
             </CardHeader>
             <CardContent>

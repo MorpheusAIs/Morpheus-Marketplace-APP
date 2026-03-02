@@ -26,12 +26,23 @@ export default function SignInPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // Email validation regex
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (!email.trim() || !password.trim()) {
       setError("Please fill in all fields");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -62,6 +73,12 @@ export default function SignInPage() {
       } else if (errorMessage.includes("User does not exist") || errorMessage.includes("UserNotFoundException")) {
         // Fallback check in case error name isn't set but message indicates user not found
         setError("User doesn't exist");
+      } else if (errorName === 'UserNotConfirmedException' || errorMessage.includes("User is not confirmed")) {
+        // Handle unconfirmed user - redirect to confirmation page
+        setError("Your account is not confirmed. Redirecting to confirmation page...");
+        setTimeout(() => {
+          router.push(`/confirm-registration?email=${encodeURIComponent(email)}`);
+        }, 2000);
       } else {
         setError(errorMessage || "Failed to sign in");
       }
@@ -79,7 +96,7 @@ export default function SignInPage() {
             alt="Morpheus Logo"
             className="h-8 w-auto"
           />
-          <span className="text-2xl font-semibold text-foreground">API Gateway</span>
+          <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
         </div>
         <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
           <CardHeader className="text-center space-y-2">
@@ -211,11 +228,22 @@ export default function SignInPage() {
                     <span className="sr-only">Login with Google</span>
                   </Button>
                 </Field> */}
-                <FieldDescription className="text-center">
-                  Don&apos;t have an account?{" "}
-                  <Link href="/signup" className="text-green-500 hover:underline">
-                    Sign up
-                  </Link>
+                <FieldDescription className="text-center space-y-2">
+                  <span className="block">
+                    Don&apos;t have an account?{" "}
+                    <Link href="/signup" className="text-green-500 hover:underline">
+                      Sign up
+                    </Link>
+                  </span>
+                  <span className="block flex flex-wrap gap-x-2 justify-center">
+                    <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-xs">
+                      Privacy Policy
+                    </Link>
+                    <span className="text-muted-foreground">·</span>
+                    <Link href="/terms" className="text-muted-foreground hover:text-foreground text-xs">
+                      Terms of Service
+                    </Link>
+                  </span>
                 </FieldDescription>
               </FieldGroup>
             </form>

@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import {
   User,
   ChevronsUpDown,
   LogOut,
+  FileText,
+  Shield,
 } from "lucide-react";
 import {
   Avatar,
@@ -77,6 +80,22 @@ export function NavUser({
               <span>Account</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild className="w-full justify-start">
+              <Link href="/terms">
+                <FileText className="h-4 w-4" />
+                <span>Terms of Service</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild className="w-full justify-start">
+              <Link href="/privacy">
+                <Shield className="h-4 w-4" />
+                <span>Privacy</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           
           {/* Log out Menu Item */}
           <SidebarMenuItem>
@@ -136,6 +155,18 @@ export function NavUser({
           <DropdownMenuItem onClick={onAccountClick}>
             <User className="mr-2 h-4 w-4" />
             Account
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/terms">
+              <FileText className="mr-2 h-4 w-4" />
+              Terms of Service
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/privacy">
+              <Shield className="mr-2 h-4 w-4" />
+              Privacy
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

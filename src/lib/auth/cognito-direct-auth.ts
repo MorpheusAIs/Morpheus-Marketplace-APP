@@ -7,6 +7,7 @@ import {
   ConfirmSignUpCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
+  RevokeTokenCommand,
   AuthFlowType,
   ChallengeNameType,
 } from '@aws-sdk/client-cognito-identity-provider';
@@ -24,6 +25,22 @@ function getCognitoClient(): CognitoIdentityProviderClient {
     });
   }
   return cognitoClient;
+}
+
+// Mutex to prevent concurrent token refresh attempts from racing each other.
+// When multiple callers (session monitor, API interceptor, user action) all
+// detect an expiring token at the same time, only one refresh request is sent.
+let refreshPromise: Promise<string | null> | null = null;
+
+/**
+ * Return a short fingerprint of a token for safe diagnostic logging.
+ * Shows length + first/last 8 chars so we can compare tokens without
+ * exposing the full value.
+ */
+function tokenFingerprint(token: string | null | undefined): string {
+  if (!token) return '(empty)';
+  if (token.length < 20) return `(${token.length} chars — suspiciously short)`;
+  return `${token.length} chars [${token.slice(0, 8)}…${token.slice(-8)}]`;
 }
 
 export class CognitoDirectAuth {
@@ -47,11 +64,13 @@ export class CognitoDirectAuth {
         throw new Error('Authentication failed - no tokens received');
       }
 
-      return {
+      const tokens = {
         accessToken: response.AuthenticationResult.AccessToken!,
         idToken: response.AuthenticationResult.IdToken!,
         refreshToken: response.AuthenticationResult.RefreshToken!,
       };
+      console.log('[Auth] Sign-in succeeded — refresh token fingerprint:', tokenFingerprint(tokens.refreshToken));
+      return tokens;
     } catch (err) {
       // Log full error details for debugging
       console.error('Cognito signIn error details:', {
@@ -98,7 +117,16 @@ export class CognitoDirectAuth {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token using refresh token.
+   *
+   * Uses REFRESH_TOKEN_AUTH which is the standard auth flow for refreshing
+   * tokens in a public client-side app without a client secret.
+   * Requires ALLOW_REFRESH_TOKEN_AUTH in the Cognito App Client's ExplicitAuthFlows.
+   *
+   * IMPORTANT: When Cognito token rotation is enabled, each refresh response
+   * includes a NEW refresh token and the old one is revoked.  We must persist
+   * the new refresh token — reusing the old one will fail with
+   * "NotAuthorizedException: Invalid Refresh Token."
    */
   static async refreshTokens(refreshToken: string): Promise<CognitoTokens> {
     const command = new InitiateAuthCommand({
@@ -109,16 +137,75 @@ export class CognitoDirectAuth {
       },
     });
 
-    const response = await getCognitoClient().send(command);
+    try {
+      const response = await getCognitoClient().send(command);
 
-    if (!response.AuthenticationResult) {
-      throw new Error('Token refresh failed');
+      if (!response.AuthenticationResult) {
+        throw new Error('Token refresh failed — no AuthenticationResult');
+      }
+
+      return {
+        accessToken: response.AuthenticationResult.AccessToken!,
+        idToken: response.AuthenticationResult.IdToken!,
+        // Use the rotated refresh token if Cognito returns one (token rotation
+        // enabled), otherwise keep the original refresh token.
+        refreshToken: response.AuthenticationResult.RefreshToken || refreshToken,
+      };
+    } catch (err) {
+      console.error('Cognito refreshTokens error:', {
+        name: err && typeof err === 'object' && 'name' in err ? (err as any).name : undefined,
+        message: err instanceof Error ? err.message : String(err),
+        code: err && typeof err === 'object' && '$metadata' in err
+          ? (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+          : undefined,
+      });
+      throw err;
+    }
+  }
+
+  /**
+   * Refresh tokens via the OAuth2 /oauth2/token endpoint.
+   * Used as a fallback when InitiateAuth fails (e.g., for social login users
+   * whose refresh tokens may only be valid through the hosted UI endpoint).
+   */
+  static async refreshTokensViaOAuth(refreshToken: string): Promise<CognitoTokens> {
+    if (!cognitoConfig.domain) {
+      throw new Error('Cognito domain not configured — cannot use OAuth token endpoint');
+    }
+
+    const tokenEndpoint = `https://${cognitoConfig.domain}/oauth2/token`;
+
+    const params = new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: cognitoConfig.userPoolClientId,
+      refresh_token: refreshToken,
+    });
+
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OAuth token refresh failed:', errorText);
+      throw new Error(`OAuth token refresh failed: ${response.status}`);
+    }
+
+    const responseText = await response.text();
+    const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+    if (!data) {
+      throw new Error('Failed to parse OAuth token refresh response');
     }
 
     return {
-      accessToken: response.AuthenticationResult.AccessToken!,
-      idToken: response.AuthenticationResult.IdToken!,
-      refreshToken: refreshToken, // Keep the same refresh token
+      accessToken: data.access_token,
+      idToken: data.id_token,
+      // OAuth endpoint returns a new refresh token when rotation is enabled
+      refreshToken: data.refresh_token || refreshToken,
     };
   }
 
@@ -127,7 +214,8 @@ export class CognitoDirectAuth {
    */
   static storeTokens(tokens: CognitoTokens, email?: string): void {
     if (typeof window === 'undefined') return;
-    
+    console.log('[Auth] Storing tokens — refresh token fingerprint:', tokenFingerprint(tokens.refreshToken));
+
     localStorage.setItem('cognito_access_token', tokens.accessToken);
     localStorage.setItem('cognito_id_token', tokens.idToken);
     localStorage.setItem('cognito_refresh_token', tokens.refreshToken);
@@ -201,32 +289,134 @@ export class CognitoDirectAuth {
   }
 
   /**
-   * Get valid access token, refreshing if necessary
+   * Check if access token will expire within the given buffer period.
+   * Used for proactive refresh — by refreshing before the access token
+   * expires we avoid a window where API calls fail with 401 before the
+   * background monitor triggers a refresh.  The refresh token has a much
+   * longer TTL (30 days) so it should always be valid when this fires.
+   */
+  static isTokenExpiringSoon(token: string, bufferMs: number = 10 * 60 * 1000): boolean {
+    try {
+      const payload = token.split('.')[1];
+      const decodedPayload = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      const decoded = safeJsonParseOrNull(decodedPayload, { maxDepth: 10, maxSize: 8192 });
+      if (!decoded) {
+        return true; // Assume expiring if we can't parse
+      }
+      const exp = decoded.exp * 1000; // Convert to milliseconds
+      return Date.now() >= (exp - bufferMs);
+    } catch {
+      return true; // Assume expiring if we can't parse
+    }
+  }
+
+  /**
+   * Get valid access token, refreshing proactively if it will expire soon.
+   *
+   * Key behaviour:
+   * - If the token is fresh (>10 min remaining) → return it immediately.
+   * - If the token will expire within 10 min → proactively refresh using the
+   *   long-lived refresh token (30 days) so sessions survive seamlessly.
+   * - Concurrent callers share a single in-flight refresh (mutex) to avoid
+   *   race conditions where parallel refreshes invalidate each other.
+   * - If proactive refresh fails but the access token hasn't expired yet,
+   *   the current token is returned instead of logging the user out.
    */
   static async getValidAccessToken(): Promise<string | null> {
     const tokens = this.getStoredTokens();
     if (!tokens) return null;
 
-    if (!this.isTokenExpired(tokens.accessToken)) {
+    // Token is fresh — no refresh needed
+    if (!this.isTokenExpiringSoon(tokens.accessToken)) {
       return tokens.accessToken;
     }
 
-    // Token is expired, try to refresh
+    // Token is expiring soon (or already expired) — need to refresh.
+    // Deduplicate concurrent refresh requests via a shared promise.
+    if (refreshPromise) {
+      return refreshPromise;
+    }
+
+    refreshPromise = this._performTokenRefresh(tokens).finally(() => {
+      refreshPromise = null;
+    });
+
+    return refreshPromise;
+  }
+
+  /**
+   * Internal: persist refreshed tokens to localStorage.
+   */
+  private static _persistTokens(newTokens: CognitoTokens): void {
+    if (typeof window !== 'undefined') {
+      console.log('[Auth] Persisting refreshed tokens — new refresh token fingerprint:', tokenFingerprint(newTokens.refreshToken));
+      localStorage.setItem('cognito_access_token', newTokens.accessToken);
+      localStorage.setItem('cognito_id_token', newTokens.idToken);
+      localStorage.setItem('cognito_refresh_token', newTokens.refreshToken);
+    }
+  }
+
+  /**
+   * Internal: performs the actual token refresh with graceful fallback.
+   *
+   * Strategy:
+   * 1. Try InitiateAuth (REFRESH_TOKEN_AUTH) — works for email/password users.
+   * 2. If that fails with "Invalid Refresh Token", try the OAuth2 /oauth2/token
+   *    endpoint — covers social-login users and tokens that were rotated/revoked.
+   * 3. If both fail but the access token is still valid, return it as-is.
+   * 4. If the access token is also expired, clear the session.
+   */
+  private static async _performTokenRefresh(tokens: CognitoTokens): Promise<string | null> {
+    // Log the refresh token fingerprint so we can compare it to the one
+    // stored at sign-in — if they differ, something is corrupting/replacing it.
+    const storedRT = typeof window !== 'undefined' ? localStorage.getItem('cognito_refresh_token') : null;
+    console.log('[Auth] Attempting token refresh:', {
+      refreshTokenFromMemory: tokenFingerprint(tokens.refreshToken),
+      refreshTokenFromStorage: tokenFingerprint(storedRT),
+      match: tokens.refreshToken === storedRT,
+    });
+
+    // Attempt 1: InitiateAuth API
     try {
       const newTokens = await this.refreshTokens(tokens.refreshToken);
-      const email = this.getStoredEmail();
-      if (email) {
-        this.storeTokens(newTokens, email);
-      }
+      this._persistTokens(newTokens);
+      console.log('[Auth] Token refresh succeeded via InitiateAuth');
       return newTokens.accessToken;
     } catch (err) {
-      // Refresh failed (e.g., refresh token invalidated after password reset)
-      // Silently clear tokens and return null - this is expected behavior
-      // Don't log NotAuthorizedException as it's expected after password reset
       const errorName = err && typeof err === 'object' && 'name' in err ? (err as any).name : '';
-      if (errorName !== 'NotAuthorizedException') {
-        console.error('Error refreshing token:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+
+      console.warn('InitiateAuth refresh failed:', {
+        error: errorName || 'Unknown',
+        message: errorMessage,
+        accessTokenExpired: this.isTokenExpired(tokens.accessToken),
+      });
+
+      // Attempt 2: OAuth2 /oauth2/token endpoint (fallback for social login
+      // users or when the refresh token was rotated/revoked).
+      if (errorName === 'NotAuthorizedException' && cognitoConfig.domain) {
+        try {
+          console.log('Trying OAuth2 token endpoint fallback…');
+          const oauthTokens = await this.refreshTokensViaOAuth(tokens.refreshToken);
+          this._persistTokens(oauthTokens);
+          console.log('Token refresh succeeded via OAuth2 token endpoint');
+          return oauthTokens.accessToken;
+        } catch (oauthErr) {
+          console.warn('OAuth2 token endpoint fallback also failed:', {
+            message: oauthErr instanceof Error ? oauthErr.message : String(oauthErr),
+          });
+        }
       }
+
+      // If the access token hasn't actually expired yet (we were refreshing
+      // proactively), return it so the user's session continues until it does.
+      if (!this.isTokenExpired(tokens.accessToken)) {
+        console.log('Proactive refresh failed but access token still valid — continuing session');
+        return tokens.accessToken;
+      }
+
+      // Token is truly expired and refresh failed — session is dead
+      console.warn('Access token expired and refresh failed — clearing session');
       this.clearTokens();
       return null;
     }
@@ -345,6 +535,19 @@ export class CognitoDirectAuth {
     authUrl.searchParams.set('identity_provider', cognitoProviderName);
 
     window.location.href = authUrl.toString();
+  }
+
+  /**
+   * Revoke a refresh token server-side so it cannot be used again.
+   * Called on explicit logout to invalidate the token immediately across
+   * all sessions/devices. Fire-and-forget — callers should .catch() errors.
+   */
+  static async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const command = new RevokeTokenCommand({
+      Token: refreshToken,
+      ClientId: cognitoConfig.userPoolClientId,
+    });
+    await getCognitoClient().send(command);
   }
 
   /**

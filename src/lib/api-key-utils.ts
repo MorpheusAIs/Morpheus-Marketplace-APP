@@ -30,8 +30,10 @@ export async function getUserIdFromApiKey(
 }
 
 /**
- * Validates an API key format - basic check only
+ * Validates an API key format
+ * - Must be exactly 74 characters
+ * - Must contain only alphanumeric characters, underscores, or hyphens
  */
 export function isValidApiKeyFormat(apiKey: string): boolean {
-  return /^[a-zA-Z0-9_\-]{20,}$/.test(apiKey);
+  return apiKey.length === 74 && /^[a-zA-Z0-9_\-]+$/.test(apiKey);
 } 

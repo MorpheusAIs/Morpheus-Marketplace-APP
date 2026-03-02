@@ -3,25 +3,50 @@ frontend:
   phases:
     preBuild:
       commands:
+        # Skip Amplify's default global packages (aws-amplify/cli, bower, cypress, hugo, vuepress, yarn)
+        # which take ~50s to install and are not used by this project
+        - echo "" > $NVM_DIR/default-packages || true
+
+        # Setup Node.js 22 (required by package.json engines)
         - nvm install 22
         - nvm use 22
         - echo "Node version:" && node -v
+
+        # Setup pnpm (specified in package.json packageManager)
+        - corepack enable
+        - corepack prepare pnpm@9.15.0 --activate
+        - echo "pnpm version:" && pnpm -v
+
+        # Pin pnpm store inside project dir so Amplify cache can capture it
+        # (avoids the >5GB cache failure caused by double-caching node_modules + store)
+        - pnpm config set store-dir .pnpm-store
+
         - echo "Starting preBuild phase..."
-        - npm ci --legacy-peer-deps
-        - echo "Checking current Tailwind installation:"
-        - npm list tailwindcss || true
-        - echo "Checking if tailwind.config.js exists:"
-        - ls -la tailwind.config.js
-        - echo "Checking if postcss.config.js exists:"
-        - ls -la postcss.config.js
+
+        # Install all dependencies including devDeps (TypeScript etc.) regardless of NODE_ENV=production
+        # Without this, Next.js auto-installs TypeScript mid-build adding ~6s
+        - NODE_ENV=development pnpm install --frozen-lockfile
         - echo "Dependencies installed successfully"
     build:
       commands:
         - echo "Starting build phase..."
-        - echo "Generating build version..."
+
+        # Write environment variables to .env for Lambda runtime access
+        # This is required for WEB_COMPUTE platform to pass env vars to API routes
+        # Using printf instead of echo to avoid secrets appearing in build logs
+        - printf "COINBASE_COMMERCE_API_KEY=%s\n" "$COINBASE_COMMERCE_API_KEY" >> .env.production
+        - printf "COINBASE_COMMERCE_API_SECRET=%s\n" "$COINBASE_COMMERCE_API_SECRET" >> .env.production
+        - printf "COINBASE_COMMERCE_WEBHOOK_SECRET=%s\n" "$COINBASE_COMMERCE_WEBHOOK_SECRET" >> .env.production
+        - printf "STRIPE_WEBHOOK_SECRET=%s\n" "$STRIPE_WEBHOOK_SECRET" >> .env.production
+        - printf "STRIPE_SECRET_KEY=%s\n" "$STRIPE_SECRET_KEY" >> .env.production
+        - printf "ADMIN_API_SECRET=%s\n" "$ADMIN_API_SECRET" >> .env.production
+        - printf "IS_MAINTENANCE_MODE=%s\n" "$IS_MAINTENANCE_MODE" >> .env.production
+        - echo "Environment variables written to .env.production for Lambda runtime"
+
+        # Generate build version for cache busting and debugging
         - echo "export const BUILD_VERSION = '$(date +"%Y%m%d-%H%M")';" > src/lib/build-version.ts
         - cat src/lib/build-version.ts
-        - npm run build
+        - pnpm run build
         - echo "Build completed successfully"
   artifacts:
     baseDirectory: .next
@@ -29,5 +54,7 @@ frontend:
       - '**/*'
   cache:
     paths:
-      - node_modules/**/*
-      - .next/cache/**/* 
+      # Only cache the pnpm store (not node_modules) to stay well under 5GB limit
+      # pnpm restores node_modules from the store in seconds using hard links
+      - .pnpm-store/**/*
+      - .next/cache/**/*

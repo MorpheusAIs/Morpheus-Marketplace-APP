@@ -1,6 +1,15 @@
 'use client';
 
 import { safeJsonParse, safeJsonParseOrNull, validateJsonDepth } from '../utils/safe-json';
+import { authEvents } from '../auth/auth-events';
+
+/** URL patterns that should NOT trigger session invalidation on 401 (auth endpoints). */
+const AUTH_ENDPOINT_PATTERNS = ['/auth/', '/signin', '/signup', '/login', '/token', '/oauth2/'];
+
+function isAuthEndpoint(url: string): boolean {
+  const path = url.toLowerCase();
+  return AUTH_ENDPOINT_PATTERNS.some((pattern) => path.includes(pattern));
+}
 
 export interface ApiResponse<T> {
   data: T | null;
@@ -191,13 +200,31 @@ export async function apiRequest<T = any>(
       console.log('Response Headers:', responseHeaders);
       console.log('Response Body:', responseData || responseText?.substring(0, 200) || '(empty response)');
 
+      // Extract error message - handle various backend error formats
+      let errorMessage: string | null = null;
+      if (!response.ok) {
+        const detail = responseData?.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // FastAPI validation errors: [{ "msg": "...", "loc": [...] }]
+          errorMessage = detail.map((d: any) => d?.msg || d?.message || JSON.stringify(d)).join('; ');
+        } else if (detail && typeof detail === 'object') {
+          errorMessage = JSON.stringify(detail);
+        } else if (responseData?.error?.message) {
+          errorMessage = String(responseData.error.message);
+        } else if (responseData?.message) {
+          errorMessage = String(responseData.message);
+        } else {
+          errorMessage = `Error ${response.status}`;
+        }
+      } else if (parseError) {
+        errorMessage = `Invalid response format: ${parseError}`;
+      }
+
       const result: ApiResponse<T> = {
         data: response.ok ? responseData : null,
-        error: !response.ok
-          ? responseData?.detail || responseData?.error?.message || `Error ${response.status}`
-          : parseError
-            ? `Invalid response format: ${parseError}`
-            : null,
+        error: errorMessage,
         status: response.status,
         request: {
           url,
@@ -210,6 +237,84 @@ export async function apiRequest<T = any>(
           body: responseData || responseText || null,
         },
       };
+
+      // Detect expired/invalid session and notify auth layer
+      if (response.status === 401 && !isAuthEndpoint(url)) {
+        console.warn('⚠️ Received 401 Unauthorized — attempting token refresh before logout');
+
+        // Try to silently refresh the access token (Cognito refresh token is valid for ~30 days).
+        // Only emit unauthorized if the refresh itself fails.
+        let newToken: string | null = null;
+        try {
+          const { CognitoDirectAuth } = await import('../auth/cognito-direct-auth');
+          newToken = await CognitoDirectAuth.getValidAccessToken();
+        } catch {
+          // Fall through to logout below
+        }
+
+        if (newToken) {
+          // Retry the original request once with the refreshed token
+          const freshHeaders: Record<string, string> = {
+            ...(headers as Record<string, string>),
+            Authorization: `Bearer ${newToken}`,
+          };
+          try {
+            const retryController = new AbortController();
+            const retryResp = await fetch(url, {
+              ...options,
+              headers: freshHeaders,
+              signal: retryController.signal,
+            });
+
+            if (retryResp.status !== 401) {
+              const retryText = await retryResp.text();
+              let retryData: any = null;
+              if (retryText) {
+                try {
+                  retryData = safeJsonParse(retryText, { maxDepth: 100, maxSize: 10 * 1024 * 1024 });
+                } catch {}
+              }
+              const retryRespHeaders: Record<string, string> = {};
+              retryResp.headers.forEach((v, k) => { retryRespHeaders[k] = v; });
+              let retryError: string | null = null;
+              if (!retryResp.ok) {
+                const d = retryData?.detail;
+                if (typeof d === 'string') {
+                  retryError = d;
+                } else if (Array.isArray(d)) {
+                  retryError = d.map((x: any) => x?.msg || x?.message || JSON.stringify(x)).join('; ');
+                } else if (retryData?.message) {
+                  retryError = String(retryData.message);
+                } else {
+                  retryError = `Error ${retryResp.status}`;
+                }
+              }
+              console.log('✅ Token refreshed — request retried successfully');
+              console.groupEnd();
+              return {
+                data: retryResp.ok ? retryData : null,
+                error: retryError,
+                status: retryResp.status,
+                request: {
+                  url,
+                  method,
+                  headers: freshHeaders,
+                  body: body ? (typeof body === 'string' ? safeJsonParseOrNull(body) ?? body : body) : undefined,
+                },
+                response: { headers: retryRespHeaders, body: retryData || retryText || null },
+              };
+            }
+          } catch {
+            // Retry fetch itself failed — fall through to logout
+          }
+        }
+
+        // Refresh failed or retry still returned 401 — the session is truly invalid
+        console.warn('⚠️ Token refresh failed or retry still 401 — logging out');
+        authEvents.emitUnauthorized();
+        console.groupEnd();
+        return result;
+      }
 
       // Check if we should retry on server errors
       if (!response.ok && isRetryableError(null, response.status) && attempt < maxRetries) {

@@ -26,6 +26,7 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [ageConsent, setAgeConsent] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -33,6 +34,12 @@ export default function SignUpPage() {
       router.push('/api-keys');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // Email validation regex
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   // Password validation function to match Cognito password policy
   const validatePassword = (password: string): string | null => {
@@ -57,6 +64,16 @@ export default function SignUpPage() {
 
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
       setError("Please fill in all fields");
+      return;
+    }
+
+    if (!ageConsent) {
+      setError("You must certify that you are at least 18 years old to create an account");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -98,7 +115,7 @@ export default function SignUpPage() {
             alt="Morpheus Logo"
             className="h-8 w-auto"
           />
-          <span className="text-2xl font-semibold text-foreground">API Gateway</span>
+          <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
         </div>
         <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
           <CardHeader className="text-center space-y-2">
@@ -198,6 +215,22 @@ export default function SignUpPage() {
                     </Button>
                   </div>
                 </Field>
+                <Field>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={ageConsent}
+                      onChange={(e) => {
+                        setAgeConsent(e.target.checked);
+                        if (e.target.checked) setError("");
+                      }}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-green-500 cursor-pointer"
+                    />
+                    <span className="text-xs text-muted-foreground leading-relaxed">
+                      <em>I certify that I am at least 18 years old and the minimum age required in my country to consent to use the Services.</em>
+                    </span>
+                  </label>
+                </Field>
                 {error && (
                   <p className="text-sm text-red-500">{error}</p>
                 )}
@@ -260,11 +293,22 @@ export default function SignUpPage() {
                     <span className="sr-only">Sign up with Google</span>
                   </Button>
                 </Field> */}
-                <FieldDescription className="text-center">
-                  Already have an account?{" "}
-                  <Link href="/signin" className="text-green-500 hover:underline">
-                    Sign in
-                  </Link>
+                <FieldDescription className="text-center space-y-2">
+                  <span className="block">
+                    Already have an account?{" "}
+                    <Link href="/signin" className="text-green-500 hover:underline">
+                      Sign in
+                    </Link>
+                  </span>
+                  <span className="block flex flex-wrap gap-x-2 justify-center">
+                    <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-xs">
+                      Privacy Policy
+                    </Link>
+                    <span className="text-muted-foreground">·</span>
+                    <Link href="/terms" className="text-muted-foreground hover:text-foreground text-xs">
+                      Terms of Service
+                    </Link>
+                  </span>
                 </FieldDescription>
               </FieldGroup>
             </form>

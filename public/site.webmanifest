@@ -1,10 +1,10 @@
 {
-  "name": "Morpheus API Gateway",
+  "name": "Morpheus Inference API",
   "short_name": "Morpheus API",
-  "description": "Documentation and management interface for the Morpheus API Gateway",
+  "description": "Documentation and management interface for the Morpheus Inference API",
   "icons": [
     {
-      "src": "/morpheus_wings_32x32.png",
+      "src": "/logo-black.png",
       "sizes": "32x32",
       "type": "image/png"
     }

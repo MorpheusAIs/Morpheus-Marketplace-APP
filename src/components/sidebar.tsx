@@ -20,6 +20,9 @@ import {
   FlaskConical,
   FileText,
   ExternalLink,
+  DollarSign,
+  Tag,
+  BarChart3,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXTwitter } from "@fortawesome/free-brands-svg-icons";
@@ -31,8 +34,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout, user, apiKeys } = useCognitoAuth();
+  const { logout, user, apiKeys, defaultApiKey } = useCognitoAuth();
   const hasApiKeys = apiKeys.length > 0;
+  const hasDefaultApiKey = defaultApiKey !== null;
 
   const handleLogout = () => {
     logout();
@@ -54,7 +58,7 @@ export function Sidebar() {
             height={32}
             className="h-8 w-8"
           />
-          <span className="text-lg font-semibold text-sidebar-foreground">API Gateway Admin</span>
+          <span className="text-lg font-semibold text-sidebar-foreground">Inference API Admin</span>
         </div>
       </SidebarHeader>
 
@@ -76,13 +80,77 @@ export function Sidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              {/* Billing */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/billing"}
+                  className={pathname === "/billing" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                >
+                  <Link href="/billing">
+                    <DollarSign className={`h-4 w-4 ${pathname === "/billing" ? "text-green-500" : ""}`} />
+                    <span className={pathname === "/billing" ? "text-green-500" : ""}>Billing</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Models - external link to API docs */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="hover:!bg-white/10"
+                >
+                  <Link
+                    href="https://apidocs.mor.org/documentation/models"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FlaskConical className="h-4 w-4" />
+                    <span>Models</span>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Pricing - external link to API docs */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="hover:!bg-white/10"
+                >
+                  <Link
+                    href="https://apidocs.mor.org/documentation/models/pricing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Tag className="h-4 w-4" />
+                    <span>Pricing</span>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Usage Analytics */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/usage-analytics"}
+                  className={pathname === "/usage-analytics" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                >
+                  <Link href="/usage-analytics">
+                    <BarChart3 className={`h-4 w-4 ${pathname === "/usage-analytics" ? "text-green-500" : ""}`} />
+                    <span className={pathname === "/usage-analytics" ? "text-green-500" : ""}>Usage Analytics</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
               {/* Test */}
               <TooltipProvider>
                 <SidebarMenuItem>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="w-full">
-                        {hasApiKeys ? (
+                        {hasDefaultApiKey ? (
                           <SidebarMenuButton
                             asChild
                             isActive={pathname === "/test"}
@@ -105,9 +173,9 @@ export function Sidebar() {
                         )}
                       </div>
                     </TooltipTrigger>
-                    {!hasApiKeys && (
+                    {!hasDefaultApiKey && (
                       <TooltipContent>
-                        <p>Create an API key first to use Test</p>
+whw                        <p>A Default API key must be set and verified before using the &quot;Test&quot; features. Go to API Keys tab to set your Default API Key.</p>
                       </TooltipContent>
                     )}
                   </Tooltip>

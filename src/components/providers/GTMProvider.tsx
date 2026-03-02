@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
-import { useGTMPageView } from '@/lib/hooks/useGTMPageView';
+import { createContext, useContext } from 'react';
+import type { ReactNode } from 'react';
+// import { useGTMPageView } from '@/lib/hooks/useGTMPageView';
 import { 
   trackEvent, 
   trackAuth, 
@@ -11,8 +12,8 @@ import {
   trackDocumentation, 
   trackButtonClick, 
   trackFormSubmission,
-  GTMEvent 
 } from '@/lib/utils/gtm';
+import type { GTMEvent } from '@/lib/utils/gtm';
 
 interface GTMContextType {
   trackEvent: (event: GTMEvent) => void;
@@ -33,7 +34,7 @@ interface GTMProviderProps {
 
 export const GTMProvider = ({ children }: GTMProviderProps) => {
   // Automatically track page views
-  useGTMPageView();
+  // useGTMPageView();
 
   const contextValue: GTMContextType = {
     trackEvent,

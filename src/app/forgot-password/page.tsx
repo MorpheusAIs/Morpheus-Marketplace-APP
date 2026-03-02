@@ -61,6 +61,12 @@ function ForgotPasswordContent() {
     return null;
   };
 
+  // Email validation regex
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -68,6 +74,11 @@ function ForgotPasswordContent() {
 
     if (!email.trim()) {
       setError("Please enter your email address");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -146,7 +157,7 @@ function ForgotPasswordContent() {
             alt="Morpheus Logo"
             className="h-8 w-auto"
           />
-          <span className="text-2xl font-semibold text-foreground">API Gateway</span>
+          <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
         </div>
         <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
           <CardHeader className="text-center space-y-2">

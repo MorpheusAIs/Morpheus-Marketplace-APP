@@ -14,18 +14,38 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, ArrowRight } from "lucide-react";
+import { Mail, ArrowRight, RefreshCw } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { 
+  CognitoIdentityProviderClient,
+  ResendConfirmationCodeCommand 
+} from "@aws-sdk/client-cognito-identity-provider";
+import { cognitoConfig } from "@/lib/auth/cognito-config";
+import { useNotification } from "@/lib/NotificationContext";
+
+// Lazy initialization of Cognito client
+let cognitoClient: CognitoIdentityProviderClient | null = null;
+
+function getCognitoClient(): CognitoIdentityProviderClient {
+  if (!cognitoClient) {
+    cognitoClient = new CognitoIdentityProviderClient({
+      region: cognitoConfig.region,
+    });
+  }
+  return cognitoClient;
+}
 
 function ConfirmRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { confirmSignUp, isAuthenticated, isLoading: authLoading } = useCognitoAuth();
+  const { success, error: showError } = useNotification();
   
   const [email, setEmail] = useState("");
   const [confirmationCode, setConfirmationCode] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
 
   // Get email from query params or sessionStorage
@@ -92,6 +112,33 @@ function ConfirmRegistrationContent() {
     }
   };
 
+  const handleResendCode = async () => {
+    if (!email.trim()) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    setIsResending(true);
+    setError("");
+
+    try {
+      const command = new ResendConfirmationCodeCommand({
+        ClientId: cognitoConfig.userPoolClientId,
+        Username: email,
+      });
+
+      await getCognitoClient().send(command);
+      success("Code Resent", "A new confirmation code has been sent to your email.");
+      setConfirmationCode(""); // Clear the current code
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to resend code";
+      setError(errorMsg);
+      showError("Resend Failed", errorMsg);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center p-6">
@@ -145,14 +192,26 @@ function ConfirmRegistrationContent() {
               {error && (
                 <p className="text-sm text-red-500">{error}</p>
               )}
-              <Button
-                type="submit"
-                className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center space-x-2"
-                disabled={isSubmitting}
-              >
-                <span>Confirm Account</span>
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  type="submit"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center space-x-2"
+                  disabled={isSubmitting || isResending}
+                >
+                  <span>Confirm Account</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full flex items-center justify-center space-x-2"
+                  onClick={handleResendCode}
+                  disabled={isSubmitting || isResending}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isResending ? 'animate-spin' : ''}`} />
+                  <span>{isResending ? "Resending..." : "Resend Code"}</span>
+                </Button>
+              </div>
             </form>
           </CardContent>
           <CardFooter className="text-center justify-center text-sm text-muted-foreground">

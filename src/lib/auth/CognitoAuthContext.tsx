@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { CognitoDirectAuth } from './cognito-direct-auth';
+import { authEvents } from './auth-events';
 import { API_URLS } from '@/lib/api/config';
 import { apiGet } from '@/lib/api/apiService';
 import { useNotification } from '@/lib/NotificationContext';
@@ -32,6 +34,8 @@ interface CognitoAuthContextType {
   confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
   logout: () => void;
   refreshApiKeys: () => Promise<void>;
+  refreshUserAttributes: () => Promise<void>;
+  getValidToken: () => Promise<string | null>;
   socialLogin: (provider: 'Google' | 'GitHub' | 'X') => void;
 }
 
@@ -45,12 +49,84 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   const [defaultApiKey, setDefaultApiKey] = useState<ApiKey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  const router = useRouter();
+
   // Access the global notification system
   const { success, error, warning, info } = useNotification();
 
   // Check for stored tokens and initialize auth state
   useEffect(() => {
     initializeAuth();
+  }, []);
+
+  // Listen for 401 Unauthorized events from the API layer.
+  // When a session expires mid-use, this clears auth state and redirects to sign-in
+  // so users don't remain in a "ghost" session with broken data.
+  useEffect(() => {
+    const unsubscribe = authEvents.onUnauthorized(() => {
+      console.warn('Session expired — logging out and redirecting to sign-in');
+      logout();
+      warning(
+        'Session Expired',
+        'Your session has expired. Please sign in again.',
+        { duration: 6000 }
+      );
+      router.push('/signin');
+    });
+    return unsubscribe;
+  }, [router]);
+
+  // Proactive session health monitor.
+  // Detects expired sessions while the user is idle (e.g., leaving the API keys
+  // page open for >1 hour) so the UI redirects to sign-in immediately instead of
+  // waiting until the user tries an action and gets an error (MOR-334 follow-up).
+  const isAuthenticatedRef = useRef(false);
+  useEffect(() => {
+    isAuthenticatedRef.current = !!user || !!accessToken;
+  }, [user, accessToken]);
+
+  useEffect(() => {
+    // Only run the monitor on the client
+    if (typeof document === 'undefined') return;
+
+    const checkSession = async () => {
+      // Skip if user is not authenticated (nothing to monitor)
+      if (!isAuthenticatedRef.current) return;
+
+      const token = await CognitoDirectAuth.getValidAccessToken();
+      if (!token && isAuthenticatedRef.current) {
+        console.warn('Session monitor: token refresh failed — emitting unauthorized event');
+        authEvents.emitUnauthorized();
+      } else if (token) {
+        // Keep React state in sync with the (possibly refreshed) token so that
+        // components reading `accessToken` from context always get the latest
+        // value instead of the stale original token from sign-in.
+        setAccessToken(prev => prev !== token ? token : prev);
+        const tokens = CognitoDirectAuth.getStoredTokens();
+        if (tokens) {
+          setIdToken(prev => prev !== tokens.idToken ? tokens.idToken : prev);
+        }
+      }
+    };
+
+    // Check when the tab becomes visible again (covers the "left browser open
+    // for 61 min, then switched back" scenario)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkSession();
+      }
+    };
+
+    // Periodic check every 60 seconds as a fallback for users who stay on the
+    // same tab without switching away
+    const intervalId = setInterval(checkSession, 60_000);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const initializeAuth = async () => {
@@ -92,9 +168,19 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     try {
       const response = await apiGet<ApiKey[]>(API_URLS.keys(), token);
       if (response.data) {
-        // Filter to only show active API keys
-        const activeKeys = response.data.filter(key => key.is_active);
-        setApiKeys(activeKeys);
+        // Store ALL API keys (including deleted ones) so usage analytics can match them
+        // The UI components will filter to show only active keys
+        setApiKeys(response.data);
+        
+        // Update defaultApiKey state to match the default key
+        const defaultKey = response.data.find(key => key.is_default);
+        if (defaultKey) {
+          // Set the default key metadata (without full key)
+          setDefaultApiKey(defaultKey);
+        } else {
+          // No default key exists, clear the state
+          setDefaultApiKey(null);
+        }
         
         // Auto-select first API key if no key is already selected
         await autoSelectFirstApiKey(token);
@@ -144,9 +230,9 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           // Show user-friendly notification using the global notification system
           warning(
             'API Key Verification Required',
-            'Your API key needs to be verified before you can use Chat or Test. Please go to the Api Keys page and click "Select" on your preferred API key.',
+            'A Default API key must be set and verified before using the "Test" features. Go to API Keys tab to set your Default API Key.',
             {
-              actionLabel: 'Go to Api Keys',
+              actionLabel: 'Go to API Keys',
               actionUrl: '/api-keys',
               duration: 10000,
             }
@@ -200,9 +286,9 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Show informational notification using the global notification system
         info(
           'API Key Available',
-          'An API key is available but needs verification. Visit the Api Keys page to verify it and enable Chat/Test features.',
+          'A Default API key must be set and verified before using the "Test" features. Go to API Keys tab to set your Default API Key.',
           {
-            actionLabel: 'Go to Api Keys',
+            actionLabel: 'Go to API Keys',
             actionUrl: '/api-keys',
             duration: 8000,
           }
@@ -234,7 +320,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         'API Key Setup Error',
         'There was an issue setting up your API key. Please visit the Api Keys page to manually select one.',
         {
-          actionLabel: 'Go to Api Keys',
+          actionLabel: 'Go to API Keys',
           actionUrl: '/api-keys',
           duration: 10000,
         }
@@ -347,18 +433,28 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   };
 
   const logout = () => {
+    // Fire-and-forget server-side token revocation so the refresh token is
+    // invalidated immediately across all sessions/devices.  Read before
+    // clearTokens() so the token is still in localStorage.
+    const storedTokens = CognitoDirectAuth.getStoredTokens();
+    if (storedTokens?.refreshToken) {
+      CognitoDirectAuth.revokeRefreshToken(storedTokens.refreshToken).catch(err => {
+        console.warn('Failed to revoke refresh token on logout (non-fatal):', err);
+      });
+    }
+
     setUser(null);
     setAccessToken(null);
     setIdToken(null);
     setApiKeys([]);
     setDefaultApiKey(null);
-    
+
     // Clear API key storage
     sessionStorage.removeItem('verified_api_key');
     sessionStorage.removeItem('verified_api_key_prefix');
     sessionStorage.removeItem('verified_api_key_timestamp');
     localStorage.removeItem('selected_api_key_prefix');
-    
+
     // Clear Cognito tokens
     CognitoDirectAuth.clearTokens();
   };
@@ -368,6 +464,68 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     if (validToken) {
       await fetchApiKeys(validToken);
     }
+  };
+
+  const refreshUserAttributes = async () => {
+    try {
+      const validToken = await CognitoDirectAuth.getValidAccessToken();
+      if (!validToken) {
+        throw new Error('No valid access token available');
+      }
+
+      // Import GetUserCommand dynamically to avoid build-time issues
+      const { GetUserCommand } = await import('@aws-sdk/client-cognito-identity-provider');
+      const { CognitoIdentityProviderClient } = await import('@aws-sdk/client-cognito-identity-provider');
+      const { cognitoConfig } = await import('@/lib/auth/cognito-config');
+      
+      // Create Cognito client
+      const cognitoClient = new CognitoIdentityProviderClient({
+        region: cognitoConfig.region,
+      });
+
+      // Fetch fresh user attributes from Cognito
+      const getUserCommand = new GetUserCommand({
+        AccessToken: validToken,
+      });
+      
+      const userResponse = await cognitoClient.send(getUserCommand);
+      
+      // Extract user attributes
+      const attributes = userResponse.UserAttributes || [];
+      const emailAttribute = attributes.find(attr => attr.Name === 'email');
+      const emailVerifiedAttribute = attributes.find(attr => attr.Name === 'email_verified');
+      
+      // Update user object with fresh attributes
+      if (user) {
+        const updatedUser: CognitoUser = {
+          ...user,
+          email: emailAttribute?.Value || user.email,
+          email_verified: emailVerifiedAttribute?.Value === 'true',
+        };
+        setUser(updatedUser);
+        console.log('✅ User attributes refreshed successfully');
+      }
+    } catch (error) {
+      console.error('Error refreshing user attributes:', error);
+      throw error;
+    }
+  };
+
+  const getValidToken = async () => {
+    const token = await CognitoDirectAuth.getValidAccessToken();
+    if (token && token !== accessToken) {
+      setAccessToken(token);
+    }
+    // If token refresh failed while the user appeared authenticated, the
+    // Cognito refresh token has also expired (hours-long idle session).
+    // Emit the unauthorized event so the auth listener triggers logout +
+    // redirect to sign-in — preventing a ghost session where the UI stays
+    // accessible but all API calls fail silently.
+    if (!token && (user !== null || accessToken !== null)) {
+      console.warn('getValidToken: refresh token expired — emitting unauthorized event');
+      authEvents.emitUnauthorized();
+    }
+    return token;
   };
 
   const socialLogin = (provider: 'Google' | 'GitHub' | 'X') => {
@@ -428,6 +586,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     confirmForgotPassword,
     logout,
     refreshApiKeys,
+    refreshUserAttributes,
+    getValidToken,
     socialLogin,
   };
 

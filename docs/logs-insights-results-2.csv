@@ -1,0 +1,57 @@
+@timestamp,level,endpoint,event,@message
+2026-02-12 09:03:22.863,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663373880>> being returned to pool
+2026-02-12 09:03:22.863,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663373880>> rollback-on-return
+2026-02-12 09:03:22.863,debug,,Using cached model data,"{""cache_expires_in_seconds"": 118.786917, ""event_type"": ""cache_hit"", ""event"": ""Using cached model data"", ""level"": ""debug"", ""timestamp"": ""2026-02-12T09:03:22.863741Z"", ""logger"": ""models"", ""caller"": ""direct_model_service.py:122""}"
+2026-02-12 09:03:22.861,,,,"Col ('?column?',)"
+2026-02-12 09:03:22.861,,,,"Row (1,)"
+2026-02-12 09:03:22.861,,,,ROLLBACK
+2026-02-12 09:03:22.857,,,,BEGIN (implicit)
+2026-02-12 09:03:22.857,,,,SELECT 1
+2026-02-12 09:03:22.857,,,,[cached since 3.188e+04s ago] ()
+2026-02-12 09:03:22.850,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663373880>> checked out from pool
+2026-02-12 09:03:22.850,,,,Pool pre-ping on connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663373880>>
+2026-02-12 09:03:22.768,info,/api/v1/webhooks/coinbase,POST /api/v1/webhooks/coinbase - 500,"{""timestamp"": ""2026-02-12T09:03:22.768232+00:00"", ""level"": ""info"", ""logger"": ""core"", ""caller"": ""h11_impl.py:482"", ""event"": ""POST /api/v1/webhooks/coinbase - 500"", ""client_addr"": ""10.41.22.118:24936"", ""method"": ""POST"", ""endpoint"": ""/api/v1/webhooks/coinbase"", ""http_version"": ""1.1"", ""status_code"": 500}"
+2026-02-12 09:03:22.767,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6692bae30>> being returned to pool
+2026-02-12 09:03:22.767,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6692bae30>> rollback-on-return
+2026-02-12 09:03:22.765,error,,Missing user_id in metadata,"{""coinbase_charge_code"": ""XE8GVKLW"", ""coinbase_charge_id"": ""c23e3de3-24b7-4708-b5f4-a57d635f7da8"", ""event"": ""Missing user_id in metadata"", ""level"": ""error"", ""timestamp"": ""2026-02-12T09:03:22.764801Z"", ""logger"": ""core"", ""caller"": ""coinbase_webhook_service.py:134""}"
+2026-02-12 09:03:22.765,error,,Failed to process charge:confirmed,"{""coinbase_event_id"": ""3cb7c4a8-d1a8-463f-90d2-095ea2e106ae"", ""error"": ""Missing user_id in metadata"", ""event"": ""Failed to process charge:confirmed"", ""level"": ""error"", ""timestamp"": ""2026-02-12T09:03:22.764925Z"", ""logger"": ""core"", ""caller"": ""coinbase.py:381""}"
+2026-02-12 09:03:22.765,,,,ROLLBACK
+2026-02-12 09:03:22.764,,,,"Col ('id', 'user_id', 'currency', 'status', 'entry_type', 'amount_paid', 'amount_staking', 'idempotency_key', 'related_entry_id', 'payment_source', 'external_transaction_id', 'payment_metadata', 'request_id', 'api_key_id', 'model_name', 'model_id', 'endpoint', 'tokens_input', 'tokens_output', 'tokens_total', 'input_price_per_million', 'output_price_per_million', 'failure_code', 'failure_reason', 'description', 'created_at', 'updated_at')"
+2026-02-12 09:03:22.760,,,,"SELECT credits_ledger.id, credits_ledger.user_id, credits_ledger.currency, credits_ledger.status, credits_ledger.entry_type, credits_ledger.amount_paid, credits_ledger.amount_staking, credits_ledger.idempotency_key, credits_ledger.related_entry_id, credits_ledger.payment_source, credits_ledger.external_transaction_id, credits_ledger.payment_metadata, credits_ledger.request_id, credits_ledger.api_key_id, credits_ledger.model_name, credits_ledger.model_id, credits_ledger.endpoint, credits_ledger.tokens_input, credits_ledger.tokens_output, credits_ledger.tokens_total, credits_ledger.input_price_per_million, credits_ledger.output_price_per_million, credits_ledger.failure_code, credits_ledger.failure_reason, credits_ledger.description, credits_ledger.created_at, credits_ledger.updated_at "
+2026-02-12 09:03:22.760,,,,FROM credits_ledger 
+2026-02-12 09:03:22.760,,,,WHERE credits_ledger.external_transaction_id = $1::VARCHAR AND credits_ledger.payment_source = $2::VARCHAR
+2026-02-12 09:03:22.760,,,,"[cached since 3.131e+04s ago] ('XE8GVKLW', 'coinbase')"
+2026-02-12 09:03:22.758,,,,"Col ('id', 'user_id', 'currency', 'status', 'entry_type', 'amount_paid', 'amount_staking', 'idempotency_key', 'related_entry_id', 'payment_source', 'external_transaction_id', 'payment_metadata', 'request_id', 'api_key_id', 'model_name', 'model_id', 'endpoint', 'tokens_input', 'tokens_output', 'tokens_total', 'input_price_per_million', 'output_price_per_million', 'failure_code', 'failure_reason', 'description', 'created_at', 'updated_at')"
+2026-02-12 09:03:22.733,,,,BEGIN (implicit)
+2026-02-12 09:03:22.733,,,,"SELECT credits_ledger.id, credits_ledger.user_id, credits_ledger.currency, credits_ledger.status, credits_ledger.entry_type, credits_ledger.amount_paid, credits_ledger.amount_staking, credits_ledger.idempotency_key, credits_ledger.related_entry_id, credits_ledger.payment_source, credits_ledger.external_transaction_id, credits_ledger.payment_metadata, credits_ledger.request_id, credits_ledger.api_key_id, credits_ledger.model_name, credits_ledger.model_id, credits_ledger.endpoint, credits_ledger.tokens_input, credits_ledger.tokens_output, credits_ledger.tokens_total, credits_ledger.input_price_per_million, credits_ledger.output_price_per_million, credits_ledger.failure_code, credits_ledger.failure_reason, credits_ledger.description, credits_ledger.created_at, credits_ledger.updated_at "
+2026-02-12 09:03:22.733,,,,FROM credits_ledger 
+2026-02-12 09:03:22.733,,,,WHERE credits_ledger.idempotency_key = $1::VARCHAR
+2026-02-12 09:03:22.733,,,,"[cached since 3.131e+04s ago] ('coinbase:3cb7c4a8-d1a8-463f-90d2-095ea2e106ae:charge:confirmed',)"
+2026-02-12 09:03:22.723,info,,Received legacy Commerce webhook event (consider migrating to Payment Link API),"{""coinbase_event_id"": ""3cb7c4a8-d1a8-463f-90d2-095ea2e106ae"", ""coinbase_event_type"": ""charge:confirmed"", ""event"": ""Received legacy Commerce webhook event (consider migrating to Payment Link API)"", ""level"": ""info"", ""timestamp"": ""2026-02-12T09:03:22.722665Z"", ""logger"": ""core"", ""caller"": ""coinbase.py:365""}"
+2026-02-12 09:03:22.723,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6692bae30>> checked out from pool
+2026-02-12 09:03:22.723,,,,Pool pre-ping on connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6692bae30>>
+2026-02-12 09:03:22.121,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663371b70>> being returned to pool
+2026-02-12 09:03:22.121,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663371b70>> rollback-on-return
+2026-02-12 09:03:22.121,debug,,Using cached model data,"{""cache_expires_in_seconds"": 119.52944, ""event_type"": ""cache_hit"", ""event"": ""Using cached model data"", ""level"": ""debug"", ""timestamp"": ""2026-02-12T09:03:22.121217Z"", ""logger"": ""models"", ""caller"": ""direct_model_service.py:122""}"
+2026-02-12 09:03:22.119,,,,"Col ('?column?',)"
+2026-02-12 09:03:22.119,,,,"Row (1,)"
+2026-02-12 09:03:22.119,,,,ROLLBACK
+2026-02-12 09:03:22.112,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663371b70>> checked out from pool
+2026-02-12 09:03:22.112,,,,"Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663371b70>> is fresh, skipping pre-ping"
+2026-02-12 09:03:22.112,,,,BEGIN (implicit)
+2026-02-12 09:03:22.112,,,,SELECT 1
+2026-02-12 09:03:22.112,,,,[cached since 3.188e+04s ago] ()
+2026-02-12 09:03:22.103,,,,Created new connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe663371b70>>
+2026-02-12 09:03:22.048,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6681b6e30>> exceeded timeout; recycling
+2026-02-12 09:03:22.048,,,,Hard-closing connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6681b6e30>>
+2026-02-12 09:03:21.731,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6681b6110>> rollback-on-return
+2026-02-12 09:03:21.731,debug,,Using cached model data,"{""cache_expires_in_seconds"": 119.919426, ""event_type"": ""cache_hit"", ""event"": ""Using cached model data"", ""level"": ""debug"", ""timestamp"": ""2026-02-12T09:03:21.731233Z"", ""logger"": ""models"", ""caller"": ""direct_model_service.py:122""}"
+2026-02-12 09:03:21.730,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6681b6110>> being returned to pool
+2026-02-12 09:03:21.727,,,,"Row (1,)"
+2026-02-12 09:03:21.727,,,,ROLLBACK
+2026-02-12 09:03:21.726,,,,"Col ('?column?',)"
+2026-02-12 09:03:21.719,,,,SELECT 1
+2026-02-12 09:03:21.719,,,,[cached since 3.188e+04s ago] ()
+2026-02-12 09:03:21.718,,,,BEGIN (implicit)
+2026-02-12 09:03:21.699,,,,Connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6681b6110>> checked out from pool
+2026-02-12 09:03:21.699,,,,Pool pre-ping on connection <AdaptedConnection <asyncpg.connection.Connection object at 0x7fe6681b6110>>

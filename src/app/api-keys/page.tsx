@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -16,6 +16,7 @@ import { Trash2, Plus, Pencil, X } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { apiPost, apiDelete, apiPut } from "@/lib/api/apiService";
+import { formatLocaleDate, ensureUTCTimestamp } from "@/lib/utils/billing-utils";
 import {
   Select,
   SelectContent,
@@ -46,8 +47,8 @@ interface ApiKeyResponse {
 }
 
 export default function ApiKeysPage() {
-  const { apiKeys, accessToken, refreshApiKeys, defaultApiKey } = useCognitoAuth();
-  const { success, error } = useNotification();
+  const { apiKeys, refreshApiKeys, defaultApiKey, getValidToken } = useCognitoAuth();
+  const { success, error, warning } = useNotification();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isNewKeyModalOpen, setIsNewKeyModalOpen] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -56,13 +57,53 @@ export default function ApiKeysPage() {
   const [isEditingDefaultKey, setIsEditingDefaultKey] = useState(false);
   const [pendingDefaultKeyId, setPendingDefaultKeyId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string; isDefault: boolean } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const validateSession = async () => {
+      if (!mounted) return;
+      await getValidToken();
+    };
+
+    void validateSession();
+
+    const intervalId = window.setInterval(() => {
+      void validateSession();
+    }, 60_000);
+
+    const onFocus = () => {
+      void validateSession();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void validateSession();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [getValidToken]);
+
+  // Filter to only show active API keys in the UI
+  // Deleted keys are kept in the context for usage analytics matching
+  const activeApiKeys = apiKeys.filter(key => key.is_active);
 
   // Find the default API key from the apiKeys array
   const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
 
   const handleCreateKey = async (name: string) => {
-    if (!accessToken) {
+    const token = await getValidToken();
+    if (!token) {
       error("Authentication Required", "Please sign in to create API keys");
       return;
     }
@@ -71,7 +112,7 @@ export default function ApiKeysPage() {
       const response = await apiPost<ApiKeyResponse>(
         API_URLS.keys(),
         { name },
-        accessToken
+        token
       );
 
       if (response.error) {
@@ -91,23 +132,71 @@ export default function ApiKeysPage() {
   };
 
   const handleDeleteClick = (keyId: number, keyName: string) => {
-    setKeyToDelete({ id: keyId, name: keyName });
+    // Check if this is the default key
+    const keyToDeleteData = apiKeys.find(key => key.id === keyId);
+    const isDefaultKey = keyToDeleteData?.is_default || false;
+    
+    setKeyToDelete({ id: keyId, name: keyName, isDefault: isDefaultKey });
     setShowDeleteDialog(true);
   };
 
   const confirmDelete = async () => {
-    if (!keyToDelete || !accessToken) {
+    if (!keyToDelete) return;
+    const token = await getValidToken();
+    if (!token) {
       error("Authentication Required", "Please sign in to delete keys");
       return;
     }
 
+    const wasDefaultKey = keyToDelete.isDefault;
+
     try {
-      const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), accessToken);
+      const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), token);
       if (response.error) {
         throw new Error(response.error);
       }
+      
       await refreshApiKeys();
-      success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
+      
+      // Check if we deleted the default key
+      if (wasDefaultKey) {
+        // After refresh, check if another key was auto-promoted to default
+        // Use a small timeout to ensure state has updated
+        setTimeout(() => {
+          const newDefaultKey = apiKeys.find(key => key.is_default);
+          
+          if (newDefaultKey) {
+            // Another key was auto-promoted to default
+            warning(
+              "Default API Key Changed",
+              `"${keyToDelete.name}" was deleted. "${newDefaultKey.name}" is now your default API key. You'll need to verify it before using the API.`,
+              { duration: 8000 }
+            );
+            // Clear sessionStorage since the old verified key is gone
+            sessionStorage.removeItem('verified_api_key');
+            sessionStorage.removeItem('verified_api_key_prefix');
+            sessionStorage.removeItem('verified_api_key_timestamp');
+            sessionStorage.removeItem('verified_api_key_name');
+            localStorage.removeItem('selected_api_key_prefix');
+          } else {
+            // No default key exists anymore
+            warning(
+              "Default API Key Deleted",
+              "You've deleted your default API key. Please set a new default key to continue using the API.",
+              { duration: 8000 }
+            );
+            // Clear sessionStorage
+            sessionStorage.removeItem('verified_api_key');
+            sessionStorage.removeItem('verified_api_key_prefix');
+            sessionStorage.removeItem('verified_api_key_timestamp');
+            sessionStorage.removeItem('verified_api_key_name');
+            localStorage.removeItem('selected_api_key_prefix');
+          }
+        }, 100);
+      } else {
+        success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
+      }
+      
       setShowDeleteDialog(false);
       setKeyToDelete(null);
     } catch (err) {
@@ -137,24 +226,31 @@ export default function ApiKeysPage() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse as UTC so that API timestamps without timezone info aren't shifted
+    // by the browser's local offset (MOR-368: fixes "-1 days ago" / "Yesterday"
+    // for keys created just after midnight UTC by users in negative UTC offsets)
+    const date = new Date(ensureUTCTimestamp(dateString));
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Compare calendar dates in the user's local timezone
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.floor((today.getTime() - dateDay.getTime()) / (1000 * 60 * 60 * 24));
 
+    if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
+    return formatLocaleDate(date);
   };
 
   const handleSetDefaultKey = async (keyId: number, keyName: string) => {
-    if (!accessToken) {
+    const token = await getValidToken();
+    if (!token) {
       error("Authentication Required", "Please sign in to set default key");
       return;
     }
 
     try {
-      const response = await apiPut(API_URLS.setDefaultKey(keyId), {}, accessToken);
+      const response = await apiPut(API_URLS.setDefaultKey(keyId), {}, token);
       if (response.error) {
         throw new Error(response.error);
       }
@@ -210,14 +306,14 @@ export default function ApiKeysPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {apiKeys.length === 0 ? (
+                {activeApiKeys.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                       No API keys found. Create your first key below.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  apiKeys.map((apiKey) => {
+                  activeApiKeys.map((apiKey) => {
                     return (
                       <TableRow 
                         key={apiKey.id}
@@ -258,12 +354,12 @@ export default function ApiKeysPage() {
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3">
-            {apiKeys.length === 0 ? (
+            {activeApiKeys.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 No API keys found. Create your first key above.
               </div>
             ) : (
-              apiKeys.map((apiKey) => (
+              activeApiKeys.map((apiKey) => (
                 <Card key={apiKey.id} className="border-border">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
@@ -326,7 +422,7 @@ export default function ApiKeysPage() {
                         <SelectValue placeholder="Select API key" />
                       </SelectTrigger>
                       <SelectContent>
-                        {apiKeys.map((key) => (
+                        {activeApiKeys.map((key) => (
                           <SelectItem key={key.id} value={key.id.toString()}>
                             {key.name}
                           </SelectItem>
@@ -368,7 +464,7 @@ export default function ApiKeysPage() {
                       size="icon"
                       className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
                       onClick={() => setIsEditingDefaultKey(true)}
-                      disabled={apiKeys.length === 0}
+                      disabled={activeApiKeys.length === 0}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -384,7 +480,7 @@ export default function ApiKeysPage() {
         open={isCreateDialogOpen}
         onOpenChangeAction={setIsCreateDialogOpen}
         onCreateAction={handleCreateKey}
-        existingApiKeys={apiKeys}
+        existingApiKeys={activeApiKeys}
       />
 
       <NewApiKeyModal
@@ -414,7 +510,20 @@ export default function ApiKeysPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete API Key</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the API key "{keyToDelete?.name}"? This action cannot be undone.
+              {keyToDelete?.isDefault ? (
+                <>
+                  <span className="font-semibold text-yellow-600 dark:text-yellow-500">Warning:</span> You are about to delete your <span className="font-semibold">default API key</span> "{keyToDelete?.name}".
+                  <br /><br />
+                  {activeApiKeys.length > 1 
+                    ? "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it." 
+                    : "After deletion, you will need to create and set a new default API key to continue using the API."
+                  } This action cannot be undone.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to delete the API key "{keyToDelete?.name}"? This action cannot be undone.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -423,7 +532,7 @@ export default function ApiKeysPage() {
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              Delete
+              {keyToDelete?.isDefault ? "Delete Default Key" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -431,4 +540,3 @@ export default function ApiKeysPage() {
     </AuthenticatedLayout>
   );
 }
-
