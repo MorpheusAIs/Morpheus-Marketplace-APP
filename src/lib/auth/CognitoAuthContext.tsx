@@ -194,6 +194,17 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           sessionStorage.removeItem('verified_api_key_timestamp');
           sessionStorage.removeItem('verified_api_key_name');
           localStorage.removeItem('selected_api_key_prefix');
+
+          // Notify the user they need to create an API key to use Chat and Test
+          info(
+            'Welcome!',
+            'To get started with Chat and Test, please create your first API key in the Api Keys page.',
+            {
+              actionLabel: 'Create API Key',
+              actionUrl: '/api-keys',
+              duration: 10000,
+            }
+          );
         }
       }
     } catch (error) {

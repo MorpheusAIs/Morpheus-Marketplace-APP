@@ -133,10 +133,13 @@ export default function ApiKeysPage() {
   };
 
   const handleDeleteClick = (keyId: number, keyName: string) => {
-    // Check if this is the default key
+    // A key is treated as default if the apiKeys list marks it so OR if the
+    // context's defaultApiKey points to it — the two sources can diverge when
+    // autoSelectFirstApiKey sets defaultApiKey from the decrypted-key endpoint
+    // while the list endpoint still returns is_default: false for that key
     const keyToDeleteData = apiKeys.find(key => key.id === keyId);
-    const isDefaultKey = keyToDeleteData?.is_default || false;
-    
+    const isDefaultKey = keyToDeleteData?.is_default || keyId === defaultApiKey?.id || false;
+
     setKeyToDelete({ id: keyId, name: keyName, isDefault: isDefaultKey });
     setShowDeleteDialog(true);
   };
