@@ -5,8 +5,8 @@ import { ConversationProvider } from '@/lib/ConversationContext';
 import { StreamManagerProvider } from '@/lib/StreamManagerContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
 import { QueryProvider } from '@/components/providers/QueryProvider';
-import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
-import { GTMProvider } from '@/components/providers/GTMProvider';
+// import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
+// import { GTMProvider } from '@/components/providers/GTMProvider';
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
 import { CoinbaseNotificationListener } from '@/components/CoinbaseNotificationListener';
@@ -31,12 +31,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID;
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+  // const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  // const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 
   return (
     <html lang="en" className="dark">
-      {gtmId && <GoogleTagManager gtmId={gtmId} />}
+      {/* {gtmId && <GoogleTagManager gtmId={gtmId} />} */}
       <head>
         <script
           async
@@ -45,7 +45,7 @@ export default async function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        {gtmId && (
+        {/* {gtmId && (
           <noscript>
             <iframe 
               src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
@@ -54,13 +54,13 @@ export default async function RootLayout({
               style={{ display: "none", visibility: "hidden" }}
             ></iframe>
           </noscript>
-        )}
+        )} */}
         <QueryProvider>
           <NotificationProvider>
             <CognitoAuthProvider>
               <ConversationProvider>
                 <StreamManagerProvider>
-                  <GTMProvider>
+                  {/* <GTMProvider> */}
                     <Toaster
                       position="top-right"
                       expand={true}
@@ -72,13 +72,13 @@ export default async function RootLayout({
                     <CoinbaseNotificationListener />
                     {children}
                     <BuildVersion />
-                  </GTMProvider>
+                  {/* </GTMProvider> */}
                 </StreamManagerProvider>
               </ConversationProvider>
             </CognitoAuthProvider>
           </NotificationProvider>
         </QueryProvider>
-        {gaId && <GoogleAnalytics gaId={gaId} />}
+        {/* {gaId && <GoogleAnalytics gaId={gaId} />} */}
       </body>
     </html>
   );
