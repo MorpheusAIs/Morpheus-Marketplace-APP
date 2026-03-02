@@ -98,8 +98,9 @@ export default function ApiKeysPage() {
   // Deleted keys are kept in the context for usage analytics matching
   const activeApiKeys = apiKeys.filter(key => key.is_active);
 
-  // Find the default API key from the apiKeys array
-  const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
+  // Derive the default key only from active keys — deleted keys may still carry
+  // is_default: true in the backend cache and must not appear in the selector
+  const currentDefaultKey = activeApiKeys.find(key => key.is_default) ?? defaultApiKey ?? null;
 
   const handleCreateKey = async (name: string) => {
     const token = await getValidToken();
@@ -149,60 +150,42 @@ export default function ApiKeysPage() {
     }
 
     const wasDefaultKey = keyToDelete.isDefault;
+    // Pre-compute remaining active keys before the async delete so we avoid
+    // stale-closure issues when reading React state inside callbacks
+    const remainingActiveKeys = activeApiKeys.filter(k => k.id !== keyToDelete.id);
 
     try {
       const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), token);
       if (response.error) {
         throw new Error(response.error);
       }
-      
+
+      // Always clear stored credentials when the verified key may be gone
+      if (wasDefaultKey || remainingActiveKeys.length === 0) {
+        sessionStorage.removeItem('verified_api_key');
+        sessionStorage.removeItem('verified_api_key_prefix');
+        sessionStorage.removeItem('verified_api_key_timestamp');
+        sessionStorage.removeItem('verified_api_key_name');
+        localStorage.removeItem('selected_api_key_prefix');
+      }
+
       await refreshApiKeys();
-      
-      // Check if we deleted the default key
+
       if (wasDefaultKey) {
-        // After refresh, check if another key was auto-promoted to default
-        // Use a small timeout to ensure state has updated
-        setTimeout(() => {
-          const newDefaultKey = apiKeys.find(key => key.is_default);
-          
-          if (newDefaultKey) {
-            // Another key was auto-promoted to default
-            warning(
-              "Default API Key Changed",
-              `"${keyToDelete.name}" was deleted. "${newDefaultKey.name}" is now your default API key. You'll need to verify it before using the API.`,
-              { duration: 8000 }
-            );
-            // Clear sessionStorage since the old verified key is gone
-            sessionStorage.removeItem('verified_api_key');
-            sessionStorage.removeItem('verified_api_key_prefix');
-            sessionStorage.removeItem('verified_api_key_timestamp');
-            sessionStorage.removeItem('verified_api_key_name');
-            localStorage.removeItem('selected_api_key_prefix');
-          } else {
-            // No default key exists anymore
-            warning(
-              "Default API Key Deleted",
-              "You've deleted your default API key. Please set a new default key to continue using the API.",
-              { duration: 8000 }
-            );
-            // Clear sessionStorage
-            sessionStorage.removeItem('verified_api_key');
-            sessionStorage.removeItem('verified_api_key_prefix');
-            sessionStorage.removeItem('verified_api_key_timestamp');
-            sessionStorage.removeItem('verified_api_key_name');
-            localStorage.removeItem('selected_api_key_prefix');
-          }
-        }, 100);
-      } else {
-        // If we just deleted the last active key, clear stored credentials
-        const remainingActive = activeApiKeys.filter(k => k.id !== keyToDelete.id);
-        if (remainingActive.length === 0) {
-          sessionStorage.removeItem('verified_api_key');
-          sessionStorage.removeItem('verified_api_key_prefix');
-          sessionStorage.removeItem('verified_api_key_timestamp');
-          sessionStorage.removeItem('verified_api_key_name');
-          localStorage.removeItem('selected_api_key_prefix');
+        if (remainingActiveKeys.length > 0) {
+          warning(
+            "Default API Key Changed",
+            `"${keyToDelete.name}" was deleted. Another key has been set as your default. You will need to verify it before using the API.`,
+            { duration: 8000 }
+          );
+        } else {
+          warning(
+            "Default API Key Deleted",
+            "You've deleted your default API key. Please create a new key to continue using the API.",
+            { duration: 8000 }
+          );
         }
+      } else {
         success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
       }
       
