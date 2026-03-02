@@ -98,8 +98,9 @@ export default function ApiKeysPage() {
   // Deleted keys are kept in the context for usage analytics matching
   const activeApiKeys = apiKeys.filter(key => key.is_active);
 
-  // Find the default API key from the apiKeys array
-  const currentDefaultKey = apiKeys.find(key => key.is_default) || defaultApiKey;
+  // Derive the default key only from active keys — deleted keys may still carry
+  // is_default: true in the backend cache and must not appear in the selector
+  const currentDefaultKey = activeApiKeys.find(key => key.is_default) ?? defaultApiKey ?? null;
 
   const handleCreateKey = async (name: string) => {
     const token = await getValidToken();
@@ -132,10 +133,13 @@ export default function ApiKeysPage() {
   };
 
   const handleDeleteClick = (keyId: number, keyName: string) => {
-    // Check if this is the default key
+    // A key is treated as default if the apiKeys list marks it so OR if the
+    // context's defaultApiKey points to it — the two sources can diverge when
+    // autoSelectFirstApiKey sets defaultApiKey from the decrypted-key endpoint
+    // while the list endpoint still returns is_default: false for that key
     const keyToDeleteData = apiKeys.find(key => key.id === keyId);
-    const isDefaultKey = keyToDeleteData?.is_default || false;
-    
+    const isDefaultKey = keyToDeleteData?.is_default || keyId === defaultApiKey?.id || false;
+
     setKeyToDelete({ id: keyId, name: keyName, isDefault: isDefaultKey });
     setShowDeleteDialog(true);
   };
@@ -149,50 +153,41 @@ export default function ApiKeysPage() {
     }
 
     const wasDefaultKey = keyToDelete.isDefault;
+    // Pre-compute remaining active keys before the async delete so we avoid
+    // stale-closure issues when reading React state inside callbacks
+    const remainingActiveKeys = activeApiKeys.filter(k => k.id !== keyToDelete.id);
 
     try {
       const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), token);
       if (response.error) {
         throw new Error(response.error);
       }
-      
+
+      // Always clear stored credentials when the verified key may be gone
+      if (wasDefaultKey || remainingActiveKeys.length === 0) {
+        sessionStorage.removeItem('verified_api_key');
+        sessionStorage.removeItem('verified_api_key_prefix');
+        sessionStorage.removeItem('verified_api_key_timestamp');
+        sessionStorage.removeItem('verified_api_key_name');
+        localStorage.removeItem('selected_api_key_prefix');
+      }
+
       await refreshApiKeys();
-      
-      // Check if we deleted the default key
+
       if (wasDefaultKey) {
-        // After refresh, check if another key was auto-promoted to default
-        // Use a small timeout to ensure state has updated
-        setTimeout(() => {
-          const newDefaultKey = apiKeys.find(key => key.is_default);
-          
-          if (newDefaultKey) {
-            // Another key was auto-promoted to default
-            warning(
-              "Default API Key Changed",
-              `"${keyToDelete.name}" was deleted. "${newDefaultKey.name}" is now your default API key. You'll need to verify it before using the API.`,
-              { duration: 8000 }
-            );
-            // Clear sessionStorage since the old verified key is gone
-            sessionStorage.removeItem('verified_api_key');
-            sessionStorage.removeItem('verified_api_key_prefix');
-            sessionStorage.removeItem('verified_api_key_timestamp');
-            sessionStorage.removeItem('verified_api_key_name');
-            localStorage.removeItem('selected_api_key_prefix');
-          } else {
-            // No default key exists anymore
-            warning(
-              "Default API Key Deleted",
-              "You've deleted your default API key. Please set a new default key to continue using the API.",
-              { duration: 8000 }
-            );
-            // Clear sessionStorage
-            sessionStorage.removeItem('verified_api_key');
-            sessionStorage.removeItem('verified_api_key_prefix');
-            sessionStorage.removeItem('verified_api_key_timestamp');
-            sessionStorage.removeItem('verified_api_key_name');
-            localStorage.removeItem('selected_api_key_prefix');
-          }
-        }, 100);
+        if (remainingActiveKeys.length > 0) {
+          warning(
+            "Default API Key Changed",
+            `"${keyToDelete.name}" was deleted. Another key has been set as your default. You will need to verify it before using the API.`,
+            { duration: 8000 }
+          );
+        } else {
+          warning(
+            "Default API Key Deleted",
+            "You've deleted your default API key. Please create a new key to continue using the API.",
+            { duration: 8000 }
+          );
+        }
       } else {
         success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
       }
@@ -321,7 +316,7 @@ export default function ApiKeysPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="text-foreground">{apiKey.name}</span>
-                            {apiKey.is_default && (
+                            {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
                               <Badge variant="default" className="bg-green-600 text-white">
                                 Default
                               </Badge>
@@ -365,7 +360,7 @@ export default function ApiKeysPage() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <CardTitle className="text-base font-semibold truncate">{apiKey.name}</CardTitle>
-                        {apiKey.is_default && (
+                        {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
                           <Badge variant="default" className="bg-green-600 text-white shrink-0">
                             Default
                           </Badge>
