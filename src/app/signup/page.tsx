@@ -27,6 +27,7 @@ export default function SignUpPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [ageConsent, setAgeConsent] = useState(false);
+  const [tosConsent, setTosConsent] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -69,6 +70,11 @@ export default function SignUpPage() {
 
     if (!ageConsent) {
       setError("You must certify that you are at least 18 years old to create an account");
+      return;
+    }
+
+    if (!tosConsent) {
+      setError("You must accept the Terms of Service to create an account");
       return;
     }
 
@@ -125,7 +131,7 @@ export default function SignUpPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6 mt-6" onSubmit={handleSubmit}>
+            <form className="space-y-6 mt-4" onSubmit={handleSubmit}>
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -228,6 +234,27 @@ export default function SignUpPage() {
                     />
                     <span className="text-xs text-muted-foreground leading-relaxed">
                       <em>I certify that I am at least 18 years old and the minimum age required in my country to consent to use the Services.</em>
+                    </span>
+                  </label>
+                </Field>
+                <Field>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tosConsent}
+                      onChange={(e) => {
+                        setTosConsent(e.target.checked);
+                        if (e.target.checked) setError("");
+                      }}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-green-500 cursor-pointer"
+                    />
+                    <span className="text-xs text-muted-foreground leading-relaxed">
+                      <em>I have read and accept the{" "}
+                        <Link href="/terms" className="text-green-500 hover:underline">
+                          Terms of Service
+                        </Link>
+                        .
+                      </em>
                     </span>
                   </label>
                 </Field>
