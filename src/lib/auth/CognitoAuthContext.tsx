@@ -171,19 +171,30 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Store ALL API keys (including deleted ones) so usage analytics can match them
         // The UI components will filter to show only active keys
         setApiKeys(response.data);
-        
-        // Update defaultApiKey state to match the default key
-        const defaultKey = response.data.find(key => key.is_default);
+
+        const activeKeys = response.data.filter(key => key.is_active);
+
+        // Only consider active keys when determining the default —
+        // soft-deleted keys may still carry is_default: true in the backend cache
+        const defaultKey = activeKeys.find(key => key.is_default);
         if (defaultKey) {
-          // Set the default key metadata (without full key)
           setDefaultApiKey(defaultKey);
         } else {
-          // No default key exists, clear the state
           setDefaultApiKey(null);
         }
-        
-        // Auto-select first API key if no key is already selected
-        await autoSelectFirstApiKey(token);
+
+        if (activeKeys.length > 0) {
+          // Auto-select first API key if no key is already selected
+          await autoSelectFirstApiKey(token);
+        } else {
+          // No active keys — clear any cached credentials so the sidebar
+          // correctly disables Test/Chat even if the backend cache is stale
+          sessionStorage.removeItem('verified_api_key');
+          sessionStorage.removeItem('verified_api_key_prefix');
+          sessionStorage.removeItem('verified_api_key_timestamp');
+          sessionStorage.removeItem('verified_api_key_name');
+          localStorage.removeItem('selected_api_key_prefix');
+        }
       }
     } catch (error) {
       console.error('Error fetching API keys:', error);

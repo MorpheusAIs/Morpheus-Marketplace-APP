@@ -194,6 +194,15 @@ export default function ApiKeysPage() {
           }
         }, 100);
       } else {
+        // If we just deleted the last active key, clear stored credentials
+        const remainingActive = activeApiKeys.filter(k => k.id !== keyToDelete.id);
+        if (remainingActive.length === 0) {
+          sessionStorage.removeItem('verified_api_key');
+          sessionStorage.removeItem('verified_api_key_prefix');
+          sessionStorage.removeItem('verified_api_key_timestamp');
+          sessionStorage.removeItem('verified_api_key_name');
+          localStorage.removeItem('selected_api_key_prefix');
+        }
         success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
       }
       
