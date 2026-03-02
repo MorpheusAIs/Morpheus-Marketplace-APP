@@ -174,14 +174,17 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
 
         const activeKeys = response.data.filter(key => key.is_active);
 
-        // Only consider active keys when determining the default —
-        // soft-deleted keys may still carry is_default: true in the backend cache
-        const defaultKey = activeKeys.find(key => key.is_default);
-        if (defaultKey) {
-          setDefaultApiKey(defaultKey);
-        } else {
-          setDefaultApiKey(null);
-        }
+        // Determine default key from active keys only. If backend cache briefly
+        // omits is_default after mutations, fall back to the user's selected key
+        // (and finally to the only active key when there is exactly one).
+        const defaultKeyFromApi = activeKeys.find(key => key.is_default);
+        const selectedPrefix = localStorage.getItem('selected_api_key_prefix');
+        const selectedActiveKey = selectedPrefix
+          ? activeKeys.find(key => key.key_prefix === selectedPrefix)
+          : null;
+        const singleActiveKey = activeKeys.length === 1 ? activeKeys[0] : null;
+        const resolvedDefaultKey = defaultKeyFromApi ?? selectedActiveKey ?? singleActiveKey ?? null;
+        setDefaultApiKey(resolvedDefaultKey);
 
         if (activeKeys.length > 0) {
           // Auto-select first API key if no key is already selected
