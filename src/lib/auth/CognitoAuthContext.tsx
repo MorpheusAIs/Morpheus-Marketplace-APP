@@ -9,6 +9,8 @@ import { apiGet } from '@/lib/api/apiService';
 import { useNotification } from '@/lib/NotificationContext';
 import { safeJsonParseOrNull } from '@/lib/utils/safe-json';
 import { CognitoUser } from '@/lib/types/cognito';
+import type { FingerprintData } from '@/lib/fingerprint/types';
+import { checkRegistrationAllowed } from '@/lib/fingerprint';
 
 interface ApiKey {
   id: number;
@@ -28,7 +30,7 @@ interface CognitoAuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ requiresConfirmation: true; email: string }>;
+  signUp: (email: string, password: string, fingerprintData?: FingerprintData) => Promise<{ requiresConfirmation: true; email: string }>;
   confirmSignUp: (email: string, confirmationCode: string, password: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
@@ -405,9 +407,31 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const signUp = async (email: string, password: string): Promise<{ requiresConfirmation: true; email: string }> => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fingerprintData?: FingerprintData
+  ): Promise<{ requiresConfirmation: true; email: string }> => {
     try {
       setIsLoading(true);
+
+      if (fingerprintData) {
+        try {
+          const checkResult = await checkRegistrationAllowed(email, fingerprintData);
+          if (!checkResult.allowed) {
+            const blockedError = new Error(
+              checkResult.reason || 'Account creation limit reached. Please contact support if you believe this is an error.'
+            );
+            blockedError.name = 'RegistrationBlockedError';
+            throw blockedError;
+          }
+        } catch (checkError) {
+          if (checkError instanceof Error && checkError.name === 'RegistrationBlockedError') {
+            throw checkError;
+          }
+          console.warn('Fingerprint check failed, allowing registration:', checkError);
+        }
+      }
       
       // Sign up with Cognito
       await CognitoDirectAuth.signUp(email, password);
@@ -416,6 +440,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('pending_signup_email', email);
         sessionStorage.setItem('pending_signup_password', password);
+        if (fingerprintData) {
+          sessionStorage.setItem('pending_signup_fingerprint', JSON.stringify({
+            fingerprintHash: fingerprintData.fingerprintHash,
+            deviceToken: fingerprintData.deviceToken,
+          }));
+        }
       }
       
       // Return email for confirmation page

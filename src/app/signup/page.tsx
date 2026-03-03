@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { getFingerprint } from "@/lib/fingerprint";
+import type { FingerprintData } from "@/lib/fingerprint/types";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -28,6 +30,7 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [ageConsent, setAgeConsent] = useState(false);
   const [tosConsent, setTosConsent] = useState(false);
+  const [fingerprintData, setFingerprintData] = useState<FingerprintData | null>(null);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -35,6 +38,12 @@ export default function SignUpPage() {
       router.push('/api-keys');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    getFingerprint()
+      .then(setFingerprintData)
+      .catch((err) => console.warn('Fingerprint collection failed:', err));
+  }, []);
 
   // Email validation regex
   const isValidEmail = (email: string): boolean => {
@@ -97,7 +106,7 @@ export default function SignUpPage() {
 
     setIsSubmitting(true);
     try {
-      const result = await signUp(email, password);
+      const result = await signUp(email, password, fingerprintData || undefined);
       // If confirmation is required, redirect to confirmation page
       if (result?.requiresConfirmation) {
         // Redirect to confirmation page with email in query params
@@ -345,4 +354,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-

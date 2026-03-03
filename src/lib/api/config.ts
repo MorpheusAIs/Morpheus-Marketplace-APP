@@ -33,6 +33,10 @@ export const API_CONFIG = {
     AUTOMATION: {
       SETTINGS: '/automation/settings'
     },
+    FINGERPRINT: {
+      CHECK_REGISTRATION: '/fingerprint/check-registration',
+      RECORD_REGISTRATION: '/fingerprint/record-registration'
+    },
     // Model endpoints
     MODELS: '/models'
   }
@@ -84,6 +88,9 @@ export const API_URLS = {
   
   // Automation URLs
   automationSettings: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTOMATION.SETTINGS),
+
+  checkRegistration: () => buildApiUrl(API_CONFIG.ENDPOINTS.FINGERPRINT.CHECK_REGISTRATION),
+  recordRegistration: () => buildApiUrl(API_CONFIG.ENDPOINTS.FINGERPRINT.RECORD_REGISTRATION),
   
   // Model URLs
   models: () => buildApiUrl(API_CONFIG.ENDPOINTS.MODELS),

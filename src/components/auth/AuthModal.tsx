@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CognitoDirectAuth } from '@/lib/auth/cognito-direct-auth';
 import type { CognitoTokens, CognitoUser } from '@/lib/types/cognito';
+import { checkRegistrationAllowed, getFingerprint } from '@/lib/fingerprint';
+import type { FingerprintData } from '@/lib/fingerprint/types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,6 +24,15 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [ageConsent, setAgeConsent] = useState(false);
+  const [fingerprintData, setFingerprintData] = useState<FingerprintData | null>(null);
+
+  useEffect(() => {
+    if (mode === 'signup') {
+      getFingerprint()
+        .then(setFingerprintData)
+        .catch((err) => console.warn('Fingerprint collection failed:', err));
+    }
+  }, [mode]);
 
   // Prevent SSR issues
   if (typeof window === 'undefined') return null;
@@ -93,7 +104,26 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
 
     try {
+      if (fingerprintData) {
+        try {
+          const checkResult = await checkRegistrationAllowed(email, fingerprintData);
+          if (!checkResult.allowed) {
+            setError(checkResult.reason || 'Account creation limit reached. Please contact support.');
+            setIsLoading(false);
+            return;
+          }
+        } catch (checkError) {
+          console.warn('Fingerprint check failed, allowing registration:', checkError);
+        }
+      }
+
       await CognitoDirectAuth.signUp(email, password);
+      if (fingerprintData) {
+        sessionStorage.setItem('pending_signup_fingerprint', JSON.stringify({
+          fingerprintHash: fingerprintData.fingerprintHash,
+          deviceToken: fingerprintData.deviceToken,
+        }));
+      }
       setMode('confirm');
       setError('');
     } catch (err) {

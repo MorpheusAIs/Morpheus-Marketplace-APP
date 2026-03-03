@@ -22,6 +22,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoConfig } from "@/lib/auth/cognito-config";
 import { useNotification } from "@/lib/NotificationContext";
+import { recordRegistration } from "@/lib/fingerprint";
 
 // Lazy initialization of Cognito client
 let cognitoClient: CognitoIdentityProviderClient | null = null;
@@ -104,6 +105,30 @@ function ConfirmRegistrationContent() {
       }
 
       await confirmSignUp(email, confirmationCode, passwordToUse);
+
+      try {
+        const storedFingerprint = sessionStorage.getItem('pending_signup_fingerprint');
+        if (storedFingerprint) {
+          const fpData = JSON.parse(storedFingerprint) as {
+            fingerprintHash?: string;
+            deviceToken?: string;
+          };
+          if (fpData.fingerprintHash && fpData.deviceToken) {
+            recordRegistration(email, {
+              visitorId: '',
+              fingerprintHash: fpData.fingerprintHash,
+              deviceToken: fpData.deviceToken,
+              components: {},
+            }).catch((registrationError) => {
+              console.warn('Failed to record fingerprint:', registrationError);
+            });
+          }
+          sessionStorage.removeItem('pending_signup_fingerprint');
+        }
+      } catch (recordError) {
+        console.warn('Error recording fingerprint:', recordError);
+      }
+
       router.push("/api-keys");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to confirm account");
@@ -240,4 +265,3 @@ export default function ConfirmRegistrationPage() {
     </Suspense>
   );
 }
-
