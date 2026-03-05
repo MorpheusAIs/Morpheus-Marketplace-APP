@@ -12,7 +12,9 @@ export const API_CONFIG = {
       KEYS: '/auth/keys',
       PRIVATE_KEY: '/auth/private-key',
       DELEGATION: '/auth/delegation',
-      DELETE_ACCOUNT: '/auth/register' // Uses same endpoint as register but with DELETE method
+      DELETE_ACCOUNT: '/auth/register', // Uses same endpoint as register but with DELETE method
+      ME: '/auth/me',
+      VERIFY_AGE: '/auth/verify-age',
     },
     // Chat endpoints
     CHAT: {
@@ -69,6 +71,8 @@ export const API_URLS = {
   privateKey: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.PRIVATE_KEY),
   delegation: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.DELEGATION),
   deleteAccount: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.DELETE_ACCOUNT),
+  me: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.ME),
+  verifyAge: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTH.VERIFY_AGE),
   
   // Chat URLs
   chatCompletions: () => buildApiUrl(API_CONFIG.ENDPOINTS.CHAT.COMPLETIONS),

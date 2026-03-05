@@ -6,6 +6,7 @@ import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { AgeVerificationGate } from "@/components/age-verification-gate";
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -13,7 +14,7 @@ interface AuthenticatedLayoutProps {
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useCognitoAuth();
+  const { isAuthenticated, isLoading, ageVerified } = useCognitoAuth();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -46,6 +47,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
         </header>
         <div className="flex-1 overflow-y-auto">{children}</div>
       </SidebarInset>
+      {ageVerified === false && <AgeVerificationGate />}
     </SidebarProvider>
   );
 }
