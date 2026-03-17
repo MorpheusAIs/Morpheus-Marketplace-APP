@@ -22,7 +22,6 @@ import { getAllowedModelTypes, filterModelsByType, selectDefaultModel } from "@/
 import { logModelName } from "@/lib/model-name-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
-import { apiGet } from "@/lib/api/apiService";
 import { validateJsonDepth, safeJsonParseOrNull } from "@/lib/utils/safe-json";
 
 interface Model {
@@ -40,34 +39,10 @@ interface ApiModelResponse {
   ModelType?: string;
 }
 
-interface AutomationSettings {
-  is_enabled: boolean;
-  session_duration: number;
-  user_id: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface SessionPingResponse {
-  status: 'alive' | 'dead' | 'no_session';
-  session_id?: string;
-  response_time_ms?: number;
-  message?: string;
-}
-
-interface SessionCreateResponse {
-  session_id: string;
-  provider: string;
-  model_id: string;
-  bid_id?: string;
-  duration: number;
-  cost: number;
-}
-
 export default function TestPage() {
   const router = useRouter();
   const { error: showError } = useNotification();
-  const { apiKeys, getValidToken } = useCognitoAuth();
+  const { apiKeys } = useCognitoAuth();
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [apiKeyPrefix, setApiKeyPrefix] = useState("");
   const [apiKeyName, setApiKeyName] = useState("");
@@ -243,168 +218,6 @@ export default function TestPage() {
     setCurlRequest(curl);
   };
 
-  // Check if automation is enabled
-  const checkAutomationSettings = async (): Promise<AutomationSettings | null> => {
-    const token = await getValidToken();
-    if (!token) {
-      // If no access token, assume automation is enabled (default behavior)
-      return null;
-    }
-
-    try {
-      const response = await apiGet<AutomationSettings>(
-        API_URLS.automationSettings(),
-        token
-      );
-
-      if (response.error || !response.data) {
-        console.warn('Could not fetch automation settings, assuming enabled:', response.error);
-        return null;
-      }
-
-      return response.data;
-    } catch (err) {
-      console.error('Error checking automation settings:', err);
-      // Default to enabled if we can't check
-      return null;
-    }
-  };
-
-  // Check if there's an active session
-  const checkActiveSession = async (): Promise<boolean> => {
-    try {
-      const response = await fetch(API_URLS.sessionPing(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-          'Authorization': `Bearer ${selectedApiKey}`
-        }
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      // Safely parse response to prevent deep recursion attacks
-      const responseText = await response.text();
-      const data = safeJsonParseOrNull<SessionPingResponse>(responseText, { maxDepth: 100 });
-      if (!data) {
-        return false;
-      }
-      return data.status === 'alive';
-    } catch (err) {
-      console.error('Error checking active session:', err);
-      return false;
-    }
-  };
-
-  // Create a session for the selected model
-  const createSession = async (modelId: string, duration?: number): Promise<boolean> => {
-    // Find the model to get its blockchain ID
-    const model = models.find(m => m.id === modelId);
-    if (!model) {
-      throw new Error(`Model ${modelId} not found`);
-    }
-
-    // Use blockchain ID if available, otherwise fall back to model ID
-    const modelIdentifier = model.blockchainId || modelId;
-
-    // Build URL with query parameter for model_id
-    const url = new URL(API_URLS.sessionCreateModel());
-    url.searchParams.set('model_id', modelIdentifier);
-
-    // Request body according to SessionDataRequest schema from OpenAPI spec
-    // Required fields: sessionDuration, directPayment, failover
-    const requestBody = {
-      sessionDuration: duration || 3600,
-      directPayment: false,
-      failover: false
-    };
-
-    // Validate request body depth before stringifying to prevent deep recursion attacks
-    try {
-      validateJsonDepth(requestBody, { maxDepth: 100 });
-    } catch (error) {
-      throw new Error(`Invalid request data: ${error instanceof Error ? error.message : 'Data exceeds maximum depth'}`);
-    }
-
-    const response = await fetch(url.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'accept': 'application/json',
-        'Authorization': `Bearer ${selectedApiKey}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      // Safely parse error response to prevent deep recursion attacks
-      const errorText = await response.text().catch(() => '');
-      const errorData = errorText ? safeJsonParseOrNull(errorText) ?? { detail: `HTTP ${response.status}` } : { detail: `HTTP ${response.status}` };
-      const errorDetail = errorData.detail || `HTTP ${response.status}`;
-      throw new Error(errorDetail);
-    }
-
-    // Safely parse response to prevent deep recursion attacks
-    const responseText = await response.text();
-    const data = safeJsonParseOrNull<SessionCreateResponse>(responseText, { maxDepth: 100 });
-    if (!data) {
-      throw new Error('Failed to parse response or response exceeds maximum depth');
-    }
-    console.log('Session created successfully:', data.session_id);
-    return true;
-  };
-
-  // Ensure session exists before making request (when automation is disabled)
-  const ensureSessionExists = async (): Promise<void> => {
-    const automationSettings = await checkAutomationSettings();
-    
-    // Get default automation enabled from environment variable for development
-    const envDefaultEnabled = process.env.NEXT_PUBLIC_DEFAULT_AUTOMATION_ENABLED === 'true';
-    const isDevelopment = process.env.NEXT_PUBLIC_API_BASE_URL?.includes('dev') || 
-                          process.env.NEXT_PUBLIC_API_BASE_URL?.includes('localhost');
-    
-    // Determine if automation is effectively enabled
-    // In development with env var set, treat as enabled even if backend says false
-    const isAutomationEnabled = automationSettings === null || 
-      (isDevelopment && envDefaultEnabled) ||
-      automationSettings.is_enabled;
-    
-    // If automation is enabled, no need to check/create session
-    if (isAutomationEnabled) {
-      return;
-    }
-
-    // Automation is disabled, check if session exists
-    const hasActiveSession = await checkActiveSession();
-    
-    if (!hasActiveSession) {
-      // Try to create a session, but handle 404 gracefully
-      // The endpoint may not exist in dev environment
-      try {
-        const sessionDuration = automationSettings.session_duration || 3600;
-        await createSession(selectedModel, sessionDuration);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
-        
-        // If endpoint doesn't exist (404), provide helpful guidance
-        if (errorMessage.includes("404") || errorMessage.includes("Not Found") || 
-            errorMessage.includes("not available")) {
-          throw new Error(
-            "Cannot create session automatically. " +
-            "The session creation endpoint is not available in this environment. " +
-            "Please enable automation in your account settings (Account → Automation Settings) " +
-            "to automatically create sessions, or create a session manually through the API."
-          );
-        }
-        // Re-throw other errors
-        throw err;
-      }
-    }
-  };
-
   const handleSendRequest = async () => {
     if (!prompt.trim() || !selectedApiKey) {
       showError("Validation Error", "Please provide a prompt and ensure API key is set");
@@ -417,9 +230,6 @@ export default function TestPage() {
     generateCurlRequest();
 
     try {
-      // Ensure session exists if automation is disabled
-      await ensureSessionExists();
-
       // Log model name for debugging
       logModelName('sendRequest', selectedModel);
 

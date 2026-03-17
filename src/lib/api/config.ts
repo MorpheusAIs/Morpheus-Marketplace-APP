@@ -31,10 +31,6 @@ export const API_CONFIG = {
       CREATE_MODEL: '/session/modelsession', // Correct endpoint path
       CREATE_BID: '/session/bidsession'
     },
-    // Automation endpoints
-    AUTOMATION: {
-      SETTINGS: '/automation/settings'
-    },
     // Model endpoints
     MODELS: '/models'
   }
@@ -85,9 +81,6 @@ export const API_URLS = {
   sessionPing: () => buildApiUrl(API_CONFIG.ENDPOINTS.SESSION.PING),
   sessionClose: () => buildApiUrl(API_CONFIG.ENDPOINTS.SESSION.CLOSE),
   sessionCreateModel: () => buildApiUrl(API_CONFIG.ENDPOINTS.SESSION.CREATE_MODEL),
-  
-  // Automation URLs
-  automationSettings: () => buildApiUrl(API_CONFIG.ENDPOINTS.AUTOMATION.SETTINGS),
   
   // Model URLs
   models: () => buildApiUrl(API_CONFIG.ENDPOINTS.MODELS),
