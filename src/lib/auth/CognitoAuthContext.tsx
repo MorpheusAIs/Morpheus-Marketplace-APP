@@ -227,7 +227,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
             'To get started with Chat and Test, please create your first API key in the Api Keys page.',
             {
               actionLabel: 'Create API Key',
-              actionUrl: '/api-keys',
+              actionUrl: '/api-keys?create=true',
               duration: 10000,
             }
           );
@@ -355,7 +355,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           'To get started with Chat and Test, please create your first API key in the Api Keys page.',
           {
             actionLabel: 'Create API Key',
-            actionUrl: '/api-keys',
+            actionUrl: '/api-keys?create=true',
             duration: 10000,
           }
         );

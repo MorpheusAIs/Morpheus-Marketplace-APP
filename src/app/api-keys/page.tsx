@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -49,6 +50,7 @@ interface ApiKeyResponse {
 export default function ApiKeysPage() {
   const { apiKeys, refreshApiKeys, defaultApiKey, getValidToken } = useCognitoAuth();
   const { success, error, warning } = useNotification();
+  const searchParams = useSearchParams();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isNewKeyModalOpen, setIsNewKeyModalOpen] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -58,6 +60,12 @@ export default function ApiKeysPage() {
   const [pendingDefaultKeyId, setPendingDefaultKeyId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string; isDefault: boolean } | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setIsCreateDialogOpen(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let mounted = true;
@@ -280,8 +288,8 @@ export default function ApiKeysPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <h2 className="text-xl md:text-2xl font-semibold text-foreground">My API Keys</h2>
             <Button
-              variant="ghost"
-              className="text-green-500 hover:bg-muted w-full sm:w-auto"
+              variant="default"
+              className="w-full sm:w-auto"
               onClick={() => setIsCreateDialogOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
