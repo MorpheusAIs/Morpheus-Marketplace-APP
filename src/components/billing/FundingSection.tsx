@@ -10,6 +10,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PaymentAmountDialog } from './PaymentAmountDialog';
+import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 
 interface FundingSectionProps {
   currentBalance: string;
@@ -27,6 +28,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   const [error, setError] = useState<string | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(null);
+  const { getValidToken } = useCognitoAuth();
 
   const stripePaymentLinkUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_URL;
 
@@ -94,11 +96,17 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     }
 
     try {
+      const token = await getValidToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/coinbase/payment-link', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           amount: amount,
           currency: 'USDC',

@@ -7,6 +7,29 @@ interface CreatePaymentLinkRequest {
   description?: string;
 }
 
+/**
+ * Extract the Bearer token from the incoming request's Authorization header.
+ * The browser client sends its Cognito token which we forward to the backend.
+ */
+function extractBearerToken(request: NextRequest): string | null {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  return null;
+}
+
+function buildBackendHeaders(config: { adminSecret: string }, bearerToken: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Admin-Secret': config.adminSecret,
+  };
+  if (bearerToken) {
+    headers['Authorization'] = `Bearer ${bearerToken}`;
+  }
+  return headers;
+}
+
 interface BackendPaymentLinkResponse {
   id: string;
   url?: string;
@@ -107,14 +130,13 @@ export async function POST(request: NextRequest) {
       currency,
     });
 
+    const bearerToken = extractBearerToken(request);
+
     const response = await fetch(
       `${config.apiBaseUrl}/api/v1/billing/admin/payment-links`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': config.adminSecret,
-        },
+        headers: buildBackendHeaders(config, bearerToken),
         body: JSON.stringify(payload),
       }
     );
@@ -191,14 +213,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const bearerToken = extractBearerToken(request);
+
     const response = await fetch(
       `${config.apiBaseUrl}/api/v1/billing/admin/payment-links/${paymentLinkId}`,
       {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Secret': config.adminSecret,
-        },
+        headers: buildBackendHeaders(config, bearerToken),
       }
     );
 
