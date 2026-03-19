@@ -94,34 +94,33 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     }
 
     try {
-      const response = await fetch('/api/coinbase/charge', {
+      const response = await fetch('/api/coinbase/payment-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           amount: amount,
-          currency: 'USD',
-          userId: userId, // Guaranteed to be set now
+          currency: 'USDC',
+          userId: userId,
           description: 'Morpheus AI Credits Purchase',
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Coinbase charge creation failed:', errorData);
+        console.error('Payment link creation failed:', errorData);
         setError(errorData.error || 'Failed to create payment. Please try again.');
         return;
       }
 
       const data = await response.json();
-      
-      // Response structure: { success: true, charge: { hosted_url, ... } }
-      if (data.charge?.hosted_url) {
-        window.open(data.charge.hosted_url, '_blank', 'noopener,noreferrer');
+
+      if (data.payment_link?.url) {
+        window.open(data.payment_link.url, '_blank', 'noopener,noreferrer');
       } else {
         setError('No payment URL received from Coinbase');
-        console.error('Missing hosted_url in Coinbase response:', data);
+        console.error('Missing url in payment link response:', data);
       }
     } catch (err) {
       console.error('Error opening Coinbase checkout:', err);
@@ -196,7 +195,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                 <div className="text-left">
                   <p className="font-medium">Pay with Crypto</p>
                   <p className="text-xs text-muted-foreground">
-                    {userId ? 'Powered by Coinbase Commerce' : 'Login required'}
+                    {userId ? 'USDC on Base via Coinbase' : 'Login required'}
                   </p>
                 </div>
               </div>
