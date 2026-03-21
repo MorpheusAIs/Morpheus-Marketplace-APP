@@ -1,40 +1,32 @@
 #!/bin/bash
 
-# Test script for Coinbase notification webhook endpoint
+# Test script for Coinbase Business Payment Link notification webhook endpoint
 # Usage: ./scripts/test-webhook-notification.sh [base_url] [user_id]
 
 BASE_URL="${1:-http://localhost:3000}"
 USER_ID="${2:-test-user-123}"
-CHARGE_ID="test-charge-$(date +%s)"
+PAYMENT_LINK_ID="test-pl-$(date +%s)"
 
-echo "Testing Coinbase Notification Webhook"
-echo "======================================"
+echo "Testing Coinbase Business Payment Link Notification Webhook"
+echo "============================================================"
 echo "Base URL: $BASE_URL"
 echo "User ID: $USER_ID"
-echo "Charge ID: $CHARGE_ID"
+echo "Payment Link ID: $PAYMENT_LINK_ID"
 echo ""
 
-# Test 1: Simulate Coinbase webhook POST
-echo "Test 1: Sending webhook notification..."
+# Test 1: Simulate Payment Link webhook POST (payment_link.payment.success)
+echo "Test 1: Sending payment_link.payment.success webhook..."
 WEBHOOK_PAYLOAD=$(cat <<EOF
 {
-  "event": {
-    "type": "charge:confirmed",
-    "data": {
-      "id": "$CHARGE_ID",
-      "code": "TESTCODE",
-      "metadata": {
-        "user_id": "$USER_ID"
-      },
-      "payments": [{
-        "value": {
-          "local": {
-            "amount": "10.00",
-            "currency": "USD"
-          }
-        }
-      }]
-    }
+  "event_type": "payment_link.payment.success",
+  "data": {
+    "id": "$PAYMENT_LINK_ID",
+    "metadata": {
+      "user_id": "$USER_ID"
+    },
+    "amount": "10.00",
+    "currency": "USDC",
+    "status": "COMPLETED"
   }
 }
 EOF
@@ -61,10 +53,10 @@ POLL_RESPONSE2=$(curl -s "$BASE_URL/api/webhooks/coinbase-notification?userId=$U
 echo "Response: $POLL_RESPONSE2"
 echo ""
 
-echo "======================================"
+echo "============================================================"
 echo "Test complete!"
 echo ""
 echo "Expected results:"
 echo "- Test 1: {\"received\":true}"
-echo "- Test 2: {\"notifications\":[{...}],\"count\":1}"
+echo "- Test 2: {\"notifications\":[{...status:confirmed...}],\"count\":1}"
 echo "- Test 3: {\"notifications\":[],\"count\":0}"

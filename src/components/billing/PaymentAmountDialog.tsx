@@ -88,8 +88,8 @@ export function PaymentAmountDialog({
     }
   };
 
-  const paymentMethodName = paymentMethod === 'stripe' ? 'Credit Card' : 'Crypto';
-  const paymentProvider = paymentMethod === 'stripe' ? 'Stripe' : 'Coinbase Commerce';
+  const paymentMethodName = paymentMethod === 'stripe' ? 'Credit Card' : 'USDC';
+  const paymentProvider = paymentMethod === 'stripe' ? 'Stripe' : 'Coinbase';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

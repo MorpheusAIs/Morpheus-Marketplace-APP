@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { setSuccessPageToastId, wasPaymentAlreadyConfirmed, clearPaymentConfirmed } from '@/lib/payment-success-toast-store';
 
-const COINBASE_CONFIRMATION_MINS = 12;
+const COINBASE_CONFIRMATION_MSG = 'Your USDC payment on Base is being confirmed. This typically takes under a minute.';
 
 export default function BillingPage() {
   const searchParams = useSearchParams();
@@ -66,7 +66,7 @@ export default function BillingPage() {
             <div>
               <div className="font-semibold">Payment Detected</div>
               <div className="text-sm text-muted-foreground">
-                Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your funds are updated.
+                {COINBASE_CONFIRMATION_MSG}
               </div>
             </div>
           </div>,
@@ -95,7 +95,7 @@ export default function BillingPage() {
               </div>
               <CardTitle className="text-2xl">Payment Successful!</CardTitle>
               <CardDescription className="text-base">
-                Your payment has been processed successfully. Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your balance is updated. A notification will appear when your funds are ready.
+                Your payment has been processed successfully. {COINBASE_CONFIRMATION_MSG} A notification will appear when your funds are ready.
               </CardDescription>
             </CardHeader>
             <CardContent>
