@@ -100,7 +100,11 @@ export default function SignUpPage() {
       const result = await signUp(email, password);
       // If confirmation is required, redirect to confirmation page
       if (result?.requiresConfirmation) {
-        // Redirect to confirmation page with email in query params
+        // Store the age consent so confirm-registration can call verify-age
+        // after auto-signin, avoiding a redundant consent gate for new users.
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('pending_age_consent', 'true');
+        }
         router.push(`/confirm-registration?email=${encodeURIComponent(result.email)}`);
       } else {
         router.push("/api-keys");

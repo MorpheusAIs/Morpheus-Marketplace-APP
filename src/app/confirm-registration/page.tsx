@@ -38,7 +38,7 @@ function getCognitoClient(): CognitoIdentityProviderClient {
 function ConfirmRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { confirmSignUp, isAuthenticated, isLoading: authLoading } = useCognitoAuth();
+  const { confirmSignUp, verifyAge, isAuthenticated, isLoading: authLoading } = useCognitoAuth();
   const { success, error: showError } = useNotification();
   
   const [email, setEmail] = useState("");
@@ -104,6 +104,21 @@ function ConfirmRegistrationContent() {
       }
 
       await confirmSignUp(email, confirmationCode, passwordToUse);
+
+      // If the user checked the age consent box during signup, verify it
+      // via the API now that they are authenticated, so they don't hit the gate.
+      const hadAgeConsent =
+        typeof window !== 'undefined' &&
+        sessionStorage.getItem('pending_age_consent') === 'true';
+      if (hadAgeConsent) {
+        sessionStorage.removeItem('pending_age_consent');
+        try {
+          await verifyAge();
+        } catch {
+          // Non-fatal: AgeVerificationGate will handle it if this fails
+        }
+      }
+
       router.push("/api-keys");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to confirm account");
