@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CognitoDirectAuth } from './cognito-direct-auth';
 import { authEvents } from './auth-events';
 import { API_URLS } from '@/lib/api/config';
-import { apiGet } from '@/lib/api/apiService';
+import { apiGet, apiPost } from '@/lib/api/apiService';
 import { useNotification } from '@/lib/NotificationContext';
 import { safeJsonParseOrNull } from '@/lib/utils/safe-json';
 import { CognitoUser } from '@/lib/types/cognito';
@@ -19,6 +19,11 @@ interface ApiKey {
   is_default: boolean;
 }
 
+interface UserProfile {
+  age_verified: boolean;
+  age_verified_at: string | null;
+}
+
 interface CognitoAuthContextType {
   user: CognitoUser | null;
   accessToken: string | null;
@@ -27,6 +32,8 @@ interface CognitoAuthContextType {
   defaultApiKey: ApiKey | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  ageVerified: boolean | null;
+  verifyAge: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ requiresConfirmation: true; email: string }>;
   confirmSignUp: (email: string, confirmationCode: string, password: string) => Promise<void>;
@@ -48,6 +55,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [defaultApiKey, setDefaultApiKey] = useState<ApiKey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // null = not yet checked, true/false = result from /auth/me
+  const [ageVerified, setAgeVerified] = useState<boolean | null>(null);
   
   const router = useRouter();
 
@@ -146,8 +155,11 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
           setUser(userInfo);
           
-          // Fetch API keys
-          await fetchApiKeys(validAccessToken);
+          // Fetch API keys and age-verification status in parallel
+          await Promise.all([
+            fetchApiKeys(validAccessToken),
+            fetchUserProfile(validAccessToken),
+          ]);
         }
       }
     } catch (error) {
@@ -161,6 +173,17 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       logout();
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchUserProfile = async (token: string) => {
+    try {
+      const response = await apiGet<UserProfile>(API_URLS.me(), token);
+      if (response.data) {
+        setAgeVerified(response.data.age_verified);
+      }
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
     }
   };
 
@@ -191,20 +214,20 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           await autoSelectFirstApiKey(token);
         } else {
           // No active keys — clear any cached credentials so the sidebar
-          // correctly disables Test/Chat even if the backend cache is stale
+          // correctly disables Test even if the backend cache is stale
           sessionStorage.removeItem('verified_api_key');
           sessionStorage.removeItem('verified_api_key_prefix');
           sessionStorage.removeItem('verified_api_key_timestamp');
           sessionStorage.removeItem('verified_api_key_name');
           localStorage.removeItem('selected_api_key_prefix');
 
-          // Notify the user they need to create an API key to use Chat and Test
+          // Notify the user they need to create an API key to use Test
           info(
             'Welcome!',
-            'To get started with Chat and Test, please create your first API key in the Api Keys page.',
+            'To get started with Test, please create your first API key in the API Keys page.',
             {
               actionLabel: 'Create API Key',
-              actionUrl: '/api-keys',
+              actionUrl: '/api-keys?create=true',
               duration: 10000,
             }
           );
@@ -269,7 +292,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         }
         
         if (decryptedData && decryptedData.full_key) {
-          // Store the decrypted key immediately for seamless Chat/Test access
+          // Store the decrypted key immediately for seamless Test access
           sessionStorage.setItem('verified_api_key', decryptedData.full_key);
           sessionStorage.setItem('verified_api_key_prefix', decryptedData.key_prefix);
           sessionStorage.setItem('verified_api_key_timestamp', Date.now().toString());
@@ -290,7 +313,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           // Show success notification using the global notification system
           success(
             'API Key Ready',
-            `Your default API key (${decryptedData.key_prefix}...) has been automatically verified. You can now use Chat and Test!`
+            `Your default API key (${decryptedData.key_prefix}...) has been automatically verified. You can now use Test!`
           );
           
           return;
@@ -329,10 +352,10 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Show welcome notification for first-time users using the global notification system
         info(
           'Welcome!',
-          'To get started with Chat and Test, please create your first API key in the Api Keys page.',
+          'To get started with Test, please create your first API key in the API Keys page.',
           {
             actionLabel: 'Create API Key',
-            actionUrl: '/api-keys',
+            actionUrl: '/api-keys?create=true',
             duration: 10000,
           }
         );
@@ -343,7 +366,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       // Show error notification using the global notification system
       error(
         'API Key Setup Error',
-        'There was an issue setting up your API key. Please visit the Api Keys page to manually select one.',
+        'There was an issue setting up your API key. Please visit the API Keys page to manually select one.',
         {
           actionLabel: 'Go to API Keys',
           actionUrl: '/api-keys',
@@ -375,8 +398,11 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
       setUser(userInfo);
       
-      // Fetch API keys
-      await fetchApiKeys(tokens.accessToken);
+      // Fetch API keys and age-verification status in parallel
+      await Promise.all([
+        fetchApiKeys(tokens.accessToken),
+        fetchUserProfile(tokens.accessToken),
+      ]);
       
     } catch (err) {
       // Check error type - AWS SDK errors have a 'name' property
@@ -473,6 +499,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     setIdToken(null);
     setApiKeys([]);
     setDefaultApiKey(null);
+    setAgeVerified(null);
 
     // Clear API key storage
     sessionStorage.removeItem('verified_api_key');
@@ -488,6 +515,23 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     const validToken = await CognitoDirectAuth.getValidAccessToken();
     if (validToken) {
       await fetchApiKeys(validToken);
+    }
+  };
+
+  const verifyAge = async () => {
+    const validToken = await CognitoDirectAuth.getValidAccessToken();
+    if (!validToken) {
+      throw new Error('No valid access token available');
+    }
+    const response = await apiPost<UserProfile>(
+      API_URLS.verifyAge(),
+      { age_verified: true },
+      validToken
+    );
+    if (response.data?.age_verified_at) {
+      setAgeVerified(true);
+    } else if (response.error) {
+      throw new Error(response.error);
     }
   };
 
@@ -604,6 +648,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     defaultApiKey,
     isAuthenticated: !!user && !!accessToken,
     isLoading,
+    ageVerified,
+    verifyAge,
     signIn,
     signUp,
     confirmSignUp,

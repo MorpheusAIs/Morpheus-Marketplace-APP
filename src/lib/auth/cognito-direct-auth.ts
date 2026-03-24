@@ -529,7 +529,7 @@ export class CognitoDirectAuth {
     const authUrl = new URL(`https://${cognitoConfig.domain}/oauth2/authorize`);
     authUrl.searchParams.set('client_id', cognitoConfig.userPoolClientId);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', 'openid email profile');
+    authUrl.searchParams.set('scope', 'aws.cognito.signin.user.admin openid email profile');
     authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('identity_provider', cognitoProviderName);
