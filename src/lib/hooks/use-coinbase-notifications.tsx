@@ -13,7 +13,7 @@ import { hasSuccessPageToast, getAndClearSuccessPageToastId } from '@/lib/paymen
 
 interface CoinbaseNotification {
   userId: string;
-  chargeId: string;
+  paymentLinkId: string;
   amount: string;
   currency: string;
   timestamp: number;
@@ -24,8 +24,6 @@ interface NotificationResponse {
   notifications: CoinbaseNotification[];
   count: number;
 }
-
-const COINBASE_CONFIRMATION_MINS = 12;
 
 export function useCoinbaseNotifications() {
   const { user } = useCognitoAuth();
@@ -52,7 +50,7 @@ export function useCoinbaseNotifications() {
       // Process each notification
       for (const notification of data.notifications) {
         // Skip if we've already shown this notification
-        const notificationKey = `${notification.chargeId}-${notification.status}-${notification.timestamp}`;
+        const notificationKey = `${notification.paymentLinkId}-${notification.status}-${notification.timestamp}`;
         if (hasShownNotificationRef.current.has(notificationKey)) {
           continue;
         }
@@ -61,7 +59,7 @@ export function useCoinbaseNotifications() {
         hasShownNotificationRef.current.add(notificationKey);
 
         if (notification.status === 'pending') {
-          // charge:pending - Show loading toast (skip if success page already showed one)
+          // Payment detected - Show loading toast (skip if success page already showed one)
           if (!hasSuccessPageToast()) {
             const toastId = toast.loading(
               <div className="flex items-center gap-3">
@@ -69,20 +67,20 @@ export function useCoinbaseNotifications() {
                 <div>
                   <div className="font-semibold">Payment Detected</div>
                   <div className="text-sm text-muted-foreground">
-                    Coinbase takes {COINBASE_CONFIRMATION_MINS} minutes to confirm the transaction before your funds are updated.
+                    Your USDC payment is being confirmed. This typically takes under a minute on Base.
                   </div>
                 </div>
               </div>,
               { duration: Infinity }
             );
-            pendingToastIdsRef.current.set(notification.chargeId, toastId);
+            pendingToastIdsRef.current.set(notification.paymentLinkId, toastId);
           }
         } else if (notification.status === 'confirmed') {
-          // charge:confirmed - Dismiss pending toasts (from webhook or success page), show success, refresh balance
-          const pendingToastId = pendingToastIdsRef.current.get(notification.chargeId);
+          // Payment confirmed - Dismiss pending toasts, show success, refresh balance
+          const pendingToastId = pendingToastIdsRef.current.get(notification.paymentLinkId);
           if (pendingToastId !== undefined) {
             toast.dismiss(pendingToastId);
-            pendingToastIdsRef.current.delete(notification.chargeId);
+            pendingToastIdsRef.current.delete(notification.paymentLinkId);
           }
           const successPageToastId = getAndClearSuccessPageToastId();
           if (successPageToastId !== null) {
@@ -91,11 +89,10 @@ export function useCoinbaseNotifications() {
 
           toast.success(
             <div className="flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-green-500" />
               <div>
                 <div className="font-semibold">Payment Confirmed!</div>
                 <div className="text-sm text-muted-foreground">
-                  {notification.currency} {notification.amount} has been added to your account
+                  {notification.amount} {notification.currency} has been added to your account
                 </div>
               </div>
             </div>,
@@ -108,11 +105,11 @@ export function useCoinbaseNotifications() {
             queryClient.invalidateQueries({ queryKey: ['billing', 'transactions'] });
           }, 1500);
         } else {
-          // charge:failed - Dismiss pending toasts (from webhook or success page)
-          const pendingToastId = pendingToastIdsRef.current.get(notification.chargeId);
+          // Payment failed/expired - Dismiss pending toasts
+          const pendingToastId = pendingToastIdsRef.current.get(notification.paymentLinkId);
           if (pendingToastId !== undefined) {
             toast.dismiss(pendingToastId);
-            pendingToastIdsRef.current.delete(notification.chargeId);
+            pendingToastIdsRef.current.delete(notification.paymentLinkId);
           }
           const successPageToastId = getAndClearSuccessPageToastId();
           if (successPageToastId !== null) {

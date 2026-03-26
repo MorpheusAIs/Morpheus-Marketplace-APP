@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import crypto from 'crypto';
 
 // In-memory store for pending notifications
 // In production, this should be Redis or a database
 interface PendingNotification {
   userId: string;
-  chargeId: string;
+  paymentLinkId: string;
   amount: string;
   currency: string;
   timestamp: number;
@@ -30,111 +29,125 @@ setInterval(() => {
   }
 }, 60000); // Cleanup every minute
 
+// Replay protection: reject events older than 5 minutes
+const REPLAY_WINDOW_MS = 5 * 60 * 1000;
+
 /**
- * Verify Coinbase webhook signature
+ * Verify Payment Link API webhook signature (X-Hook0-Signature format)
+ * Format: t=<timestamp>,h=<header_names>,v1=<hmac_sha256>
  */
-function verifyCoinbaseWebhook(
+function verifyPaymentLinkWebhook(
   payload: string,
-  signature: string,
+  signatureHeader: string,
   secret: string
 ): boolean {
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(payload);
-  const digest = hmac.digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(digest)
-  );
+  try {
+    const parts = signatureHeader.split(',');
+    const params: Record<string, string> = {};
+    for (const part of parts) {
+      const [key, ...valueParts] = part.split('=');
+      params[key] = valueParts.join('=');
+    }
+
+    const timestamp = params['t'];
+    const signature = params['v1'];
+
+    if (!timestamp || !signature) {
+      console.error('[Payment Link Webhook] Missing timestamp or signature in header');
+      return false;
+    }
+
+    // Replay protection
+    const eventTime = parseInt(timestamp, 10) * 1000;
+    if (Date.now() - eventTime > REPLAY_WINDOW_MS) {
+      console.error('[Payment Link Webhook] Event too old, possible replay attack');
+      return false;
+    }
+
+    // Compute HMAC: sign the "timestamp.payload" string
+    const signedPayload = `${timestamp}.${payload}`;
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(signedPayload);
+    const expectedSignature = hmac.digest('hex');
+
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+  } catch (error) {
+    console.error('[Payment Link Webhook] Signature verification error:', error);
+    return false;
+  }
 }
 
 /**
  * POST /api/webhooks/coinbase-notification
- * 
- * Receives webhook notifications from Coinbase Commerce after successful payments.
- * This endpoint stores the notification temporarily and allows the frontend to
- * poll for new notifications to display toast messages and refresh balance.
+ *
+ * Receives webhook notifications from Coinbase Business Payment Link API.
+ * Stores notifications temporarily for frontend polling to display toasts.
  */
 export async function POST(request: NextRequest) {
   try {
-    const headersList = await headers();
-    const signature = headersList.get('x-cc-webhook-signature');
-    
+    const signatureHeader = request.headers.get('x-hook0-signature');
+
     // Read the raw body
     const rawBody = await request.text();
-    
-    // Verify webhook signature if secret is configured
-    const webhookSecret = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET;
-    if (webhookSecret && signature) {
-      const isValid = verifyCoinbaseWebhook(rawBody, signature, webhookSecret);
+
+    // Verify webhook signature
+    const webhookSecret = process.env.COINBASE_PAYMENT_LINK_WEBHOOK_SECRET;
+    if (webhookSecret && signatureHeader) {
+      const isValid = verifyPaymentLinkWebhook(rawBody, signatureHeader, webhookSecret);
       if (!isValid) {
-        console.error('[Coinbase Webhook] Invalid signature');
+        console.error('[Payment Link Webhook] Invalid signature');
         return NextResponse.json(
           { error: 'Invalid signature' },
           { status: 401 }
         );
       }
     } else if (!webhookSecret) {
-      console.warn('[Coinbase Webhook] No webhook secret configured - accepting unverified webhook');
+      console.warn('[Payment Link Webhook] No webhook secret configured - accepting unverified webhook');
     }
 
     // Parse the webhook payload
     const body = JSON.parse(rawBody);
-    
-    // Extract event data (supports both Commerce API and Payment Links API)
-    const eventType = body.event?.type || body.event_type;
-    const eventData = body.event?.data || body.data;
-    
-    console.log('[Coinbase Webhook] Received event:', {
+
+    // Payment Link API event format
+    const eventType: string = body.event_type || body.type;
+    const eventData = body.data || body.event?.data;
+
+    console.log('[Payment Link Webhook] Received event:', {
       type: eventType,
-      chargeId: eventData?.id,
-      chargeCode: eventData?.code,
+      paymentLinkId: eventData?.id,
     });
 
-    // Handle relevant payment events
-    // charge:pending - Payment detected on chain (triggers loading toast; ~12 min until confirmed)
-    // charge:confirmed - Payment fully confirmed (only this triggers balance update)
-    // charge:failed - Payment failed
-    const relevantEvents = ['charge:pending', 'charge:confirmed', 'charge:failed'];
-    
-    if (!relevantEvents.includes(eventType)) {
-      console.log('[Coinbase Webhook] Ignoring event type:', eventType);
+    // Map Payment Link API events to notification statuses
+    const eventStatusMap: Record<string, 'pending' | 'confirmed' | 'failed'> = {
+      'payment_link.payment.success': 'confirmed',
+      'payment_link.payment.failed': 'failed',
+      'payment_link.payment.expired': 'failed',
+    };
+
+    const status = eventStatusMap[eventType];
+    if (!status) {
+      console.log('[Payment Link Webhook] Ignoring event type:', eventType);
       return NextResponse.json({ received: true });
     }
 
     // Extract user ID from metadata
     const userId = eventData?.metadata?.user_id || eventData?.metadata?.userId;
     if (!userId || userId === 'anonymous') {
-      console.error('[Coinbase Webhook] Missing or invalid user_id in metadata');
+      console.error('[Payment Link Webhook] Missing or invalid user_id in metadata');
       return NextResponse.json({ received: true }); // Return success to prevent retries
     }
 
-    // Extract payment details (pricing fallback for charge:pending when payments may be empty)
-    const payments = eventData?.payments || [];
-    const payment = payments[0] || {};
-    const pricing = eventData?.pricing?.local || {};
-    const amount =
-      payment?.value?.local?.amount ||
-      payment?.value?.crypto?.amount ||
-      pricing?.amount ||
-      '0';
-    const currency =
-      payment?.value?.local?.currency ||
-      payment?.value?.crypto?.currency ||
-      pricing?.currency ||
-      'USD';
-
-    // Determine notification status - only charge:confirmed is successful (triggers balance update)
-    const status: 'pending' | 'confirmed' | 'failed' =
-      eventType === 'charge:confirmed'
-        ? 'confirmed'
-        : eventType === 'charge:pending'
-          ? 'pending'
-          : 'failed';
+    // Extract payment details
+    const amount = eventData?.amount || '0';
+    const currency = eventData?.currency || 'USDC';
 
     // Create notification
     const notification: PendingNotification = {
       userId,
-      chargeId: eventData?.id || 'unknown',
+      paymentLinkId: eventData?.id || 'unknown',
       amount,
       currency,
       timestamp: Date.now(),
@@ -146,16 +159,17 @@ export async function POST(request: NextRequest) {
     userNotifications.push(notification);
     pendingNotifications.set(userId, userNotifications);
 
-    console.log('[Coinbase Webhook] Notification stored for user:', {
+    console.log('[Payment Link Webhook] Notification stored for user:', {
       userId,
-      chargeId: notification.chargeId,
+      paymentLinkId: notification.paymentLinkId,
       amount: notification.amount,
       currency: notification.currency,
+      status: notification.status,
     });
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('[Coinbase Webhook] Error processing webhook:', error);
+    console.error('[Payment Link Webhook] Error processing webhook:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -165,7 +179,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/webhooks/coinbase-notification?userId=xxx
- * 
+ *
  * Poll for pending notifications for a user.
  * Returns all pending notifications and clears them.
  */
@@ -190,7 +204,7 @@ export async function GET(request: NextRequest) {
       count: notifications.length,
     });
   } catch (error) {
-    console.error('[Coinbase Webhook] Error fetching notifications:', error);
+    console.error('[Payment Link Webhook] Error fetching notifications:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
