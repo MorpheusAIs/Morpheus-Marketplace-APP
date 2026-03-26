@@ -139,7 +139,7 @@ This application is deployed using **AWS Amplify** with automatic deployments co
 ## 📊 Analytics Integration
 
 ### Google Analytics 4 (GA4)
-- **Measurement ID**: `G-MSQ0EV24TS`
+- **Measurement ID**: `G-RQ88CWRH3X`
 - Real-time user analytics and behavior tracking
 
 ### Google Tag Manager (GTM)
