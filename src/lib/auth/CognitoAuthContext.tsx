@@ -214,17 +214,17 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           await autoSelectFirstApiKey(token);
         } else {
           // No active keys — clear any cached credentials so the sidebar
-          // correctly disables Test/Chat even if the backend cache is stale
+          // correctly disables Test even if the backend cache is stale
           sessionStorage.removeItem('verified_api_key');
           sessionStorage.removeItem('verified_api_key_prefix');
           sessionStorage.removeItem('verified_api_key_timestamp');
           sessionStorage.removeItem('verified_api_key_name');
           localStorage.removeItem('selected_api_key_prefix');
 
-          // Notify the user they need to create an API key to use Chat and Test
+          // Notify the user they need to create an API key to use Test
           info(
             'Welcome!',
-            'To get started with Chat and Test, please create your first API key in the Api Keys page.',
+            'To get started with Test, please create your first API key in the API Keys page.',
             {
               actionLabel: 'Create API Key',
               actionUrl: '/api-keys?create=true',
@@ -292,7 +292,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         }
         
         if (decryptedData && decryptedData.full_key) {
-          // Store the decrypted key immediately for seamless Chat/Test access
+          // Store the decrypted key immediately for seamless Test access
           sessionStorage.setItem('verified_api_key', decryptedData.full_key);
           sessionStorage.setItem('verified_api_key_prefix', decryptedData.key_prefix);
           sessionStorage.setItem('verified_api_key_timestamp', Date.now().toString());
@@ -313,7 +313,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
           // Show success notification using the global notification system
           success(
             'API Key Ready',
-            `Your default API key (${decryptedData.key_prefix}...) has been automatically verified. You can now use Chat and Test!`
+            `Your default API key (${decryptedData.key_prefix}...) has been automatically verified. You can now use Test!`
           );
           
           return;
@@ -352,7 +352,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         // Show welcome notification for first-time users using the global notification system
         info(
           'Welcome!',
-          'To get started with Chat and Test, please create your first API key in the Api Keys page.',
+          'To get started with Test, please create your first API key in the API Keys page.',
           {
             actionLabel: 'Create API Key',
             actionUrl: '/api-keys?create=true',
@@ -366,7 +366,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       // Show error notification using the global notification system
       error(
         'API Key Setup Error',
-        'There was an issue setting up your API key. Please visit the Api Keys page to manually select one.',
+        'There was an issue setting up your API key. Please visit the API Keys page to manually select one.',
         {
           actionLabel: 'Go to API Keys',
           actionUrl: '/api-keys',

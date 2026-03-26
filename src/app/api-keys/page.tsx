@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,7 +47,7 @@ interface ApiKeyResponse {
   name: string;
 }
 
-export default function ApiKeysPage() {
+function ApiKeysPageContent() {
   const { apiKeys, refreshApiKeys, defaultApiKey, getValidToken } = useCognitoAuth();
   const { success, error, warning } = useNotification();
   const searchParams = useSearchParams();
@@ -541,5 +541,13 @@ export default function ApiKeysPage() {
         </AlertDialogContent>
       </AlertDialog>
     </AuthenticatedLayout>
+  );
+}
+
+export default function ApiKeysPage() {
+  return (
+    <Suspense>
+      <ApiKeysPageContent />
+    </Suspense>
   );
 }
