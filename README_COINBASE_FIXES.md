@@ -4,7 +4,7 @@
 
 Your Coinbase payment integration has two issues:
 
-1. **Frontend allows anonymous payments** → Creates charges that can't be credited
+1. **Frontend allows anonymous payments** → Creates payment links that can't be credited
 2. **Balance doesn't update after payment** → User thinks payment failed
 
 I've fixed both issues in this repo (frontend), but you also need to apply fixes to the backend.
@@ -17,7 +17,7 @@ I've fixed both issues in this repo (frontend), but you also need to apply fixes
 
 **Files changed:**
 - ✅ `src/components/billing/FundingSection.tsx`
-- ✅ `src/app/api/coinbase/charge/route.ts`
+- ✅ `src/app/api/coinbase/payment-link/route.ts`
 
 **Changes:**
 1. Prevents anonymous payments (requires login)
@@ -48,7 +48,7 @@ From your logs, Coinbase was sending the same webhook multiple times because:
 3. **Eventually succeeds:** After several attempts
 
 With the fixes:
-- Frontend prevents creating charges without userId
+- Frontend prevents creating payment links without userId
 - Backend handles invalid webhooks gracefully (doesn't throw → Coinbase won't retry)
 - Result: Single webhook, single credit, happy users
 
@@ -146,7 +146,7 @@ echo "   See logs for any errors"
 1. **This repo** = Website (Next.js)
 2. **Other repo** = API server (Python)
 3. **Coinbase sends webhooks to** → API server (not website)
-4. **I fixed:** Website payment flow
+4. **I fixed:** Website payment-link flow
 5. **You need to fix:** API server webhook handler
 
 **Architecture diagram:** See `ARCHITECTURE.md`
@@ -171,4 +171,4 @@ echo "   See logs for any errors"
 
 **Created:** February 12, 2026  
 **Last updated:** February 12, 2026  
-**Status:** Frontend fixes ready, backend fixes documented
+**Status:** Frontend payment-link fixes ready, backend fixes documented

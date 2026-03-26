@@ -35,15 +35,15 @@ This guide walks through migrating from the deprecated Coinbase Commerce API to 
 3. **Webhook robustness** - Better error handling, idempotency, logging
 4. **Security** - Proper signature verification enforced
 
-### What's New (Migration - To Be Implemented)
+### What's New (Migration - Implemented in this repo)
 
 1. **Backend Payment Links API integration** in morpheus-marketplace-api
-2. **Frontend charge creation** using new API format
+2. **Frontend payment-link creation** using the new API format
 3. **Modern Coinbase integration** following 2024 best practices
 
 **Note:** Payment Links API migration requires changes in BOTH repositories:
 - **morpheus-marketplace-api** (backend) - webhook handler updates
-- **Morpheus-Marketplace-APP** (frontend) - charge creation updates
+- **Morpheus-Marketplace-APP** (frontend) - payment-link creation and confirmation UX updates
 
 ---
 
@@ -53,7 +53,8 @@ This guide walks through migrating from the deprecated Coinbase Commerce API to 
 
 **Files changed in Morpheus-Marketplace-APP:**
 - ✅ `src/components/billing/FundingSection.tsx`
-- ✅ `src/app/api/coinbase/charge/route.ts`
+- ✅ `src/app/api/coinbase/payment-link/route.ts`
+- ✅ `src/app/api/webhooks/coinbase-notification/route.ts`
 
 **Files that need fixing in morpheus-marketplace-api:**
 - ⚠️ Backend webhook handler (see BACKEND_WEBHOOK_FIXES.md)
@@ -114,22 +115,14 @@ git revert HEAD~1  # If issues occur
 
 #### Step 2: Update Environment Variables
 
-**Important:** Payment Links API uses JWT Bearer tokens generated from CDP API keys, not simple API key strings.
+**Important:** In the current architecture, JWT Bearer tokens generated from CDP API keys are handled in `morpheus-marketplace-api`, not in this frontend repo.
 
 Add to `.env.local` (development):
 ```bash
-# Old API (keep for now during transition)
-COINBASE_COMMERCE_API_KEY=existing_key
-COINBASE_COMMERCE_WEBHOOK_SECRET=existing_secret
-
-# New Payment Links API (JWT-based authentication)
-COINBASE_CDP_KEY_NAME=organizations/{org_id}/apiKeys/{key_id}
-COINBASE_CDP_PRIVATE_KEY="-----BEGIN EC PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END EC PRIVATE KEY-----\n"
-COINBASE_WEBHOOK_SECRET=your_new_webhook_secret_here
-
-# Backend API (existing)
+# Frontend runtime
 ADMIN_API_SECRET=your_admin_secret
 NEXT_PUBLIC_API_BASE_URL=https://api.mor.org
+COINBASE_PAYMENT_LINK_WEBHOOK_SECRET=your_new_webhook_secret_here
 ```
 
 Add to backend environment variables:
@@ -137,10 +130,10 @@ Add to backend environment variables:
 # In morpheus-marketplace-api
 COINBASE_CDP_KEY_NAME=organizations/{org_id}/apiKeys/{key_id}
 COINBASE_CDP_PRIVATE_KEY="-----BEGIN EC PRIVATE KEY-----\n...\n-----END EC PRIVATE KEY-----\n"
-COINBASE_WEBHOOK_SECRET=your_webhook_secret
+COINBASE_PAYMENT_LINK_WEBHOOK_SECRET=your_webhook_secret
 ```
 
-**Note:** You'll need to generate JWT tokens on-the-fly for each API request. See [Coinbase JWT docs](https://docs.cdp.coinbase.com/coinbase-business/authentication-authorization/api-key-authentication) for implementation.
+**Note:** The frontend calls the backend API only; CDP credential handling and JWT generation live in `morpheus-marketplace-api`.
 
 #### Step 3: Configure Webhooks
 
@@ -150,7 +143,7 @@ COINBASE_WEBHOOK_SECRET=your_webhook_secret
      - **URL:** `https://api.mor.org/api/v1/webhooks/coinbase`
      - **Events:** Select all `payment_link.payment.*` events (new API)
      - **Note:** Same endpoint handles both old and new API formats!
-   - Save webhook secret to environment variables
+    - Save webhook secret to frontend environment variables as `COINBASE_PAYMENT_LINK_WEBHOOK_SECRET`
 
 2. Test webhook:
 ```bash
@@ -181,7 +174,7 @@ fetch('/api/coinbase/payment-link', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     amount: '5.00',
-    currency: 'USD',
+    currency: 'USDC',
     userId: 'YOUR_COGNITO_USER_ID',
     description: 'Test payment'
   })
@@ -195,8 +188,8 @@ Expected response:
 {
   "success": true,
   "payment_link": {
-    "id": "link_abc123",
-    "hosted_url": "https://pay.coinbase.com/...",
+    "id": "69163c762331ed43dc64a6ef",
+    "url": "https://pay.coinbase.com/...",
     "expires_at": "2026-02-12T12:00:00Z",
     "metadata": {
       "user_id": "..."
@@ -207,57 +200,16 @@ Expected response:
 
 ---
 
-### Phase 3: Feature Flag Rollout
+### Phase 3: Frontend Validation and Rollout
 
-**Option A: Gradual Migration (Recommended)**
+The old charge route is already removed in this repo. Frontend rollout now focuses on validating the current payment-link flow against the completed backend migration.
 
-Add feature flag to switch between old and new API:
+Checklist:
 
-1. Add environment variable:
-```bash
-COINBASE_USE_PAYMENT_LINKS=false  # Start with old API
-```
-
-2. Update FundingSection.tsx:
-```typescript
-const openCoinbaseCheckout = async (amount: string) => {
-  const usePaymentLinks = process.env.NEXT_PUBLIC_COINBASE_USE_PAYMENT_LINKS === 'true';
-  
-  const endpoint = usePaymentLinks 
-    ? '/api/coinbase/payment-link'
-    : '/api/coinbase/charge';
-  
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount, currency: 'USD', userId })
-  });
-  
-  const data = await response.json();
-  
-  // Handle both response formats
-  const hostedUrl = data.payment_link?.hosted_url || data.charge?.hosted_url;
-  if (hostedUrl) {
-    window.open(hostedUrl, '_blank');
-  }
-};
-```
-
-3. Rollout schedule:
-```
-Week 1: Deploy with flag=false (old API, with fixes)
-Week 2: Enable for 10% of users (flag=true for test accounts)
-Week 3: Enable for 50% of users
-Week 4: Enable for 100% of users
-Week 5: Remove old API code
-```
-
-**Option B: Immediate Switch (Higher Risk)**
-
-1. Replace old endpoints with new ones
-2. Update webhook URL in Coinbase dashboard
-3. Deploy and monitor closely
-4. Rollback plan ready
+1. Verify the app only calls `/api/coinbase/payment-link`
+2. Verify the backend returns `payment_link.url` and 24-char hex IDs
+3. Verify the billing redirect flow shows success and confirmation messaging
+4. Verify the frontend notification bridge receives `payment_link.payment.*` events
 
 ---
 
@@ -265,10 +217,10 @@ Week 5: Remove old API code
 
 After successful migration:
 
-1. **Remove old frontend code:**
+1. **Remove remaining legacy references from docs/config:**
 ```bash
 # In Morpheus-Marketplace-APP repo
-rm src/app/api/coinbase/charge/route.ts  # Replace with payment-link version
+# Remove old Coinbase Commerce references from docs and deployment config
 ```
 
 2. **Update backend:**
@@ -302,14 +254,10 @@ If issues occur after migration:
 
 ### Immediate Rollback (< 5 minutes)
 ```bash
-# 1. Switch feature flag
-vercel env add COINBASE_USE_PAYMENT_LINKS false
+# 1. Redeploy the previous frontend build
 
-# 2. Redeploy
-vercel --prod
-
-# 3. Verify old API working
-curl https://app.mor.org/api/coinbase/charge
+# 2. Verify the billing page loads and the previous payment-link flow is restored
+curl https://app.mor.org/api/coinbase/payment-link?id=test
 ```
 
 ### Extended Rollback (< 1 hour)
@@ -402,11 +350,11 @@ git push origin main
 ## Troubleshooting
 
 ### Issue: "Payment service not configured"
-**Cause:** Missing `COINBASE_API_KEY` or `COINBASE_API_SECRET`  
+**Cause:** Missing `ADMIN_API_SECRET`, `NEXT_PUBLIC_API_BASE_URL`, or `COINBASE_PAYMENT_LINK_WEBHOOK_SECRET`  
 **Fix:** Add environment variables and redeploy
 
 ### Issue: "Invalid signature" on webhooks
-**Cause:** Wrong `COINBASE_WEBHOOK_SECRET` or signature verification logic error  
+**Cause:** Wrong `COINBASE_PAYMENT_LINK_WEBHOOK_SECRET` or signature verification logic error  
 **Fix:** Verify secret matches Coinbase dashboard, check signature algorithm
 
 ### Issue: Webhook received but no credits added
@@ -434,7 +382,7 @@ git push origin main
 - Bug report: `COINBASE_PAYMENT_ISSUES.md`
 - Architecture: `ARCHITECTURE.md`
 - Backend fixes: `BACKEND_WEBHOOK_FIXES.md`
-- Frontend code: `src/app/api/coinbase/charge/route.ts`
+- Frontend code: `src/app/api/coinbase/payment-link/route.ts`
 - Backend webhook: `morpheus-marketplace-api` repo (Python)
 
 ### Coinbase Support

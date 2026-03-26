@@ -8,7 +8,7 @@
 1. Frontend allowing anonymous payments (userId fallback to 'anonymous')
 2. Backend webhook failing silently when userId missing
 3. UI not refreshing balance after successful payment
-4. Using deprecated Coinbase Commerce API (8 years old)
+4. The previous Coinbase Commerce-based flow had become outdated and needed migration to Payment Links
 
 **Solutions Implemented:**
 1. ✅ **Immediate fixes** for current issues (deployed now)
@@ -49,11 +49,11 @@ setTimeout(() => {
 
 ---
 
-### 2. Backend Charge Creation (`/api/coinbase/charge/route.ts`)
+### 2. Frontend Payment Link Proxy (`/api/coinbase/payment-link/route.ts`)
 
 **Before:**
 ```typescript
-const effectiveUserId = userId || 'anonymous'; // ❌ Accepts anonymous
+const { amount, currency = 'USDC', userId } = body;
 ```
 
 **After:**
@@ -67,7 +67,7 @@ if (!userId || userId === 'anonymous') {
 }
 ```
 
-**Impact:** Backend also validates userId, double-layer protection against anonymous charges.
+**Impact:** The frontend proxy also validates userId before calling the backend payment-link endpoint, adding double-layer protection against anonymous payment-link creation.
 
 ---
 
@@ -171,11 +171,10 @@ Created two new files for modern Coinbase integration:
 - Enhanced metadata support
 - OAuth authentication ready
 
-### 2. `/api/webhooks/coinbase-v2/route.ts`
-- Handles new webhook event types
-- Different signature verification (X-Hook0-Signature)
-- Enhanced payload structure
-- Same idempotency and validation as fixed old webhook
+### 2. `/api/webhooks/coinbase-notification/route.ts`
+- Handles `payment_link.payment.*` notification events for the frontend UX
+- Verifies the `X-Hook0-Signature` format
+- Stores short-lived notifications for client polling and toast updates
 
 ---
 
@@ -184,7 +183,7 @@ Created two new files for modern Coinbase integration:
 ### Modified in Morpheus-Marketplace-APP (Next.js Frontend)
 ```
 ✅ src/components/billing/FundingSection.tsx
-✅ src/app/api/coinbase/charge/route.ts
+✅ src/app/api/coinbase/payment-link/route.ts
 ```
 
 ### Needs Fixing in morpheus-marketplace-api (Python Backend)
@@ -221,7 +220,7 @@ Created two new files for modern Coinbase integration:
    - [ ] Log in as test user
    - [ ] Click "Pay with Crypto"
    - [ ] Enter $5.00 amount
-   - [ ] Complete payment on Coinbase Commerce
+   - [ ] Complete payment on Coinbase
    - [ ] Wait 2 seconds for page reload
    - [ ] Verify balance increased by $5.00
    ```
@@ -236,9 +235,9 @@ Created two new files for modern Coinbase integration:
 
 4. **Error handling test:**
    ```
-   - [ ] Create charge with userId: 'anonymous'
+   - [ ] Create payment-link request with userId: 'anonymous'
    - [ ] Should get 401 error
-   - [ ] Create charge with invalid amount: '-5'
+   - [ ] Create payment-link request with invalid amount: '-5'
    - [ ] Should get 400 error
    ```
 
