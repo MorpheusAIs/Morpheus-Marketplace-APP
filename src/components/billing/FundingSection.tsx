@@ -110,25 +110,49 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
         body: JSON.stringify({
           amount: amount,
           currency: 'USDC',
-          userId: userId,
           description: 'Morpheus AI Credits Purchase',
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Payment link creation failed:', errorData);
-        setError(errorData.error || 'Failed to create payment. Please try again.');
+        const responseText = await response.text();
+        let errorData: Record<string, unknown> = {};
+        try {
+          errorData = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          errorData = { raw: responseText };
+        }
+
+        console.error('Payment link creation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+
+        if (response.status === 404) {
+          setError('Coinbase Business payment endpoint is unavailable. Please contact support.');
+          return;
+        }
+
+        setError(
+          (typeof errorData?.error === 'string' ? errorData.error : null) ||
+            'Failed to create payment. Please try again.'
+        );
         return;
       }
 
       const data = await response.json();
+      const hostedUrl =
+        data?.payment_link?.url ||
+        data?.payment_link?.hosted_url ||
+        data?.charge?.hosted_url ||
+        data?.hosted_url;
 
-      if (data.payment_link?.url) {
-        window.open(data.payment_link.url, '_blank', 'noopener,noreferrer');
+      if (hostedUrl) {
+        window.open(hostedUrl, '_blank', 'noopener,noreferrer');
       } else {
         setError('No payment URL received from Coinbase');
-        console.error('Missing url in payment link response:', data);
+        console.error('Missing payment URL in Coinbase response:', data);
       }
     } catch (err) {
       console.error('Error opening Coinbase checkout:', err);

@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 interface CreatePaymentLinkRequest {
   amount: string;
   currency?: string;
-  userId: string;
   description?: string;
 }
 
@@ -54,12 +53,6 @@ function getBackendConfig() {
   return { adminSecret, apiBaseUrl };
 }
 
-/**
- * POST /api/coinbase/payment-link
- *
- * Creates a Coinbase Business payment link via the backend admin API.
- * The backend handles JWT auth with Coinbase and auto-injects user_id metadata.
- */
 export async function POST(request: NextRequest) {
   try {
     const origin =
@@ -78,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { amount, currency = 'USDC', userId, description } = body;
+    const { amount, currency = 'USDC', description } = body;
 
     if (!amount) {
       return NextResponse.json(
@@ -87,8 +80,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!userId || userId === 'anonymous') {
-      console.error('[Payment Link] Creation attempted without valid userId');
+    const bearerToken = extractBearerToken(request);
+    if (!bearerToken) {
+      console.error('[Payment Link] Creation attempted without Cognito bearer token');
       return NextResponse.json(
         { error: 'Authentication required. Please log in to make a payment.' },
         { status: 401 }
@@ -115,9 +109,6 @@ export async function POST(request: NextRequest) {
     const payload = {
       amount: amount,
       currency: currency,
-      metadata: {
-        user_id: userId,
-      },
       description: description || `Account credit top-up of ${currency} ${amount}`,
       success_redirect_url: `${origin}/billing?payment=success`,
       failure_redirect_url: `${origin}/billing?payment=cancelled`,
@@ -125,15 +116,12 @@ export async function POST(request: NextRequest) {
 
     console.log('[Payment Link] Creating payment link:', {
       origin,
-      userId,
       amount,
       currency,
     });
 
-    const bearerToken = extractBearerToken(request);
-
     const response = await fetch(
-      `${config.apiBaseUrl}/api/v1/billing/admin/payment-links`,
+      `${config.apiBaseUrl}/api/v1/billing/coinbase/payment-links`,
       {
         method: 'POST',
         headers: buildBackendHeaders(config, bearerToken),
@@ -216,7 +204,7 @@ export async function GET(request: NextRequest) {
     const bearerToken = extractBearerToken(request);
 
     const response = await fetch(
-      `${config.apiBaseUrl}/api/v1/billing/admin/payment-links/${paymentLinkId}`,
+      `${config.apiBaseUrl}/api/v1/billing/coinbase/payment-links/${paymentLinkId}`,
       {
         method: 'GET',
         headers: buildBackendHeaders(config, bearerToken),
