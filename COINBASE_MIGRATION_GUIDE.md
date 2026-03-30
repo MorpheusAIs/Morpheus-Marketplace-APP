@@ -4,9 +4,25 @@
 
 This guide walks through migrating from the deprecated Coinbase Commerce API to the modern Payment Links API.
 
-**Status:** New implementation ready for testing  
-**Target completion:** [Set your deadline]  
+**Status:** Frontend migration COMPLETE - ready for integration testing
+**Target completion:** March 31, 2026 (Commerce API shutdown deadline)
 **Risk level:** Medium (payment processing critical)
+
+> **MIGRATION COMPLETED:** The frontend has been updated to use the Coinbase Business
+> Payment Link API via the backend admin endpoints. The old Commerce API charge route
+> has been removed. See backend PR #225 in Morpheus-Marketplace-API for the corresponding
+> backend changes.
+>
+> **Architecture change:** The frontend no longer calls Coinbase APIs directly. Instead,
+> it calls the backend admin endpoint (`POST /admin/payment-links`) which handles JWT
+> authentication with Coinbase and auto-injects `user_id` metadata.
+>
+> **Key frontend changes:**
+> - `src/app/api/coinbase/charge/route.ts` → REMOVED
+> - `src/app/api/coinbase/payment-link/route.ts` → NEW (calls backend admin API)
+> - Webhook handler updated for `X-Hook0-Signature` and `payment_link.payment.*` events
+> - UI updated: USDC on Base instead of multi-currency, faster confirmation messaging
+> - Environment: Uses `ADMIN_API_SECRET` + `COINBASE_PAYMENT_LINK_WEBHOOK_SECRET`
 
 ---
 
