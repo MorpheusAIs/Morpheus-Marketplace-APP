@@ -450,7 +450,7 @@ export default function TestPage() {
                   ) : (
                     filteredModels.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
-                        {model.id}
+                        {model.id.toLowerCase()}
                       </SelectItem>
                     ))
                   )}
