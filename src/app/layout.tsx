@@ -38,6 +38,14 @@ export default async function RootLayout({
     <html lang="en" className="dark">
       {/* {gtmId && <GoogleTagManager gtmId={gtmId} />} */}
       <head>
+        {/* eslint-disable-next-line @next/next/no-sync-scripts -- Cookiebot requires a sync <script id="Cookiebot"> in <head> for self-detection and consent gating */}
+        <script
+          id="Cookiebot"
+          src="https://consent.cookiebot.com/uc.js"
+          data-cbid="6d30a77a-4430-4cde-9119-5232de03c2c4"
+          data-blockingmode="auto"
+          type="text/javascript"
+        />
         <script
           async
           crossOrigin="anonymous"
