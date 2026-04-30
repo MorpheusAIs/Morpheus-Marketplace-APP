@@ -36,6 +36,31 @@ export default function SignUpPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = window.setInterval(() => {
+      const cookiebot = (window as unknown as {
+        Cookiebot?: { hasResponse?: boolean; renew: () => void };
+      }).Cookiebot;
+
+      if (cookiebot) {
+        if (cookiebot.hasResponse === false) {
+          cookiebot.renew();
+        }
+
+        window.clearInterval(interval);
+      }
+
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        window.clearInterval(interval);
+      }
+    }, 300);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   // Email validation regex
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -343,18 +368,6 @@ export default function SignUpPage() {
                     <Link href="/cookies" className="text-muted-foreground hover:text-foreground text-xs">
                       Cookie Policy
                     </Link>
-                    <span className="text-muted-foreground">·</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
-                          (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
-                        }
-                      }}
-                      className="text-muted-foreground hover:text-foreground text-xs cursor-pointer bg-transparent border-0 p-0"
-                    >
-                      Cookie Preferences
-                    </button>
                   </span>
                 </FieldDescription>
               </FieldGroup>
@@ -365,4 +378,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-
