@@ -243,6 +243,22 @@ export default function SignInPage() {
                     <Link href="/terms" className="text-muted-foreground hover:text-foreground text-xs">
                       Terms of Service
                     </Link>
+                    <span className="text-muted-foreground">·</span>
+                    <Link href="/cookies" className="text-muted-foreground hover:text-foreground text-xs">
+                      Cookie Policy
+                    </Link>
+                    <span className="text-muted-foreground">·</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
+                          (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
+                        }
+                      }}
+                      className="text-muted-foreground hover:text-foreground text-xs cursor-pointer bg-transparent border-0 p-0"
+                    >
+                      Cookie Preferences
+                    </button>
                   </span>
                 </FieldDescription>
               </FieldGroup>
