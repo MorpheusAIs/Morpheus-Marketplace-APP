@@ -46,11 +46,7 @@ export default async function RootLayout({
           data-blockingmode="auto"
           type="text/javascript"
         />
-        <script
-          async
-          crossOrigin="anonymous"
-          src="https://tweakcn.com/live-preview.min.js"
-        />
+
       </head>
       <body className={inter.className}>
         {/* {gtmId && (
