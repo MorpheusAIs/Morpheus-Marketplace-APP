@@ -1,9 +1,19 @@
-// import { sendGAEvent, sendGTMEvent } from '@next/third-parties/google';
-
 // Type definitions for tracking events
 export interface GTMEvent {
   event: string;
   [key: string]: string | number | boolean | null | undefined;
+}
+
+declare global {
+  interface Window {
+    Cookiebot?: {
+      consent?: {
+        statistics?: boolean;
+      };
+    };
+    dataLayer?: Array<Record<string, unknown> | IArguments>;
+    gtag?: (command: 'event' | 'config' | 'js', eventName: string | Date, params?: Record<string, unknown>) => void;
+  }
 }
 
 // Common event types for the application
@@ -26,23 +36,26 @@ export const GTM_EVENTS = {
  * Send a custom event to both Google Tag Manager and Google Analytics
  * @param event - The event object to send
  */
-export const trackEvent = (_event: GTMEvent): void => {
+export const trackEvent = (event: GTMEvent): void => {
   if (typeof window === 'undefined') return;
+  if (window.Cookiebot?.consent?.statistics !== true) return;
 
-  // try {
-  //   // Send to Google Tag Manager if GTM ID is available
-  //   if (process.env.NEXT_PUBLIC_GTM_ID) {
-  //     sendGTMEvent(event);
-  //   }
+  try {
+    window.dataLayer = window.dataLayer || [];
 
-  //   // Send to Google Analytics if GA ID is available
-  //   if (process.env.NEXT_PUBLIC_GA_ID) {
-  //     const { event: eventName, ...parameters } = event;
-  //     sendGAEvent('event', eventName, parameters);
-  //   }
-  // } catch (error) {
-  //   console.warn('Failed to send tracking event:', error);
-  // }
+    // Send to Google Tag Manager if GTM ID is available
+    if (process.env.NEXT_PUBLIC_GTM_ID) {
+      window.dataLayer.push(event);
+    }
+
+    // Send to Google Analytics if GA ID is available
+    if (process.env.NEXT_PUBLIC_GA_ID && typeof window.gtag === 'function') {
+      const { event: eventName, ...parameters } = event;
+      window.gtag('event', eventName, parameters);
+    }
+  } catch (error) {
+    console.warn('Failed to send tracking event:', error);
+  }
 };
 
 /**

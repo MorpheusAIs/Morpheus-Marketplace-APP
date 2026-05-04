@@ -343,3 +343,223 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 .recharts-active-shape {
   opacity: 0.9 !important;
 }
+
+/* Cookiebot dialog brand theming */
+#CybotCookiebotDialog,
+#CybotCookiebotDialogBodyUnderlay,
+#CybotCookiebotDialogDetailBodyContent,
+#CybotCookiebotDialogTabContent {
+  font-family: inherit !important;
+}
+
+#CybotCookiebotDialog {
+  background: var(--midnight) !important;
+  color: var(--platinum) !important;
+  border: 1px solid rgba(32, 220, 142, 0.28) !important;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.52) !important;
+}
+
+#CybotCookiebotDialogBodyUnderlay {
+  background: rgba(0, 0, 0, 0.84) !important;
+}
+
+#CybotCookiebotDialogHeader,
+#CybotCookiebotDialogBodyContent,
+#CybotCookiebotDialogDetailBodyContent {
+  color: var(--platinum) !important;
+}
+
+#CybotCookiebotDialog a,
+#CybotCookiebotDialog button,
+#CybotCookiebotDialog label {
+  color: inherit !important;
+}
+
+#CybotCookiebotDialog a {
+  color: var(--emerald) !important;
+}
+
+#CybotCookiebotDialog a:hover {
+  color: var(--neon-mint) !important;
+}
+
+#CybotCookiebotDialog [id*='AllowAll'],
+#CybotCookiebotDialog [id*='Accept'],
+#CybotCookiebotDialog [id*='LevelOptinAllowAll'] {
+  background: var(--emerald) !important;
+  border: 1px solid var(--emerald) !important;
+  color: var(--midnight) !important;
+}
+
+#CybotCookiebotDialog [id*='AllowAll']:hover,
+#CybotCookiebotDialog [id*='Accept']:hover,
+#CybotCookiebotDialog [id*='LevelOptinAllowAll']:hover {
+  background: var(--neon-mint) !important;
+  border-color: var(--neon-mint) !important;
+  color: var(--midnight) !important;
+}
+
+#CybotCookiebotDialog [id*='AllowSelection'],
+#CybotCookiebotDialog [id*='LevelOptinAllowallSelection'] {
+  background: transparent !important;
+  border: 1px solid var(--emerald) !important;
+  color: var(--emerald) !important;
+}
+
+#CybotCookiebotDialog [id*='AllowSelection']:hover,
+#CybotCookiebotDialog [id*='LevelOptinAllowallSelection']:hover {
+  background: rgba(32, 220, 142, 0.12) !important;
+  border-color: var(--emerald) !important;
+  color: var(--neon-mint) !important;
+}
+
+#CybotCookiebotDialog [id*='Decline'],
+#CybotCookiebotDialog [id*='Reject'],
+#CybotCookiebotDialog button[id*='Deny'] {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  color: var(--emerald) !important;
+}
+
+#CybotCookiebotDialog [id*='Decline']:hover,
+#CybotCookiebotDialog [id*='Reject']:hover,
+#CybotCookiebotDialog button[id*='Deny']:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--neon-mint) !important;
+}
+
+#CybotCookiebotDialog [id*='Decline']:active,
+#CybotCookiebotDialog [id*='Decline']:focus-visible,
+#CybotCookiebotDialog [id*='Reject']:active,
+#CybotCookiebotDialog [id*='Reject']:focus-visible,
+#CybotCookiebotDialog button[id*='Deny']:active,
+#CybotCookiebotDialog button[id*='Deny']:focus-visible {
+  background: rgba(32, 220, 142, 0.1) !important;
+  border-color: var(--emerald) !important;
+  color: var(--emerald) !important;
+}
+
+#CybotCookiebotDialog input[type='checkbox'],
+#CybotCookiebotDialog input[type='radio'] {
+  accent-color: var(--neon-mint) !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyLevelButtonSlider'] {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 999px !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyLevelButtonSlider']::before {
+  background: rgba(0, 255, 133, 0.7) !important;
+  box-shadow: 0 0 0 1px rgba(0, 255, 133, 0.25) !important;
+}
+
+#CybotCookiebotDialog input[type='checkbox']:checked + [class*='CybotCookiebotDialogBodyLevelButtonSlider'],
+#CybotCookiebotDialog input[type='radio']:checked + [class*='CybotCookiebotDialogBodyLevelButtonSlider'],
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyLevelButton'][aria-checked='true'] [class*='CybotCookiebotDialogBodyLevelButtonSlider'] {
+  background: rgba(0, 255, 133, 0.24) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyLevelButton'] {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+#CybotCookiebotDialog input[type='checkbox']:checked + [class*='CybotCookiebotDialogBodyLevelButtonSlider']::before,
+#CybotCookiebotDialog input[type='radio']:checked + [class*='CybotCookiebotDialogBodyLevelButtonSlider']::before,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyLevelButton'][aria-checked='true'] [class*='CybotCookiebotDialogBodyLevelButtonSlider']::before {
+  background: var(--neon-mint) !important;
+  box-shadow: 0 0 0 1px rgba(32, 220, 142, 0.35) !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogNavItemLink'],
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyLevelButton'] {
+  color: rgba(235, 235, 235, 0.72) !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogNavItemLink'][aria-selected='true'],
+#CybotCookiebotDialog [class*='CybotCookiebotDialogNavItemLink']:hover {
+  color: var(--emerald) !important;
+}
+
+/* Cookiebot details modal tabs: replace default blue indicator */
+#CybotCookiebotDialog [class*='CybotCookiebotDialogNavItemLink'] {
+  border-bottom-color: transparent !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogNavItemLink'][aria-selected='true'] {
+  border-bottom-color: var(--emerald) !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogNavItemLink'][aria-selected='true']::after,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogNavItemLink'][aria-selected='true']::before,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogActive']::after,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogActive']::before {
+  background: var(--emerald) !important;
+  border-color: var(--emerald) !important;
+}
+
+/* Details view scrollbar styling */
+#CybotCookiebotDialog #CybotCookiebotDialogDetailBodyContent,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBodyContent'] {
+  scrollbar-color: rgba(32, 220, 142, 0.45) var(--midnight) !important;
+  scrollbar-width: thin !important;
+  background-image: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  box-shadow: none !important;
+}
+
+#CybotCookiebotDialog #CybotCookiebotDialogDetailBodyContent::-webkit-scrollbar,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBodyContent']::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+#CybotCookiebotDialog #CybotCookiebotDialogDetailBodyContent::-webkit-scrollbar-track,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBodyContent']::-webkit-scrollbar-track {
+  background: var(--midnight) !important;
+}
+
+#CybotCookiebotDialog #CybotCookiebotDialogDetailBodyContent::-webkit-scrollbar-thumb,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBodyContent']::-webkit-scrollbar-thumb {
+  background: rgba(32, 220, 142, 0.45) !important;
+  border-radius: 999px !important;
+}
+
+#CybotCookiebotDialog #CybotCookiebotDialogDetailBodyContent::-webkit-scrollbar-thumb:hover,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBodyContent']::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 133, 0.62) !important;
+}
+
+/* Remove Cookiebot's bottom white fade/gradient in details */
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBodyContent']::after,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBulkConsentCount']::after,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyContentText']::after {
+  display: none !important;
+  background: transparent !important;
+}
+
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBodyContent']::before,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogDetailBulkConsentCount']::before,
+#CybotCookiebotDialog [class*='CybotCookiebotDialogBodyContentText']::before {
+  display: none !important;
+  background: transparent !important;
+}
+
+#CybotCookiebotDialog [class*='Fade'],
+#CybotCookiebotDialog [class*='fade'],
+#CybotCookiebotDialog [class*='Gradient'],
+#CybotCookiebotDialog [class*='gradient'],
+#CybotCookiebotDialog [class*='Shadow'],
+#CybotCookiebotDialog [class*='shadow'] {
+  background-image: none !important;
+  box-shadow: none !important;
+}
