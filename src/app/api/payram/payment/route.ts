@@ -35,6 +35,13 @@ function getPayRamConfig() {
   return { apiKey, baseUrl: baseUrl.replace(/\/$/, '') };
 }
 
+function getMissingPayRamConfigKeys(): string[] {
+  return [
+    process.env.PAYRAM_BASE_URL ? null : 'PAYRAM_BASE_URL',
+    process.env.PAYRAM_API_KEY ? null : 'PAYRAM_API_KEY',
+  ].filter((key): key is string => key !== null);
+}
+
 function createReferenceId(customerId: string): string {
   return `mor_${customerId}_${Date.now()}`;
 }
@@ -99,9 +106,12 @@ export async function POST(request: NextRequest) {
 
     const config = getPayRamConfig();
     if (!config) {
-      console.error('[PayRam Payment] PAYRAM_API_KEY or PAYRAM_BASE_URL not configured');
+      const missingConfig = getMissingPayRamConfigKeys();
+      console.error('[PayRam Payment] Missing configuration:', missingConfig);
       return NextResponse.json(
-        { error: 'Payment service not configured' },
+        {
+          error: `PayRam is not configured. Missing ${missingConfig.join(' and ')}.`,
+        },
         { status: 500 }
       );
     }
