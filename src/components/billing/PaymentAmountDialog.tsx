@@ -16,11 +16,12 @@ import { Label } from '@/components/ui/label';
 interface PaymentAmountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  paymentMethod: 'stripe' | 'coinbase';
+  paymentMethod: 'stripe' | 'payram';
   onConfirm: (amount: string) => Promise<void>;
 }
 
 const PRESET_AMOUNTS = ['10', '25', '50', '100', '250', '500'];
+const MINIMUM_PAYMENT_AMOUNT = 10;
 
 export function PaymentAmountDialog({
   open,
@@ -54,8 +55,8 @@ export function PaymentAmountDialog({
       return;
     }
 
-    if (numericAmount < 1) {
-      setError('Minimum amount is $1.00');
+    if (numericAmount < MINIMUM_PAYMENT_AMOUNT) {
+      setError('Minimum amount is $10.00');
       return;
     }
 
@@ -89,7 +90,7 @@ export function PaymentAmountDialog({
   };
 
   const paymentMethodName = paymentMethod === 'stripe' ? 'Credit Card' : 'USDC';
-  const paymentProvider = paymentMethod === 'stripe' ? 'Stripe' : 'Coinbase';
+  const paymentProvider = paymentMethod === 'stripe' ? 'Stripe' : 'PayRam';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

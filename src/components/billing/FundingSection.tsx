@@ -21,7 +21,7 @@ interface FundingSectionProps {
 }
 
 type PaymentFlowState = 'none' | 'stripe_success';
-type PaymentMethod = 'stripe' | 'coinbase' | null;
+type PaymentMethod = 'stripe' | 'payram' | null;
 
 export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, userId, stakingWidget }: FundingSectionProps) {
   const [flowState, setFlowState] = useState<PaymentFlowState>('none');
@@ -35,9 +35,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get('payment');
-    const sessionId = params.get('session_id');
 
-    // Handle both Stripe (has session_id) and Coinbase (no session_id) success
+    // Handle payment success after returning from Stripe or PayRam checkout
     if (payment === 'success') {
       setFlowState('stripe_success');
       window.history.replaceState({}, '', window.location.pathname);
@@ -64,7 +63,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     setError(null);
   };
 
-  const handlePaymentMethodClick = (method: 'stripe' | 'coinbase') => {
+  const handlePaymentMethodClick = (method: 'stripe' | 'payram') => {
     setSelectedPaymentMethod(method);
     setShowPaymentDialog(true);
     setError(null);
@@ -73,8 +72,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   const handlePaymentConfirm = async (amount: string) => {
     if (selectedPaymentMethod === 'stripe') {
       await openStripeCheckout(amount);
-    } else if (selectedPaymentMethod === 'coinbase') {
-      await openCoinbaseCheckout(amount);
+    } else if (selectedPaymentMethod === 'payram') {
+      await openPayRamCheckout(amount);
     }
   };
 
@@ -87,11 +86,11 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const openCoinbaseCheckout = async (amount: string) => {
+  const openPayRamCheckout = async (amount: string) => {
     // CRITICAL: Do not allow payments without authenticated user
     if (!userId) {
       setError('You must be logged in to make a payment');
-      console.error('Attempted Coinbase checkout without userId');
+      console.error('Attempted PayRam checkout without userId');
       return;
     }
 
@@ -104,12 +103,14 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('/api/coinbase/payment-link', {
+      const response = await fetch('/api/payram/payment', {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          amount: amount,
+          amount,
           currency: 'USDC',
+          chain: 'base',
+          customerId: userId,
           description: 'Morpheus AI Credits Purchase',
         }),
       });
@@ -130,7 +131,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
         });
 
         if (response.status === 404) {
-          setError('Coinbase Business payment endpoint is unavailable. Please contact support.');
+          setError('PayRam payment endpoint is unavailable. Please contact support.');
           return;
         }
 
@@ -143,19 +144,17 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
 
       const data = await response.json();
       const hostedUrl =
-        data?.payment_link?.url ||
-        data?.payment_link?.hosted_url ||
-        data?.charge?.hosted_url ||
-        data?.hosted_url;
+        data?.payment?.url ||
+        data?.url;
 
       if (hostedUrl) {
         window.open(hostedUrl, '_blank', 'noopener,noreferrer');
       } else {
-        setError('No payment URL received from Coinbase');
-        console.error('Missing payment URL in Coinbase response:', data);
+        setError('No payment URL received from PayRam');
+        console.error('Missing payment URL in PayRam response:', data);
       }
     } catch (err) {
-      console.error('Error opening Coinbase checkout:', err);
+      console.error('Error opening PayRam checkout:', err);
       setError('Failed to initialize payment. Please try again.');
     }
   };
@@ -217,7 +216,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             <Button
               variant="outline"
               className="w-full justify-between h-auto p-4"
-              onClick={() => handlePaymentMethodClick('coinbase')}
+              onClick={() => handlePaymentMethodClick('payram')}
               disabled={!userId}
             >
               <div className="flex items-center gap-3">
@@ -227,7 +226,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                 <div className="text-left">
                   <p className="font-medium">Pay with Crypto</p>
                   <p className="text-xs text-muted-foreground">
-                    {userId ? 'USDC on Base via Coinbase' : 'Login required'}
+                    {userId ? 'USDC on Base via PayRam' : 'Login required'}
                   </p>
                 </div>
               </div>
