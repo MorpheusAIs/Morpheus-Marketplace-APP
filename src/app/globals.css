@@ -344,39 +344,85 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
   opacity: 0.9 !important;
 }
 
-/* vanilla-cookieconsent — dark turquoise theme.
-   Activated via cc--darkmode + cc--dark-turquoise classes on <html>. */
+/* vanilla-cookieconsent — Morpheus brand theme.
+   Activated via cc--darkmode + cc--dark-turquoise classes on <html>.
+   Variables consumed by node_modules/vanilla-cookieconsent/dist/cookieconsent.css. */
 .cc--dark-turquoise {
     color-scheme: dark;
 
-    --cc-bg: #161a1c;
-    --cc-primary-color: rgb(239, 244, 246);
-    --cc-secondary-color: #b1bdc3;
+    /* Surface */
+    --cc-bg: var(--midnight);
+    --cc-overlay-bg: rgba(0, 0, 0, 0.84);
 
-    --cc-btn-primary-bg: #60fed2;
-    --cc-btn-primary-color: #000;
-    --cc-btn-primary-hover-bg: #4dd4ae;
-    --cc-btn-primary-hover-color: #000;
+    /* Text */
+    --cc-primary-color: var(--platinum);
+    --cc-secondary-color: rgba(235, 235, 235, 0.72);
+    --cc-link-color: var(--emerald);
 
-    --cc-btn-secondary-bg: #242c31;
-    --cc-btn-secondary-color: var(--cc-primary-color);
-    --cc-btn-secondary-hover-bg: #d4dae0;
-    --cc-btn-secondary-hover-color: #000;
+    /* Primary button (accept all / OK) */
+    --cc-btn-primary-bg: var(--emerald);
+    --cc-btn-primary-color: var(--midnight);
+    --cc-btn-primary-border-color: var(--emerald);
+    --cc-btn-primary-hover-bg: var(--neon-mint);
+    --cc-btn-primary-hover-color: var(--midnight);
+    --cc-btn-primary-hover-border-color: var(--neon-mint);
 
-    --cc-cookie-category-block-bg: #1e2428;
-    --cc-cookie-category-block-border: #1e2428;
-    --cc-cookie-category-block-hover-bg: #242c31;
-    --cc-cookie-category-block-hover-border: #242c31;
-    --cc-cookie-category-expanded-block-hover-bg: #242c31;
-    --cc-cookie-category-expanded-block-bg: #1e2428;
-    --cc-toggle-readonly-bg: #343e45;
-    --cc-overlay-bg: rgba(4, 6, 8, .85)!important;
+    /* Secondary button (reject all / manage preferences / do not sell) */
+    --cc-btn-secondary-bg: transparent;
+    --cc-btn-secondary-color: var(--emerald);
+    --cc-btn-secondary-border-color: rgba(32, 220, 142, 0.45);
+    --cc-btn-secondary-hover-bg: rgba(32, 220, 142, 0.12);
+    --cc-btn-secondary-hover-color: var(--neon-mint);
+    --cc-btn-secondary-hover-border-color: var(--emerald);
 
-    --cc-toggle-on-knob-bg: var(--cc-bg);
-    --cc-toggle-readonly-knob-bg: var( --cc-cookie-category-block-bg);
+    /* Category cards in the preferences modal */
+    --cc-cookie-category-block-bg: var(--matrix-green);
+    --cc-cookie-category-block-border: rgba(32, 220, 142, 0.18);
+    --cc-cookie-category-block-hover-bg: var(--eclipse);
+    --cc-cookie-category-block-hover-border: rgba(32, 220, 142, 0.32);
+    --cc-cookie-category-expanded-block-bg: var(--matrix-green);
+    --cc-cookie-category-expanded-block-hover-bg: var(--eclipse);
+    --cc-section-category-border: rgba(32, 220, 142, 0.18);
 
-    --cc-separator-border-color: #222a30;
+    /* Toggles */
+    --cc-toggle-on-bg: var(--emerald);
+    --cc-toggle-on-knob-bg: var(--midnight);
+    --cc-toggle-off-bg: rgba(255, 255, 255, 0.08);
+    --cc-toggle-off-knob-bg: var(--platinum);
+    --cc-toggle-readonly-bg: rgba(32, 220, 142, 0.18);
+    --cc-toggle-readonly-knob-bg: var(--matrix-green);
+    --cc-toggle-readonly-knob-icon-color: rgba(32, 220, 142, 0.6);
+    --cc-toggle-enabled-icon-color: var(--midnight);
+    --cc-toggle-disabled-icon-color: var(--platinum);
 
-    --cc-footer-border-color: #212529;
-    --cc-footer-bg: #0f1112;
+    /* Dividers */
+    --cc-separator-border-color: rgba(32, 220, 142, 0.18);
+
+    /* Footer (preferences modal action bar) */
+    --cc-footer-bg: var(--matrix-green);
+    --cc-footer-border-color: rgba(32, 220, 142, 0.18);
+    --cc-footer-color: rgba(235, 235, 235, 0.72);
+
+    /* Webkit scrollbar inside modals */
+    --cc-webkit-scrollbar-bg: transparent;
+    --cc-webkit-scrollbar-hover-bg: rgba(32, 220, 142, 0.5);
+
+    /* Geometry — match the app's --radius (0.5rem) and pill toggles */
+    --cc-modal-border-radius: 0.5rem;
+    --cc-btn-border-radius: 0.5rem;
+    --cc-pm-toggle-border-radius: 999px;
+}
+
+/* Brand emerald glow on both modals — matches the Sonner toast styling. */
+.cc--dark-turquoise #cc-main .cm,
+.cc--dark-turquoise #cc-main .pm {
+    border: 1px solid rgba(32, 220, 142, 0.28) !important;
+    box-shadow:
+        0 0 24px rgba(32, 220, 142, 0.35),
+        0 24px 56px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Inherit the app's font stack inside the consent UI. */
+.cc--dark-turquoise #cc-main {
+    font-family: inherit;
 }
