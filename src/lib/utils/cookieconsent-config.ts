@@ -32,12 +32,6 @@ const STRICT_TRANSLATIONS = {
         linkedCategory: 'necessary',
       },
       {
-        title: 'Functionality Cookies',
-        description:
-          'These cookies remember your preferences (theme, language, last-used model, etc.) so the site behaves the way you expect on return visits.',
-        linkedCategory: 'functionality',
-      },
-      {
         title: 'Analytics Cookies',
         description:
           'These cookies let us measure how the site is used (page views, button clicks, errors) so we can improve performance and reliability. They never identify you personally.',
@@ -101,10 +95,6 @@ export function buildCookieConsentConfig(mode: ConsentMode): CookieConsentConfig
       necessary: {
         enabled: true,
         readOnly: true,
-      },
-      functionality: {
-        // Pre-enabled outside strict regions so preference cookies just work.
-        enabled: !isStrict,
       },
       analytics: {
         // Pre-enabled outside strict regions; in strict regions the user must

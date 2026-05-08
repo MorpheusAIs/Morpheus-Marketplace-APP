@@ -55,7 +55,7 @@ export default async function RootLayout({
     : '';
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark cc--darkmode cc--dark-turquoise">
       <head>
         {gtmId && (
           <Script
