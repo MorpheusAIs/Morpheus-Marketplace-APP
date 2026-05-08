@@ -107,10 +107,9 @@ export function NavUser({
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => {
-                if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
-                  (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
-                }
+              onClick={async () => {
+                const CookieConsent = await import('vanilla-cookieconsent');
+                CookieConsent.showPreferences();
               }}
               className="w-full justify-start"
             >
@@ -197,10 +196,9 @@ export function NavUser({
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => {
-              if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
-                (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
-              }
+            onClick={async () => {
+              const CookieConsent = await import('vanilla-cookieconsent');
+              CookieConsent.showPreferences();
             }}
           >
             <Cookie className="mr-2 h-4 w-4" />
