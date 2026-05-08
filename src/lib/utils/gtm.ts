@@ -4,16 +4,51 @@ export interface GTMEvent {
   [key: string]: string | number | boolean | null | undefined;
 }
 
+type ConsentMode = 'strict' | 'opt-out' | 'implied';
+
 declare global {
   interface Window {
-    Cookiebot?: {
-      consent?: {
-        statistics?: boolean;
-      };
-    };
     dataLayer?: Array<Record<string, unknown> | IArguments>;
     gtag?: (command: 'event' | 'config' | 'js', eventName: string | Date, params?: Record<string, unknown>) => void;
+    MorpheusConsent?: {
+      mode: ConsentMode;
+      country: string | null;
+      region: string | null;
+    };
   }
+}
+
+function isGpcSignaled(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
+}
+
+async function analyticsAccepted(): Promise<boolean> {
+  try {
+    const CookieConsent = await import('vanilla-cookieconsent');
+    return CookieConsent.acceptedCategory('analytics');
+  } catch {
+    return false;
+  }
+}
+
+async function shouldTrack(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  const mode: ConsentMode = window.MorpheusConsent?.mode ?? 'strict';
+
+  if (mode === 'strict') {
+    return await analyticsAccepted();
+  }
+
+  if (mode === 'opt-out') {
+    if (isGpcSignaled()) return false;
+    // The provider pre-accepts on first visit; if the user later opts out via
+    // the banner, vanilla-cookieconsent flips this back to false.
+    return await analyticsAccepted();
+  }
+
+  // implied: rest of world — always allow.
+  return true;
 }
 
 // Common event types for the application
@@ -37,25 +72,26 @@ export const GTM_EVENTS = {
  * @param event - The event object to send
  */
 export const trackEvent = (event: GTMEvent): void => {
-  if (typeof window === 'undefined') return;
-  if (window.Cookiebot?.consent?.statistics !== true) return;
+  void (async () => {
+    if (!(await shouldTrack())) return;
 
-  try {
-    window.dataLayer = window.dataLayer || [];
+    try {
+      window.dataLayer = window.dataLayer || [];
 
-    // Send to Google Tag Manager if GTM ID is available
-    if (process.env.NEXT_PUBLIC_GTM_ID) {
-      window.dataLayer.push(event);
+      // Send to Google Tag Manager if GTM ID is available
+      if (process.env.NEXT_PUBLIC_GTM_ID) {
+        window.dataLayer.push(event);
+      }
+
+      // Send to Google Analytics if GA ID is available
+      if (process.env.NEXT_PUBLIC_GA_ID && typeof window.gtag === 'function') {
+        const { event: eventName, ...parameters } = event;
+        window.gtag('event', eventName, parameters);
+      }
+    } catch (error) {
+      console.warn('Failed to send tracking event:', error);
     }
-
-    // Send to Google Analytics if GA ID is available
-    if (process.env.NEXT_PUBLIC_GA_ID && typeof window.gtag === 'function') {
-      const { event: eventName, ...parameters } = event;
-      window.gtag('event', eventName, parameters);
-    }
-  } catch (error) {
-    console.warn('Failed to send tracking event:', error);
-  }
+  })();
 };
 
 /**

@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import Script from "next/script";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function CookiesPageClient() {
+  const openPreferences = async () => {
+    const CookieConsent = await import("vanilla-cookieconsent");
+    CookieConsent.showPreferences();
+  };
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,18 +41,16 @@ export function CookiesPageClient() {
         <h1 className="text-2xl font-bold text-foreground mt-2 mb-4">
           Cookie Policy
         </h1>
-        <p className="text-muted-foreground mb-8 leading-relaxed">
-          This website uses cookies. The table below is automatically generated
-          by Cookiebot and lists every cookie used on this site, its purpose,
-          and its duration. To change your consent at any time, use the
-          &ldquo;Cookie Preferences&rdquo; link in the footer of any page.
+        <p className="text-muted-foreground mb-6 leading-relaxed">
+          This website uses cookies in three categories: strictly necessary
+          (required for the site to work), functionality (remember your
+          preferences), and analytics (help us measure usage so we can improve).
+          You can change your choice at any time using the button below.
         </p>
 
-        <Script
-          id="CookieDeclaration"
-          src="https://consent.cookiebot.com/6d30a77a-4430-4cde-9119-5232de03c2c4/cd.js"
-          strategy="afterInteractive"
-        />
+        <Button onClick={openPreferences} className="mb-8">
+          Manage cookie preferences
+        </Button>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-x-4 gap-y-2 justify-center text-sm">
           <Link
