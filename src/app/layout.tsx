@@ -10,6 +10,7 @@ import { GTMProvider } from '@/components/providers/GTMProvider';
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
 import { CoinbaseNotificationListener } from '@/components/CoinbaseNotificationListener';
+import { getRegionInfo } from '@/lib/utils/region';
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -32,10 +33,39 @@ export default async function RootLayout({
 }>) {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+  const { consentMode, country, region } = await getRegionInfo();
+
+  const isStrict = consentMode === 'strict';
+  const isOptOut = consentMode === 'opt-out';
+
+  // Strict regions (EU/EEA/UK/CH/BR/QC, or unknown geo): keep Cookiebot's manual
+  // blocking attributes so scripts only run after the user grants consent.
+  // Non-strict regions: tell Cookiebot to ignore these scripts so they execute
+  // by default; for opt-out regions we still gate on the GPC signal at runtime.
+  const consentAttrs: Record<string, string> = isStrict
+    ? { type: 'text/plain', 'data-cookieconsent': 'statistics' }
+    : { 'data-cookieconsent': 'ignore' };
+
+  // Opt-out regions (US privacy-law states): honor Global Privacy Control as
+  // a legally-binding opt-out signal. Bail out of the IIFE before any tag
+  // initialization if GPC is set.
+  const gpcGuard = isOptOut
+    ? "if(typeof navigator!=='undefined'&&navigator.globalPrivacyControl===true)return;"
+    : '';
+
+  const consentBootstrap = `window.MorpheusConsent=${JSON.stringify({
+    mode: consentMode,
+    country,
+    region,
+  })};`;
 
   return (
     <html lang="en" className="dark">
       <head>
+        <script
+          id="morpheus-consent-bootstrap"
+          dangerouslySetInnerHTML={{ __html: consentBootstrap }}
+        />
         <Script
           id="Cookiebot"
           src="https://consent.cookiebot.com/uc.js"
@@ -46,38 +76,35 @@ export default async function RootLayout({
         {gtmId && (
           <Script
             id="gtm-loader"
-            type="text/plain"
-            data-cookieconsent="statistics"
             strategy="afterInteractive"
+            {...consentAttrs}
           >
-            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            {`(function(){${gpcGuard}(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','${gtmId}');`}
+})(window,document,'script','dataLayer','${gtmId}');})();`}
           </Script>
         )}
         {gaId && (
           <Script
             id="gtag-base"
             src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-            type="text/plain"
-            data-cookieconsent="statistics"
             strategy="afterInteractive"
+            {...consentAttrs}
           />
         )}
         {gaId && (
           <Script
             id="gtag-config"
-            type="text/plain"
-            data-cookieconsent="statistics"
             strategy="afterInteractive"
+            {...consentAttrs}
           >
-            {`window.dataLayer = window.dataLayer || [];
+            {`(function(){${gpcGuard}window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 window.gtag = gtag;
 gtag('js', new Date());
-gtag('config', '${gaId}');`}
+gtag('config', '${gaId}');})();`}
           </Script>
         )}
       </head>

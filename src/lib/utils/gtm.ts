@@ -4,6 +4,8 @@ export interface GTMEvent {
   [key: string]: string | number | boolean | null | undefined;
 }
 
+type ConsentMode = 'strict' | 'opt-out' | 'implied';
+
 declare global {
   interface Window {
     Cookiebot?: {
@@ -13,7 +15,34 @@ declare global {
     };
     dataLayer?: Array<Record<string, unknown> | IArguments>;
     gtag?: (command: 'event' | 'config' | 'js', eventName: string | Date, params?: Record<string, unknown>) => void;
+    MorpheusConsent?: {
+      mode: ConsentMode;
+      country: string | null;
+      region: string | null;
+    };
   }
+}
+
+function isGpcSignaled(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
+}
+
+function shouldTrack(): boolean {
+  if (typeof window === 'undefined') return false;
+  const mode: ConsentMode = window.MorpheusConsent?.mode ?? 'strict';
+
+  if (mode === 'strict') {
+    return window.Cookiebot?.consent?.statistics === true;
+  }
+
+  if (mode === 'opt-out') {
+    if (isGpcSignaled()) return false;
+    if (window.Cookiebot?.consent?.statistics === false) return false;
+    return true;
+  }
+
+  return true;
 }
 
 // Common event types for the application
@@ -37,8 +66,7 @@ export const GTM_EVENTS = {
  * @param event - The event object to send
  */
 export const trackEvent = (event: GTMEvent): void => {
-  if (typeof window === 'undefined') return;
-  if (window.Cookiebot?.consent?.statistics !== true) return;
+  if (!shouldTrack()) return;
 
   try {
     window.dataLayer = window.dataLayer || [];
