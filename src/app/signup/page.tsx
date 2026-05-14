@@ -36,31 +36,6 @@ export default function SignUpPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  useEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 20;
-    const interval = window.setInterval(() => {
-      const cookiebot = (window as unknown as {
-        Cookiebot?: { hasResponse?: boolean; renew: () => void };
-      }).Cookiebot;
-
-      if (cookiebot) {
-        if (cookiebot.hasResponse === false) {
-          cookiebot.renew();
-        }
-
-        window.clearInterval(interval);
-      }
-
-      attempts += 1;
-      if (attempts >= maxAttempts) {
-        window.clearInterval(interval);
-      }
-    }, 300);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
   // Email validation regex
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
