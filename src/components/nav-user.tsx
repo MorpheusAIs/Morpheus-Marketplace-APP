@@ -7,7 +7,6 @@ import {
   LogOut,
   FileText,
   Shield,
-  Cookie,
 } from "lucide-react";
 import {
   Avatar,
@@ -97,28 +96,6 @@ export function NavUser({
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="w-full justify-start">
-              <Link href="/cookies">
-                <Cookie className="h-4 w-4" />
-                <span>Cookie Policy</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => {
-                if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
-                  (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
-                }
-              }}
-              className="w-full justify-start"
-            >
-              <Cookie className="h-4 w-4" />
-              <span>Cookie Preferences</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
           {/* Log out Menu Item */}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={() => onLogout?.()} className="w-full justify-start">
@@ -190,22 +167,6 @@ export function NavUser({
               Privacy
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/cookies">
-              <Cookie className="mr-2 h-4 w-4" />
-              Cookie Policy
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
-                (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
-              }
-            }}
-          >
-            <Cookie className="mr-2 h-4 w-4" />
-            Cookie Preferences
-          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onLogout}>
@@ -216,4 +177,3 @@ export function NavUser({
     </DropdownMenu>
   );
 }
-

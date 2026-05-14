@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import Script from "next/script";
 import { ArrowLeft } from "lucide-react";
 
 export function CookiesPageClient() {
@@ -38,17 +37,9 @@ export function CookiesPageClient() {
           Cookie Policy
         </h1>
         <p className="text-muted-foreground mb-8 leading-relaxed">
-          This website uses cookies. The table below is automatically generated
-          by Cookiebot and lists every cookie used on this site, its purpose,
-          and its duration. To change your consent at any time, use the
-          &ldquo;Cookie Preferences&rdquo; link in the footer of any page.
+          This website uses cookieless Umami analytics and does not use a cookie
+          consent banner for analytics tracking.
         </p>
-
-        <Script
-          id="CookieDeclaration"
-          src="https://consent.cookiebot.com/6d30a77a-4430-4cde-9119-5232de03c2c4/cd.js"
-          strategy="afterInteractive"
-        />
 
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-x-4 gap-y-2 justify-center text-sm">
           <Link
