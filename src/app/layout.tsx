@@ -6,6 +6,7 @@ import { ConversationProvider } from '@/lib/ConversationContext';
 import { StreamManagerProvider } from '@/lib/StreamManagerContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
 import { QueryProvider } from '@/components/providers/QueryProvider';
+import { UmamiInteractionTracker } from '@/components/umami-interaction-tracker';
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
 import { CoinbaseNotificationListener } from '@/components/CoinbaseNotificationListener';
@@ -51,6 +52,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <QueryProvider>
           <NotificationProvider>
+            <UmamiInteractionTracker />
             <CognitoAuthProvider>
               <ConversationProvider>
                 <StreamManagerProvider>
