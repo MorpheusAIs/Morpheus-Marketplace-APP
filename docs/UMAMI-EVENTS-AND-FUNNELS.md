@@ -40,5 +40,7 @@ Shared properties: `current_path`, `page_title`, `page_section`, and `element_ar
 
 ## Authenticated-flow QA notes
 
-- Local environment contains Cognito configuration but no test account credentials or reusable confirmed session, so fully authenticated API-key/chat/billing flows could not be exercised without creating or receiving a real account.
-- Unauthenticated protected-route QA opened `/api-keys?create=true`, verified the app redirects to `/signin`, and confirmed Umami sends `button-click`, `form-submit`, and `link-click-internal` events from the sign-in flow without collecting form values.
+- Local environment contains Cognito configuration but no real test account credentials or reusable confirmed session. To exercise the protected client UI without collecting or inventing production credentials, browser QA used a fresh local-only Cognito-shaped JWT and mocked `/auth/me` plus `/keys` responses.
+- Production-server browser QA on `http://localhost:3402/` loaded both `script.js` and `recorder.js` for website id `9ee22931-b645-4df8-853c-5eba51bfa9e4`.
+- Protected-route QA confirmed Umami `/api/send` POST payloads for programmatic button destinations: `/test` emitted `button-click` with `action_name: go-to-api-keys` and `destination: /api-keys`; `/billing` emitted `button-click` with `action_name: open-pricing-docs` and `destination: https://apidocs.mor.org/documentation/models/pricing?utm_source=api-admin`; `/usage-analytics` emitted `button-click` with `action_name: export-usage-data` and `destination: /usage-analytics/export-data`.
+- Unauthenticated protected-route QA also opened `/api-keys?create=true`, verified the app redirects to `/signin`, and confirmed Umami sends `button-click`, `form-submit`, and `link-click-internal` events from the sign-in flow without collecting form values.
