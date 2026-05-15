@@ -20,7 +20,7 @@ Shared properties: `current_path`, `page_title`, `page_section`, and `element_ar
 
 ## Saved Umami reports
 
-- Funnel `Inference API: signup and activation funnel`: `45adde0d-25f7-4367-9a64-81bd38922c97`.
+- Funnel `Inference API: signup and activation funnel`: `45adde0d-25f7-4367-9a64-81bd38922c97` (`type: funnel`, steps: path `/signin` → event `form-submit` → event `button-click`, 30-minute window).
 - Journey `Inference API: product usage journey`: `3698ba48-a209-4d44-aeed-13d452b0f361`.
 - Breakdown `Inference API: interaction breakdown`: `6ef7c162-37c8-4333-81d4-512d6ae42c7d`.
 - Goal `Inference API: form submit goal`: `e4fa42b2-f7fa-4776-aebe-a2c0d594758c`.
