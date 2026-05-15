@@ -31,3 +31,14 @@ Shared properties: `current_path`, `page_title`, `page_section`, and `element_ar
 - Source inventory found 261 link/button/action/form patterns across 43 TSX files.
 - Root tracking covers all `a[href]`, `button`, `[role='button']`, `[data-umami-action]`, `[data-analytics-action]`, and form submits.
 - No non-native clickable `div`, `span`, `li`, or card wrappers were found in the source inventory; custom UI action components render through button-like components and are captured by the root handler.
+
+## Session replay verification
+
+- API check confirmed replay is enabled for website `9ee22931-b645-4df8-853c-5eba51bfa9e4` with `sampleRate: 0.15`, `maskLevel: moderate`, and `maxDuration: 300000`.
+- Forced sampled browser QA on `http://localhost:3302/` loaded `script.js` and `recorder.js`, obtained an Umami session cache, and received `200 {"ok":true}` from `/api/record`.
+- Replay list verification returned replay `c17aa698-dfc1-5731-8219-ac018be3944b` with session `c81d09a2-765e-54b9-912c-9212d2b5abd7`, `11` events, `1` chunk, and replay detail endpoint returned `11` playback events.
+
+## Authenticated-flow QA notes
+
+- Local environment contains Cognito configuration but no test account credentials or reusable confirmed session, so fully authenticated API-key/chat/billing flows could not be exercised without creating or receiving a real account.
+- Unauthenticated protected-route QA opened `/api-keys?create=true`, verified the app redirects to `/signin`, and confirmed Umami sends `button-click`, `form-submit`, and `link-click-internal` events from the sign-in flow without collecting form values.
