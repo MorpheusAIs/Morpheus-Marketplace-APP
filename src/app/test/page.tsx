@@ -365,6 +365,8 @@ export default function TestPage() {
               <Button 
                 onClick={() => router.push('/api-keys')}
                 className="w-full bg-green-500 hover:bg-green-600 text-white"
+                data-analytics-action="go-to-api-keys"
+                data-analytics-destination="/api-keys"
               >
                 Go to API Keys
               </Button>
@@ -391,7 +393,13 @@ export default function TestPage() {
               {/* Row 1: Label and Switch Key Button (Desktop) */}
               <div className="hidden sm:flex sm:items-center gap-3">
                 <Label className="text-sm font-medium shrink-0">Selected API Key:</Label>
-                <Button variant="outline" className="sm:ml-auto shrink-0" onClick={() => router.push('/api-keys')}>
+                <Button
+                  variant="outline"
+                  className="sm:ml-auto shrink-0"
+                  data-analytics-action="switch-api-key"
+                  data-analytics-destination="/api-keys"
+                  onClick={() => router.push('/api-keys')}
+                >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Switch Key
                 </Button>
@@ -423,7 +431,13 @@ export default function TestPage() {
               </div>
               {/* Mobile: Row 2 - Switch Key Button */}
               <div className="flex sm:hidden">
-                <Button variant="outline" className="w-full" onClick={() => router.push('/api-keys')}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  data-analytics-action="switch-api-key"
+                  data-analytics-destination="/api-keys"
+                  onClick={() => router.push('/api-keys')}
+                >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Switch Key
                 </Button>
@@ -564,4 +578,3 @@ export default function TestPage() {
     </AuthenticatedLayout>
   );
 }
-
