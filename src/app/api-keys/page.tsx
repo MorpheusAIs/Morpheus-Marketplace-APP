@@ -426,7 +426,13 @@ function ApiKeysPageContent() {
                       </SelectTrigger>
                       <SelectContent>
                         {activeApiKeys.map((key) => (
-                          <SelectItem key={key.id} value={key.id.toString()}>
+                          <SelectItem
+                            key={key.id}
+                            value={key.id.toString()}
+                            data-analytics-action="select-default-api-key"
+                            data-analytics-label={`Default API key: ${key.name}`}
+                            data-analytics-destination={`default-api-key:${key.id}`}
+                          >
                             {key.name}
                           </SelectItem>
                         ))}
@@ -452,7 +458,12 @@ function ApiKeysPageContent() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={currentDefaultKey.id.toString()}>
+                          <SelectItem
+                            value={currentDefaultKey.id.toString()}
+                            data-analytics-action="view-default-api-key"
+                            data-analytics-label={`Current default API key: ${currentDefaultKey.name}`}
+                            data-analytics-destination={`default-api-key:${currentDefaultKey.id}`}
+                          >
                             {currentDefaultKey.name}
                           </SelectItem>
                         </SelectContent>
