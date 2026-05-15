@@ -51,6 +51,8 @@ export function PricingPlans() {
         <Button
           variant="outline"
           className="w-full"
+          data-analytics-action="open-pricing-docs"
+          data-analytics-destination="https://apidocs.mor.org/documentation/models/pricing?utm_source=api-admin"
           onClick={handleSeePricing}
         >
           See Pricing
