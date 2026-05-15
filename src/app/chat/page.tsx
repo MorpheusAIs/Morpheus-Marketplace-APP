@@ -924,6 +924,9 @@ export default function ChatPage() {
                               setShowModelSelector(false);
                             }}
                             value={model.id}
+                            data-analytics-action="select-chat-model"
+                            data-analytics-label={`Chat model: ${model.id}`}
+                            data-analytics-destination={`chat-model:${model.id}`}
                           >
                             <ModelSelectorName>{model.id}</ModelSelectorName>
                             {selectedModel === model.id ? (
