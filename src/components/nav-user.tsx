@@ -75,7 +75,12 @@ export function NavUser({
         {/* Account Menu Item */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => onAccountClick?.()} className="w-full justify-start">
+            <SidebarMenuButton
+              onClick={() => onAccountClick?.()}
+              className="w-full justify-start"
+              data-analytics-action="open-account"
+              data-analytics-destination="/account"
+            >
               <User className="h-4 w-4" />
               <span>Account</span>
             </SidebarMenuButton>
@@ -98,7 +103,12 @@ export function NavUser({
           </SidebarMenuItem>
           {/* Log out Menu Item */}
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => onLogout?.()} className="w-full justify-start">
+            <SidebarMenuButton
+              onClick={() => onLogout?.()}
+              className="w-full justify-start"
+              data-analytics-action="logout"
+              data-analytics-destination="/signin"
+            >
               <LogOut className="h-4 w-4" />
               <span>Log out</span>
             </SidebarMenuButton>
@@ -151,7 +161,11 @@ export function NavUser({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={onAccountClick}>
+          <DropdownMenuItem
+            onClick={onAccountClick}
+            data-analytics-action="open-account"
+            data-analytics-destination="/account"
+          >
             <User className="mr-2 h-4 w-4" />
             Account
           </DropdownMenuItem>
@@ -169,7 +183,11 @@ export function NavUser({
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout}>
+        <DropdownMenuItem
+          onClick={onLogout}
+          data-analytics-action="logout"
+          data-analytics-destination="/signin"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Log out
         </DropdownMenuItem>

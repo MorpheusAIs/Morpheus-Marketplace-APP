@@ -30,7 +30,7 @@ Shared properties: `current_path`, `page_title`, `page_section`, and `element_ar
 
 - Source inventory found 261 link/button/action/form patterns across 43 TSX files.
 - Root tracking covers all `a[href]`, `button`, `[role='button']`, `[data-umami-action]`, `[data-analytics-action]`, and form submits.
-- No non-native clickable `div`, `span`, `li`, or card wrappers were found in the source inventory; custom UI action components render through button-like components and are captured by the root handler.
+- Custom UI action components render through button-like components or carry explicit `data-analytics-action` metadata, so the root handler captures the remaining programmatic actions that are not native links/forms.
 
 ## Session replay verification
 
@@ -45,4 +45,6 @@ Shared properties: `current_path`, `page_title`, `page_section`, and `element_ar
 - Protected-route QA confirmed Umami `/api/send` POST payloads for programmatic button destinations: `/test` emitted `button-click` with `action_name: go-to-api-keys` and `destination: /api-keys`; `/billing` emitted `button-click` with `action_name: open-pricing-docs` and `destination: https://apidocs.mor.org/documentation/models/pricing?utm_source=api-admin`; `/usage-analytics` emitted `button-click` with `action_name: export-usage-data` and `destination: /usage-analytics/export-data`.
 - Focused billing QA on `http://localhost:3402/billing` clicked the Coinbase payment trigger and confirmation dialog. Umami `/api/send` received `button-click` payloads with `action_name: open-coinbase-payment-dialog`, `destination: /coinbase-checkout`, and `action_name: continue-to-payment`, `destination: /coinbase-checkout`.
 - Focused notification CTA QA on `http://localhost:3402/test` used a local Cognito-shaped JWT plus mocked API responses to trigger the automation-disabled toast. Clicking `Go to Account` emitted an Umami `/api/send` `button-click` payload with `element_area: notification`, `action_name: notification-action`, `button_text: Go to Account`, `destination: /account`, and `link_domain: localhost`.
+- Focused nav menu QA on the rebuilt `http://localhost:3402/test` production server clicked the desktop user menu `Account` and `Log out` actions. Umami `/api/send` received `button-click` payloads with `action_name: open-account`, `destination: /account`, and `action_name: logout`, `destination: /signin`.
+- Final verification reran `pnpm run build` after the checkout/notification fixes; it completed successfully with the same pre-existing optional wallet dependency warnings from Wagmi/Reown connectors.
 - Unauthenticated protected-route QA also opened `/api-keys?create=true`, verified the app redirects to `/signin`, and confirmed Umami sends `button-click`, `form-submit`, and `link-click-internal` events from the sign-in flow without collecting form values.
