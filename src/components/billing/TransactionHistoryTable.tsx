@@ -412,7 +412,13 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                     </SelectTrigger>
                     <SelectContent>
                       {ENTRY_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
+                        <SelectItem
+                          key={type.value}
+                          value={type.value}
+                          data-analytics-action="select-transaction-type-filter"
+                          data-analytics-label={`Transaction type filter: ${type.label}`}
+                          data-analytics-destination={`transaction-type-filter:${type.value}`}
+                        >
                           {type.label}
                         </SelectItem>
                       ))}

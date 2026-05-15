@@ -458,12 +458,18 @@ export default function TestPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {loadingModels ? (
-                    <SelectItem value="loading">Loading...</SelectItem>
+                    <SelectItem value="loading" data-analytics-action="select-test-model-loading" data-analytics-destination="test-model:loading">Loading...</SelectItem>
                   ) : filteredModels.length === 0 ? (
-                    <SelectItem value="none">No models available</SelectItem>
+                    <SelectItem value="none" data-analytics-action="select-test-model-empty" data-analytics-destination="test-model:none">No models available</SelectItem>
                   ) : (
                     filteredModels.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
+                      <SelectItem
+                        key={model.id}
+                        value={model.id}
+                        data-analytics-action="select-test-model"
+                        data-analytics-label={`Test model: ${model.id.toLowerCase()}`}
+                        data-analytics-destination={`test-model:${model.id}`}
+                      >
                         {model.id.toLowerCase()}
                       </SelectItem>
                     ))
