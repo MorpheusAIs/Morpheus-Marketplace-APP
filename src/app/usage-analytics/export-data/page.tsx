@@ -87,6 +87,8 @@ export default function ExportDataPage() {
             size="sm"
             onClick={() => router.back()}
             className="gap-2"
+            data-analytics-action="history-back"
+            data-analytics-destination="history-back"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
