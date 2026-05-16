@@ -275,20 +275,19 @@ export default function TestPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [models]);
 
-  // Cmd/Ctrl+Enter — submit from anywhere on the page
+  // Cmd/Ctrl+Enter shortcut wiring is set up further down, once
+  // handleSendRequest is defined (see effect after handleSendRequest).
+  const sendRef = useRef<() => void>(() => {});
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
         e.preventDefault();
-        if (!isLoading) {
-          handleSendRequest();
-        }
+        sendRef.current();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
+  }, []);
 
   const fetchAvailableModels = async () => {
     setLoadingModels(true);
@@ -682,6 +681,14 @@ export default function TestPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [messages, selectedApiKey, selectedModel, params, currentModel]
   );
+
+  // Keep the keyboard-shortcut ref pointed at the latest handler/state
+  // so Cmd/Ctrl+Enter never fires a stale closure.
+  useEffect(() => {
+    sendRef.current = () => {
+      if (!isLoading) handleSendRequest();
+    };
+  }, [handleSendRequest, isLoading]);
 
   function handleResponseError(
     status: number,

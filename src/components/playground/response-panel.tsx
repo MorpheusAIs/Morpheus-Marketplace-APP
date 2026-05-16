@@ -231,39 +231,13 @@ export function ResponsePanel({
   pythonSnippet,
   nodeSnippet,
 }: ResponsePanelProps) {
-  const [copiedResponse, setCopiedResponse] = useState(false);
-
-  const handleCopyResponse = async () => {
-    if (!content) return;
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopiedResponse(true);
-      setTimeout(() => setCopiedResponse(false), 2000);
-    } catch {
-      /* ignore */
-    }
-  };
-
   return (
     <aside className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+      <div className="flex items-center px-4 py-3 border-b border-border shrink-0">
         <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
           Response
         </span>
-        {content && (
-          <button
-            onClick={handleCopyResponse}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {copiedResponse ? (
-              <Check className="h-3 w-3 text-primary" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
-            {copiedResponse ? "Copied" : "Copy"}
-          </button>
-        )}
       </div>
 
       <Tabs defaultValue="response" className="flex flex-col flex-1 min-h-0">
