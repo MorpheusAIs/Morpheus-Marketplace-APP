@@ -524,14 +524,23 @@ export default function TestPage() {
 
           const latencyMs = Date.now() - startTime;
 
-          // Extract usage and finish_reason from final chunk
+          // Extract usage and finish_reason from final chunk.
+          // Prefer usage_from_consumer (what the user actually paid for) over
+          // the raw `usage` block, which includes provider-side overhead like
+          // hidden system primers.
           const finalParsed = finalChunk as {
             usage?: { prompt_tokens?: number; completion_tokens?: number };
+            usage_from_consumer?: { prompt_tokens?: number; completion_tokens?: number };
+            usage_from_provider?: { prompt_tokens?: number; completion_tokens?: number };
             choices?: Array<{ finish_reason?: string }>;
           } | null;
 
-          const tokensIn = finalParsed?.usage?.prompt_tokens ?? null;
-          const tokensOut = finalParsed?.usage?.completion_tokens ?? null;
+          const effectiveUsage =
+            finalParsed?.usage_from_consumer ??
+            finalParsed?.usage_from_provider ??
+            finalParsed?.usage;
+          const tokensIn = effectiveUsage?.prompt_tokens ?? null;
+          const tokensOut = effectiveUsage?.completion_tokens ?? null;
           const reason = finalParsed?.choices?.[0]?.finish_reason ?? null;
 
           let costUsd: number | null = null;
@@ -582,11 +591,17 @@ export default function TestPage() {
           const typedData = data as {
             choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
             usage?: { prompt_tokens?: number; completion_tokens?: number };
+            usage_from_consumer?: { prompt_tokens?: number; completion_tokens?: number };
+            usage_from_provider?: { prompt_tokens?: number; completion_tokens?: number };
             detail?: string;
             error?: { message?: string };
           };
-          const tokensIn = typedData.usage?.prompt_tokens ?? null;
-          const tokensOut = typedData.usage?.completion_tokens ?? null;
+          const effectiveUsage =
+            typedData.usage_from_consumer ??
+            typedData.usage_from_provider ??
+            typedData.usage;
+          const tokensIn = effectiveUsage?.prompt_tokens ?? null;
+          const tokensOut = effectiveUsage?.completion_tokens ?? null;
 
           let costUsd: number | null = null;
           if (
@@ -981,7 +996,7 @@ export default function TestPage() {
           </div>
 
           {/* RIGHT — Response */}
-          <div className="hidden lg:flex flex-col w-[420px] shrink-0 overflow-y-auto">
+          <div className="hidden lg:flex flex-col w-[420px] shrink-0 min-h-0">
             <ResponsePanel
               content={
                 messages.find(

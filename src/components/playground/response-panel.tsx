@@ -148,8 +148,8 @@ function CodeSnippetTab({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-3 flex-1 min-h-0">
+      <div className="flex items-center gap-2 shrink-0">
         {(["curl", "python", "node"] as const).map((l) => (
           <button
             key={l}
@@ -176,9 +176,9 @@ function CodeSnippetTab({
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <div className="bg-card border border-border rounded p-3 overflow-x-auto max-h-96">
+      <div className="flex-1 min-h-0 bg-card border border-border rounded p-3 overflow-auto">
         {snippet ? (
-          <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all">
+          <pre className="text-xs font-mono text-foreground whitespace-pre break-normal">
             {snippet}
           </pre>
         ) : (
@@ -215,7 +215,7 @@ export function ResponsePanel({
   };
 
   return (
-    <aside className="flex flex-col gap-0 h-full overflow-y-auto">
+    <aside className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
         <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
@@ -255,23 +255,21 @@ export function ResponsePanel({
           </TabsList>
         </div>
 
-        {/* Response tab */}
-        <TabsContent value="response" className="flex flex-col gap-4 px-4 py-4 flex-1 overflow-y-auto mt-0">
-          {/* Metrics grid */}
-          <div className="grid grid-cols-2 gap-2">
+        {/* Response tab — header (metrics) / scrollable body / pinned raw response */}
+        <TabsContent
+          value="response"
+          className="flex flex-col flex-1 min-h-0 mt-0 data-[state=inactive]:hidden"
+          forceMount
+        >
+          {/* Metrics grid (fixed) */}
+          <div className="grid grid-cols-2 gap-2 px-4 pt-4 shrink-0">
             <MetricCell
               label="Latency"
               value={metrics.latencyMs !== null ? metrics.latencyMs : null}
               unit="ms"
             />
-            <MetricCell
-              label="Tokens In"
-              value={metrics.tokensIn}
-            />
-            <MetricCell
-              label="Tokens Out"
-              value={metrics.tokensOut}
-            />
+            <MetricCell label="Tokens In" value={metrics.tokensIn} />
+            <MetricCell label="Tokens Out" value={metrics.tokensOut} />
             <MetricCell
               label="Cost"
               value={
@@ -282,55 +280,62 @@ export function ResponsePanel({
             />
           </div>
 
-          {/* Response body */}
-          <div className="flex-1 min-h-[80px] rounded border border-border bg-card p-3">
-            {isLoading && !content ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex gap-0.5">
-                  {[0, 0.15, 0.3].map((d, i) => (
-                    <span
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
-                      style={{ animationDelay: `${d}s` }}
-                    />
-                  ))}
+          {/* Response body (the only thing that scrolls) */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
+            <div className="rounded border border-border bg-card p-3 min-h-[80px]">
+              {isLoading && !content ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="inline-flex gap-0.5">
+                    {[0, 0.15, 0.3].map((d, i) => (
+                      <span
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                        style={{ animationDelay: `${d}s` }}
+                      />
+                    ))}
+                  </span>
+                  Waiting for response…
+                </div>
+              ) : content ? (
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed break-words">
+                  {content}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Run a request to see the response here.
+                </p>
+              )}
+            </div>
+
+            {finishReason && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>stream complete</span>
+                <span className="text-muted-foreground/40">·</span>
+                <span>finish_reason:</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.5 rounded border text-[11px] font-mono",
+                    finishReasonChipClass(finishReason)
+                  )}
+                >
+                  {finishReason}
                 </span>
-                Waiting for response…
               </div>
-            ) : content ? (
-              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                {content}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Run a request to see the response here.
-              </p>
             )}
           </div>
 
-          {/* Finish reason */}
-          {finishReason && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>stream complete</span>
-              <span className="text-muted-foreground/40">·</span>
-              <span>finish_reason:</span>
-              <span
-                className={cn(
-                  "px-1.5 py-0.5 rounded border text-[11px] font-mono",
-                  finishReasonChipClass(finishReason)
-                )}
-              >
-                {finishReason}
-              </span>
-            </div>
-          )}
-
-          {/* Raw response */}
-          <RawResponsePanel raw={rawResponse} />
+          {/* Raw response — pinned at the bottom */}
+          <div className="border-t border-border bg-background px-4 py-3 shrink-0">
+            <RawResponsePanel raw={rawResponse} />
+          </div>
         </TabsContent>
 
         {/* Code tab */}
-        <TabsContent value="code" className="flex flex-col px-4 py-4 flex-1 overflow-y-auto mt-0">
+        <TabsContent
+          value="code"
+          className="flex flex-col flex-1 min-h-0 px-4 py-4 mt-0 data-[state=inactive]:hidden"
+          forceMount
+        >
           <CodeSnippetTab
             curl={curlSnippet}
             python={pythonSnippet}
