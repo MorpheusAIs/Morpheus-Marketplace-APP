@@ -280,35 +280,23 @@ export function ResponsePanel({
             />
           </div>
 
-          {/* Response body (the only thing that scrolls) */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
-            <div className="rounded border border-border bg-card p-3 min-h-[80px]">
-              {isLoading && !content ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="inline-flex gap-0.5">
-                    {[0, 0.15, 0.3].map((d, i) => (
-                      <span
-                        key={i}
-                        className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
-                        style={{ animationDelay: `${d}s` }}
-                      />
-                    ))}
-                  </span>
-                  Waiting for response…
-                </div>
-              ) : content ? (
-                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed break-words">
-                  {content}
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Run a request to see the response here.
-                </p>
-              )}
-            </div>
-
-            {finishReason && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+          {/* Status — pinned spacer above raw response */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col justify-end">
+            {isLoading && !content ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex gap-0.5">
+                  {[0, 0.15, 0.3].map((d, i) => (
+                    <span
+                      key={i}
+                      className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                      style={{ animationDelay: `${d}s` }}
+                    />
+                  ))}
+                </span>
+                Waiting for response…
+              </div>
+            ) : finishReason ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>stream complete</span>
                 <span className="text-muted-foreground/40">·</span>
                 <span>finish_reason:</span>
@@ -321,6 +309,10 @@ export function ResponsePanel({
                   {finishReason}
                 </span>
               </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Run a request to see the response here.
+              </p>
             )}
           </div>
 
