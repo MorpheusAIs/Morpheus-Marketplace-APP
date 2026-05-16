@@ -831,12 +831,12 @@ export default function TestPage() {
     <AuthenticatedLayout>
       <div className="flex flex-col h-[calc(100svh-4rem)] min-h-0 overflow-hidden">
         {/* ── TOP BAR ──────────────────────────────────────────────── */}
-        <header className="shrink-0 flex items-center justify-between gap-4 px-5 py-3 border-b border-border bg-background">
-          <div className="flex flex-col gap-0">
-            <h1 className="text-sm font-semibold text-foreground leading-tight">
+        <header className="shrink-0 flex items-center justify-between gap-4 px-5 py-4 border-b border-border bg-background">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground leading-tight">
               Playground
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Iterate on prompts before shipping
             </p>
           </div>
