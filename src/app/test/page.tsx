@@ -275,6 +275,21 @@ export default function TestPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [models]);
 
+  // Cmd/Ctrl+Enter — submit from anywhere on the page
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (!isLoading) {
+          handleSendRequest();
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
   const fetchAvailableModels = async () => {
     setLoadingModels(true);
     try {
@@ -807,7 +822,7 @@ export default function TestPage() {
   /* ---------------------------------------------------------------- */
   return (
     <AuthenticatedLayout>
-      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex flex-col h-[calc(100svh-4rem)] min-h-0 overflow-hidden">
         {/* ── TOP BAR ──────────────────────────────────────────────── */}
         <header className="shrink-0 flex items-center justify-between gap-4 px-5 py-3 border-b border-border bg-background">
           <div className="flex flex-col gap-0">

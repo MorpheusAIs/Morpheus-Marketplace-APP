@@ -1,9 +1,40 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import hljs from "highlight.js/lib/core";
+import bash from "highlight.js/lib/languages/bash";
+import python from "highlight.js/lib/languages/python";
+import javascript from "highlight.js/lib/languages/javascript";
+import json from "highlight.js/lib/languages/json";
+import "highlight.js/styles/github-dark.css";
 import { cn } from "@/lib/utils";
+
+hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("python", python);
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("json", json);
+
+function HighlightedCode({ code, language }: { code: string; language: string }) {
+  const html = useMemo(() => {
+    if (!code) return "";
+    try {
+      return hljs.highlight(code, { language, ignoreIllegals: true }).value;
+    } catch {
+      return hljs.highlightAuto(code).value;
+    }
+  }, [code, language]);
+
+  return (
+    <pre className="text-xs font-mono whitespace-pre break-normal">
+      <code
+        className={`hljs language-${language}`}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </pre>
+  );
+}
 
 export interface ResponseMetrics {
   latencyMs: number | null;
@@ -109,11 +140,9 @@ function RawResponsePanel({ raw }: { raw: string }) {
         )}
       </button>
       {open && (
-        <div className="border-t border-border bg-background/40 p-3 overflow-x-auto max-h-80">
+        <div className="border-t border-border bg-background/40 p-3 overflow-auto max-h-80">
           {raw ? (
-            <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all">
-              {raw}
-            </pre>
+            <HighlightedCode code={raw} language="json" />
           ) : (
             <p className="text-xs text-muted-foreground">No response yet.</p>
           )}
@@ -178,9 +207,10 @@ function CodeSnippetTab({
       </div>
       <div className="flex-1 min-h-0 bg-card border border-border rounded p-3 overflow-auto">
         {snippet ? (
-          <pre className="text-xs font-mono text-foreground whitespace-pre break-normal">
-            {snippet}
-          </pre>
+          <HighlightedCode
+            code={snippet}
+            language={lang === "curl" ? "bash" : lang === "python" ? "python" : "javascript"}
+          />
         ) : (
           <p className="text-xs text-muted-foreground">
             Configure a request to generate code snippets.
@@ -255,69 +285,69 @@ export function ResponsePanel({
           </TabsList>
         </div>
 
-        {/* Response tab — header (metrics) / scrollable body / pinned raw response */}
+        {/* Response tab — metrics, status, raw response stacked from the top */}
         <TabsContent
           value="response"
-          className="flex flex-col flex-1 min-h-0 mt-0 data-[state=inactive]:hidden"
+          className="flex flex-col flex-1 min-h-0 mt-0 data-[state=inactive]:hidden overflow-y-auto"
           forceMount
         >
-          {/* Metrics grid (fixed) */}
-          <div className="grid grid-cols-2 gap-2 px-4 pt-4 shrink-0">
-            <MetricCell
-              label="Latency"
-              value={metrics.latencyMs !== null ? metrics.latencyMs : null}
-              unit="ms"
-            />
-            <MetricCell label="Tokens In" value={metrics.tokensIn} />
-            <MetricCell label="Tokens Out" value={metrics.tokensOut} />
-            <MetricCell
-              label="Cost"
-              value={
-                metrics.costUsd !== null
-                  ? `$${metrics.costUsd.toFixed(6)}`
-                  : null
-              }
-            />
-          </div>
+          <div className="flex flex-col gap-3 px-4 pt-4 pb-4">
+            {/* Metrics grid */}
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCell
+                label="Latency"
+                value={metrics.latencyMs !== null ? metrics.latencyMs : null}
+                unit="ms"
+              />
+              <MetricCell label="Tokens In" value={metrics.tokensIn} />
+              <MetricCell label="Tokens Out" value={metrics.tokensOut} />
+              <MetricCell
+                label="Cost"
+                value={
+                  metrics.costUsd !== null
+                    ? `$${metrics.costUsd.toFixed(6)}`
+                    : null
+                }
+              />
+            </div>
 
-          {/* Status — pinned spacer above raw response */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col justify-end">
-            {isLoading && !content ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex gap-0.5">
-                  {[0, 0.15, 0.3].map((d, i) => (
-                    <span
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
-                      style={{ animationDelay: `${d}s` }}
-                    />
-                  ))}
-                </span>
-                Waiting for response…
-              </div>
-            ) : finishReason ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>stream complete</span>
-                <span className="text-muted-foreground/40">·</span>
-                <span>finish_reason:</span>
-                <span
-                  className={cn(
-                    "px-1.5 py-0.5 rounded border text-[11px] font-mono",
-                    finishReasonChipClass(finishReason)
-                  )}
-                >
-                  {finishReason}
-                </span>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Run a request to see the response here.
-              </p>
-            )}
-          </div>
+            {/* Status line */}
+            <div>
+              {isLoading && !content ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="inline-flex gap-0.5">
+                    {[0, 0.15, 0.3].map((d, i) => (
+                      <span
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                        style={{ animationDelay: `${d}s` }}
+                      />
+                    ))}
+                  </span>
+                  Waiting for response…
+                </div>
+              ) : finishReason ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>stream complete</span>
+                  <span className="text-muted-foreground/40">·</span>
+                  <span>finish_reason:</span>
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded border text-[11px] font-mono",
+                      finishReasonChipClass(finishReason)
+                    )}
+                  >
+                    {finishReason}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Run a request to see the response here.
+                </p>
+              )}
+            </div>
 
-          {/* Raw response — pinned at the bottom */}
-          <div className="border-t border-border bg-background px-4 py-3 shrink-0">
+            {/* Raw response */}
             <RawResponsePanel raw={rawResponse} />
           </div>
         </TabsContent>
