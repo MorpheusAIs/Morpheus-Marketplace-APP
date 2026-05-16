@@ -491,7 +491,7 @@ export function StakingWidget({
                     <Button
                       onClick={handleConnectAnother}
                       variant="outline"
-                      className="w-full md:w-1/2 text-xs border-primary/25 bg-transparent text-foreground hover:bg-primary/10 hover:text-foreground hover:border-primary/40 py-5 rounded"
+                      className="w-full md:w-1/2 text-xs border-primary/25 py-5 rounded"
                       size="sm"
                     >
                       Connect Another Wallet
