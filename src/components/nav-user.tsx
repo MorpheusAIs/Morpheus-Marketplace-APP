@@ -137,7 +137,7 @@ export function NavUser({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-start h-auto py-2 px-2 hover:bg-gray-800"
+          className="w-full justify-start h-auto py-2 px-2 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
           <Avatar className="h-8 w-8 rounded">
             <AvatarImage src={user.avatar} alt={displayName} />
@@ -147,7 +147,7 @@ export function NavUser({
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight ml-2">
             <span className="truncate font-medium">{displayName}</span>
-            <span className="truncate text-xs text-gray-400">{displayEmail}</span>
+            <span className="truncate text-xs text-sidebar-foreground/60">{displayEmail}</span>
           </div>
           <ChevronsUpDown className="ml-auto h-4 w-4" />
         </Button>
