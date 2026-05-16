@@ -480,9 +480,8 @@ export function StakingWidget({
                       <Wallet className="mr-2 h-4 w-4" />
                       Connect Wallet
                     </Button>
-                    <Alert className="bg-primary/10 border-primary/20 md:w-1/2 [&>svg~*]:pl-0">
-                      {/* <CheckCircle2 className="h-4 w-4 text-primary" /> */}
-                      <AlertDescription className="text-xs text-muted-foreground">
+                    <Alert className="bg-primary/[0.06] border-primary/15 md:w-1/2 [&>svg~*]:pl-0">
+                      <AlertDescription className="text-xs text-foreground/80">
                         Daily Credit Allowance from staking refreshes daily at midnight UTC
                       </AlertDescription>
                     </Alert>
@@ -492,14 +491,13 @@ export function StakingWidget({
                     <Button
                       onClick={handleConnectAnother}
                       variant="outline"
-                      className="w-full md:w-1/2 text-xs border-primary/20 hover:bg-primary/10 py-5 rounded"
+                      className="w-full md:w-1/2 text-xs border-primary/25 bg-transparent text-foreground hover:bg-primary/10 hover:text-foreground hover:border-primary/40 py-5 rounded"
                       size="sm"
                     >
                       Connect Another Wallet
                     </Button>
-                    <Alert className="bg-primary/10 border-primary/20 md:w-1/2 [&>svg~*]:pl-0">
-                      {/* <CheckCircle2 className="h-4 w-4 text-primary" /> */}
-                      <AlertDescription className="text-xs text-muted-foreground">
+                    <Alert className="bg-primary/[0.06] border-primary/15 md:w-1/2 [&>svg~*]:pl-0">
+                      <AlertDescription className="text-xs text-foreground/80">
                         Daily Credit Allowance from staking refreshes daily at midnight UTC
                       </AlertDescription>
                     </Alert>
