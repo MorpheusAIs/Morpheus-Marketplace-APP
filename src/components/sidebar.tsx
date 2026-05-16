@@ -71,11 +71,11 @@ export function Sidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/api-keys"}
-                  className={pathname === "/api-keys" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                  className={pathname === "/api-keys" ? "!text-primary data-[active=true]:!text-primary hover:!bg-white/10" : "hover:!bg-white/10"}
                 >
                   <Link href="/api-keys">
-                    <Key className={`h-4 w-4 ${pathname === "/api-keys" ? "text-green-500" : ""}`} />
-                    <span className={pathname === "/api-keys" ? "text-green-500" : ""}>API Keys</span>
+                    <Key className={`h-4 w-4 ${pathname === "/api-keys" ? "text-primary" : ""}`} />
+                    <span className={pathname === "/api-keys" ? "text-primary" : ""}>API Keys</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -85,11 +85,11 @@ export function Sidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/billing"}
-                  className={pathname === "/billing" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                  className={pathname === "/billing" ? "!text-primary data-[active=true]:!text-primary hover:!bg-white/10" : "hover:!bg-white/10"}
                 >
                   <Link href="/billing">
-                    <DollarSign className={`h-4 w-4 ${pathname === "/billing" ? "text-green-500" : ""}`} />
-                    <span className={pathname === "/billing" ? "text-green-500" : ""}>Billing</span>
+                    <DollarSign className={`h-4 w-4 ${pathname === "/billing" ? "text-primary" : ""}`} />
+                    <span className={pathname === "/billing" ? "text-primary" : ""}>Billing</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -135,11 +135,11 @@ export function Sidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/usage-analytics"}
-                  className={pathname === "/usage-analytics" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                  className={pathname === "/usage-analytics" ? "!text-primary data-[active=true]:!text-primary hover:!bg-white/10" : "hover:!bg-white/10"}
                 >
                   <Link href="/usage-analytics">
-                    <BarChart3 className={`h-4 w-4 ${pathname === "/usage-analytics" ? "text-green-500" : ""}`} />
-                    <span className={pathname === "/usage-analytics" ? "text-green-500" : ""}>Usage Analytics</span>
+                    <BarChart3 className={`h-4 w-4 ${pathname === "/usage-analytics" ? "text-primary" : ""}`} />
+                    <span className={pathname === "/usage-analytics" ? "text-primary" : ""}>Usage Analytics</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -154,21 +154,21 @@ export function Sidebar() {
                           <SidebarMenuButton
                             asChild
                             isActive={pathname === "/test"}
-                            className={pathname === "/test" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"}
+                            className={pathname === "/test" ? "!text-primary data-[active=true]:!text-primary hover:!bg-white/10" : "hover:!bg-white/10"}
                           >
                             <Link href="/test">
-                              <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-green-500" : ""}`} />
-                              <span className={pathname === "/test" ? "text-green-500" : ""}>Test</span>
+                              <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-primary" : ""}`} />
+                              <span className={pathname === "/test" ? "text-primary" : ""}>Test</span>
                             </Link>
                           </SidebarMenuButton>
                         ) : (
                           <SidebarMenuButton
                             disabled
                             isActive={pathname === "/test"}
-                            className={`${pathname === "/test" ? "!text-green-500 data-[active=true]:!text-green-500 hover:!bg-white/10" : "hover:!bg-white/10"} opacity-50 cursor-not-allowed`}
+                            className={`${pathname === "/test" ? "!text-primary data-[active=true]:!text-primary hover:!bg-white/10" : "hover:!bg-white/10"} opacity-50 cursor-not-allowed`}
                           >
-                            <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-green-500" : ""}`} />
-                            <span className={pathname === "/test" ? "text-green-500" : ""}>Test</span>
+                            <FlaskConical className={`h-4 w-4 ${pathname === "/test" ? "text-primary" : ""}`} />
+                            <span className={pathname === "/test" ? "text-primary" : ""}>Test</span>
                           </SidebarMenuButton>
                         )}
                       </div>

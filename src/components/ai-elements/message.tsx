@@ -30,8 +30,8 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
   <div
     className={cn(
       "is-user:dark flex w-fit flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-purple-800 group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:rounded-lg group-[.is-assistant]:bg-sidebar group-[.is-assistant]:px-6 group-[.is-assistant]:py-5 group-[.is-assistant]:text-foreground group-[.is-assistant]:max-w-full",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded group-[.is-user]:bg-purple-800 group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+      "group-[.is-assistant]:rounded group-[.is-assistant]:bg-sidebar group-[.is-assistant]:px-6 group-[.is-assistant]:py-5 group-[.is-assistant]:text-foreground group-[.is-assistant]:max-w-full",
       className
     )}
     {...props}
@@ -151,7 +151,7 @@ export function MessageAttachment({
   return (
     <div
       className={cn(
-        "group relative size-24 overflow-hidden rounded-lg",
+        "group relative size-24 overflow-hidden rounded",
         className
       )}
       {...props}
@@ -185,7 +185,7 @@ export function MessageAttachment({
         <>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex size-full shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <div className="flex size-full shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
                 <PaperclipIcon className="size-4" />
               </div>
             </TooltipTrigger>

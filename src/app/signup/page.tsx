@@ -152,7 +152,7 @@ export default function SignUpPage() {
           />
           <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
         </div>
-        <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
+        <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">Sign up</CardTitle>
             <CardDescription className="text-muted-foreground">
@@ -203,19 +203,19 @@ export default function SignUpPage() {
                   </div>
                   {password && (
                     <div className="text-xs text-muted-foreground space-y-1 mt-2">
-                      <div className={`flex items-center gap-2 ${password.length >= 15 ? 'text-green-500' : ''}`}>
+                      <div className={`flex items-center gap-2 ${password.length >= 15 ? 'text-primary' : ''}`}>
                         <span>{password.length >= 15 ? '✓' : '○'}</span>
                         <span>At least 15 characters</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${/[A-Z]/.test(password) ? 'text-green-500' : ''}`}>
+                      <div className={`flex items-center gap-2 ${/[A-Z]/.test(password) ? 'text-primary' : ''}`}>
                         <span>{/[A-Z]/.test(password) ? '✓' : '○'}</span>
                         <span>One uppercase letter</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${/[a-z]/.test(password) ? 'text-green-500' : ''}`}>
+                      <div className={`flex items-center gap-2 ${/[a-z]/.test(password) ? 'text-primary' : ''}`}>
                         <span>{/[a-z]/.test(password) ? '✓' : '○'}</span>
                         <span>One lowercase letter</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${/[0-9]/.test(password) ? 'text-green-500' : ''}`}>
+                      <div className={`flex items-center gap-2 ${/[0-9]/.test(password) ? 'text-primary' : ''}`}>
                         <span>{/[0-9]/.test(password) ? '✓' : '○'}</span>
                         <span>One number</span>
                       </div>
@@ -259,7 +259,7 @@ export default function SignUpPage() {
                         setAgeConsent(e.target.checked);
                         if (e.target.checked) setError("");
                       }}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-green-500 cursor-pointer"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
                     />
                     <span className="text-xs text-muted-foreground leading-relaxed">
                       <em>I certify that I am at least 18 years old and the minimum age required in my country to consent to use the Services.</em>
@@ -275,11 +275,11 @@ export default function SignUpPage() {
                         setTosConsent(e.target.checked);
                         if (e.target.checked) setError("");
                       }}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-green-500 cursor-pointer"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
                     />
                     <span className="text-xs text-muted-foreground leading-relaxed">
                       <em>I have read and accept the{" "}
-                        <Link href="/terms" className="text-green-500 hover:underline">
+                        <Link href="/terms" className="text-primary hover:underline">
                           Terms of Service
                         </Link>
                         .
@@ -293,7 +293,7 @@ export default function SignUpPage() {
                 <Field>
                   <Button
                     type="submit"
-                    className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center space-x-2"
+                    className="w-full bg-primary hover:bg-primary text-white flex items-center justify-center space-x-2"
                     disabled={isSubmitting}
                   >
                     <span>Continue</span>
@@ -352,7 +352,7 @@ export default function SignUpPage() {
                 <FieldDescription className="text-center space-y-2">
                   <span className="block">
                     Already have an account?{" "}
-                    <Link href="/signin" className="text-green-500 hover:underline">
+                    <Link href="/signin" className="text-primary hover:underline">
                       Sign in
                     </Link>
                   </span>

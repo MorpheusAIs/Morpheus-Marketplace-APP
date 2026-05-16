@@ -14,7 +14,7 @@ export function PricingPlans() {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-green-500" />
+          <TrendingUp className="h-5 w-5 text-primary" />
           <CardTitle>Pricing</CardTitle>
         </div>
         <CardDescription className="pt-4 space-y-3">
@@ -27,7 +27,7 @@ export function PricingPlans() {
                 href="https://apidocs.mor.org/documentation/models/pricing"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-green-500 hover:underline inline-flex items-center gap-1"
+                className="text-primary hover:underline inline-flex items-center gap-1"
               >
                 Model Pricing
                 <ExternalLink className="h-3 w-3" />
@@ -38,7 +38,7 @@ export function PricingPlans() {
                 href="https://apidocs.mor.org/documentation/models/rate-limits"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-green-500 hover:underline inline-flex items-center gap-1"
+                className="text-primary hover:underline inline-flex items-center gap-1"
               >
                 Rate Limits
                 <ExternalLink className="h-3 w-3" />

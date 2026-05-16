@@ -119,7 +119,7 @@ export default function AccountSettingsPage() {
             </div>
 
             {/* Delete Account */}
-            <div className="mt-4 md:mt-8 p-4 bg-red-900/20 border border-red-500 rounded-md flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="mt-4 md:mt-8 p-4 bg-red-900/20 border border-red-500 rounded flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-red-500 text-sm md:text-base">Delete Account</p>
                 <p className="text-xs md:text-sm text-red-400 mt-1">WARNING! This action can not be undone</p>

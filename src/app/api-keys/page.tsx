@@ -284,7 +284,7 @@ function ApiKeysPageContent() {
         <h1 className="text-2xl md:text-4xl font-bold text-foreground">API Keys</h1>
         <p className="text-base md:text-lg text-muted-foreground mt-2">Manage your Morpheus API keys.</p>
 
-        <div className="bg-card p-4 md:p-6 rounded-lg mt-6 md:mt-8 border border-border">
+        <div className="bg-card p-4 md:p-6 rounded mt-6 md:mt-8 border border-border">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <h2 className="text-xl md:text-2xl font-semibold text-foreground">My API Keys</h2>
             <Button
@@ -325,7 +325,7 @@ function ApiKeysPageContent() {
                           <div className="flex items-center gap-2">
                             <span className="text-foreground">{apiKey.name}</span>
                             {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
-                              <Badge variant="default" className="bg-green-600 text-white">
+                              <Badge variant="default" className="bg-primary text-white">
                                 Default
                               </Badge>
                             )}
@@ -369,7 +369,7 @@ function ApiKeysPageContent() {
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <CardTitle className="text-base font-semibold truncate">{apiKey.name}</CardTitle>
                         {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
-                          <Badge variant="default" className="bg-green-600 text-white shrink-0">
+                          <Badge variant="default" className="bg-primary text-white shrink-0">
                             Default
                           </Badge>
                         )}
@@ -408,7 +408,7 @@ function ApiKeysPageContent() {
                   href={API_CONFIG.BASE_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-green-500 hover:text-green-600 underline"
+                  className="text-primary hover:text-primary underline"
                 >
                   {API_CONFIG.BASE_URL}
                 </a>
@@ -458,7 +458,7 @@ function ApiKeysPageContent() {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="w-full md:w-[200px] h-9 px-3 py-2 text-sm text-muted-foreground border border-input rounded-md bg-background flex items-center">
+                      <div className="w-full md:w-[200px] h-9 px-3 py-2 text-sm text-muted-foreground border border-input rounded bg-background flex items-center">
                         No default key
                       </div>
                     )}

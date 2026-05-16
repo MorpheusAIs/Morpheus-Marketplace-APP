@@ -93,7 +93,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
 
   return (
     <Dialog open={open} onOpenChange={onOpenChangeAction}>
-      <DialogContent className="w-full max-w-md p-6 bg-card text-card-foreground rounded-lg shadow-lg border-none">
+      <DialogContent className="w-full max-w-md p-6 bg-card text-card-foreground rounded shadow-lg border-none">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-2xl font-bold text-foreground">
             Change Password
@@ -214,7 +214,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
             <Button
               type="submit"
               variant="default"
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2"
+              className="bg-primary hover:bg-primary text-white px-6 py-2"
               disabled={isLoading}
             >
               {isLoading ? "Changing..." : "Change Password"}

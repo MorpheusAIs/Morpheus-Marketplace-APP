@@ -89,7 +89,7 @@ export function CreateApiKeyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChangeAction}>
-      <DialogContent className="w-[400px] p-6 bg-card text-card-foreground rounded-lg shadow-lg">
+      <DialogContent className="w-[400px] p-6 bg-card text-card-foreground rounded shadow-lg">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl font-bold">Create An API Key</DialogTitle>
         </DialogHeader>
@@ -121,7 +121,7 @@ export function CreateApiKeyDialog({
         <DialogFooter className="pt-6">
           <Button
             type="submit"
-            className="w-full bg-green-500 text-white hover:bg-green-600 rounded-md py-2 text-lg font-semibold"
+            className="w-full bg-primary text-white hover:bg-primary rounded py-2 text-lg font-semibold"
             onClick={handleSubmit}
             disabled={!keyName.trim() || !!duplicateError}
           >

@@ -17,9 +17,9 @@ export default function NotFound() {
         <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
       </div>
       
-      <Card className="w-full max-w-[500px] mx-auto bg-card text-card-foreground rounded-lg shadow-lg">
+      <Card className="w-full max-w-[500px] mx-auto bg-card text-card-foreground rounded shadow-lg">
         <CardHeader className="text-center space-y-4">
-          <div className="text-7xl font-bold text-green-500">404</div>
+          <div className="text-7xl font-bold text-primary">404</div>
           <CardTitle className="text-3xl font-bold text-card-foreground">
             Page Not Found
           </CardTitle>
@@ -34,7 +34,7 @@ export default function NotFound() {
           <div className="flex flex-col gap-3">
             <Button
               asChild
-              className="w-full bg-green-500 hover:bg-green-600 text-white"
+              className="w-full bg-primary hover:bg-primary text-white"
             >
               <Link href="/">
                 <Home className="h-4 w-4 mr-2" />

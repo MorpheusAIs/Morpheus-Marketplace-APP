@@ -46,7 +46,7 @@ export const PromptInput = ({
     <PromptInputContext.Provider value={{ input, setInput }}>
       <form
         className={cn(
-          "relative w-full rounded-lg border border-border bg-card shadow-sm",
+          "relative w-full rounded border border-border bg-card shadow-sm",
           className
         )}
         onSubmit={handleSubmit}

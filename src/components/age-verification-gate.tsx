@@ -26,10 +26,10 @@ export function AgeVerificationGate() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-2xl mx-4">
+      <div className="w-full max-w-md rounded border border-border bg-card p-8 shadow-2xl mx-4">
         <div className="flex flex-col items-center gap-2 mb-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-            <ShieldCheck className="h-6 w-6 text-green-500" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <ShieldCheck className="h-6 w-6 text-primary" />
           </div>
           <h2 className="text-xl font-semibold text-foreground">Age Verification Required</h2>
           <p className="text-sm text-muted-foreground text-center">
@@ -45,7 +45,7 @@ export function AgeVerificationGate() {
               setChecked(e.target.checked);
               if (e.target.checked) setError(null);
             }}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-green-500 cursor-pointer"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
           />
           <span className="text-sm text-muted-foreground leading-relaxed">
             <em>
@@ -60,7 +60,7 @@ export function AgeVerificationGate() {
         )}
 
         <Button
-          className="w-full bg-green-600 hover:bg-green-700 text-white"
+          className="w-full bg-primary hover:bg-primary text-white"
           disabled={!checked || isSubmitting}
           onClick={handleConfirm}
         >

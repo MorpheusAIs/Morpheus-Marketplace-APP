@@ -61,9 +61,9 @@ export function NavUser({
       <div className="space-y-1">
         {/* User Info */}
         <div className="flex items-center gap-2 px-2 py-2">
-          <Avatar className="h-8 w-8 rounded-lg">
+          <Avatar className="h-8 w-8 rounded">
             <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded-lg bg-green-600 text-white">
+            <AvatarFallback className="rounded bg-primary text-white">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
@@ -139,9 +139,9 @@ export function NavUser({
           variant="ghost"
           className="w-full justify-start h-auto py-2 px-2 hover:bg-gray-800"
         >
-          <Avatar className="h-8 w-8 rounded-lg">
+          <Avatar className="h-8 w-8 rounded">
             <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded-lg bg-green-600 text-white">
+            <AvatarFallback className="rounded bg-primary text-white">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
@@ -153,16 +153,16 @@ export function NavUser({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-56 rounded-lg"
+        className="w-56 rounded"
         side="right"
         align="end"
         sideOffset={4}
       >
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <Avatar className="h-8 w-8 rounded-lg">
+            <Avatar className="h-8 w-8 rounded">
               <AvatarImage src={user.avatar} alt={displayName} />
-              <AvatarFallback className="rounded-lg bg-green-600 text-white">
+              <AvatarFallback className="rounded bg-primary text-white">
                 {avatarFallback}
               </AvatarFallback>
             </Avatar>

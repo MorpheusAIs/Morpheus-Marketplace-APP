@@ -328,11 +328,11 @@ export function StakingWidget({
   };
 
   return (
-    <Card className="border-green-500/20">
+    <Card className="border-primary/20">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-green-500" />
+            <Wallet className="h-5 w-5 text-primary" />
             <CardTitle>Staking Status</CardTitle>
           </div>
           {hasWallet && (
@@ -353,7 +353,7 @@ export function StakingWidget({
               href="https://dashboard.mor.org/builders/morpheus-marketplace-api?subnet_id=0x415471125cc4d03b89818acb8426981fa28a3eee03a9097176297a9a6ae87c8d&network=Base"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-green-500 hover:underline"
+              className="text-primary hover:underline"
             >
               Morpheus Marketplace API Builders Subnet
             </a>
@@ -373,11 +373,11 @@ export function StakingWidget({
             {hasWallet ? (
               <div className="space-y-4">
                 {/* Landscape layout for stats */}
-                <div className="grid grid-cols-3 gap-4 rounded-lg border border-border bg-muted/30 p-4">
+                <div className="grid grid-cols-3 gap-4 rounded border border-border bg-muted/30 p-4">
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground mb-1">Linked Wallets</div>
                     <div className="flex items-center justify-center gap-1 text-sm font-medium text-foreground">
-                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                      <CheckCircle2 className="h-3 w-3 text-primary" />
                       {walletCount}
                     </div>
                   </div>
@@ -389,7 +389,7 @@ export function StakingWidget({
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground mb-1">Daily Allowance</div>
-                    <div className="text-sm font-medium text-green-500">
+                    <div className="text-sm font-medium text-primary">
                       ${dailyAllowance ? parseFloat(dailyAllowance).toFixed(2) : '0.00'}
                     </div>
                   </div>
@@ -402,7 +402,7 @@ export function StakingWidget({
                       {walletStatus.wallets.map((wallet) => (
                         <div
                           key={wallet.id}
-                          className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 w-full md:w-auto md:min-w-[200px] md:flex-shrink-0"
+                          className="flex items-center justify-between rounded border border-border bg-background px-3 py-2 w-full md:w-auto md:min-w-[200px] md:flex-shrink-0"
                         >
                           <div className="flex flex-col">
                             <code className="text-xs text-muted-foreground">
@@ -417,7 +417,7 @@ export function StakingWidget({
                                 : formatMorAmount(wallet.staked_amount);
                                 
                               return stakedAmount && stakedAmount !== '0' ? (
-                                <span className="text-[10px] text-green-500">
+                                <span className="text-[10px] text-primary">
                                   {parseFloat(stakedAmount).toFixed(2)} MOR
                                 </span>
                               ) : null;
@@ -449,7 +449,7 @@ export function StakingWidget({
                        <div className="mt-2 flex gap-2">
                          <Button 
                            size="sm" 
-                           className="h-7 text-xs bg-green-500 hover:bg-green-600 text-black font-medium"
+                           className="h-7 text-xs bg-primary hover:bg-primary text-black font-medium"
                            onClick={handleLinkWallet}
                            disabled={isLinking}
                          >
@@ -474,14 +474,14 @@ export function StakingWidget({
                   <div className="flex flex-col md:flex-row md:items-center gap-2 mt-2">
                     <Button
                       onClick={handleConnectAnother}
-                      className="w-full md:w-1/2 bg-green-500 hover:bg-green-600 text-black"
+                      className="w-full md:w-1/2 bg-primary hover:bg-primary text-black"
                       size="lg"
                     >
                       <Wallet className="mr-2 h-4 w-4" />
                       Connect Wallet
                     </Button>
-                    <Alert className="bg-green-500/10 border-green-500/20 md:w-1/2 [&>svg~*]:pl-0">
-                      {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
+                    <Alert className="bg-primary/10 border-primary/20 md:w-1/2 [&>svg~*]:pl-0">
+                      {/* <CheckCircle2 className="h-4 w-4 text-primary" /> */}
                       <AlertDescription className="text-xs text-muted-foreground">
                         Daily Credit Allowance from staking refreshes daily at midnight UTC
                       </AlertDescription>
@@ -492,13 +492,13 @@ export function StakingWidget({
                     <Button
                       onClick={handleConnectAnother}
                       variant="outline"
-                      className="w-full md:w-1/2 text-xs border-green-500/20 hover:bg-green-500/10 py-5 rounded-lg"
+                      className="w-full md:w-1/2 text-xs border-primary/20 hover:bg-primary/10 py-5 rounded"
                       size="sm"
                     >
                       Connect Another Wallet
                     </Button>
-                    <Alert className="bg-green-500/10 border-green-500/20 md:w-1/2 [&>svg~*]:pl-0">
-                      {/* <CheckCircle2 className="h-4 w-4 text-green-500" /> */}
+                    <Alert className="bg-primary/10 border-primary/20 md:w-1/2 [&>svg~*]:pl-0">
+                      {/* <CheckCircle2 className="h-4 w-4 text-primary" /> */}
                       <AlertDescription className="text-xs text-muted-foreground">
                         Daily Credit Allowance from staking refreshes daily at midnight UTC
                       </AlertDescription>
@@ -516,7 +516,7 @@ export function StakingWidget({
                     </p>
                     <Button
                       variant="link"
-                      className="h-auto p-0 text-xs text-green-500"
+                      className="h-auto p-0 text-xs text-primary"
                       asChild
                     >
                       <a
@@ -538,7 +538,7 @@ export function StakingWidget({
                         <div className="mt-2 flex gap-2">
                           <Button 
                             size="sm" 
-                            className="h-7 text-xs bg-green-500 hover:bg-green-600 text-black font-medium"
+                            className="h-7 text-xs bg-primary hover:bg-primary text-black font-medium"
                             onClick={handleLinkWallet}
                             disabled={isLinking}
                           >
@@ -566,7 +566,7 @@ export function StakingWidget({
                           setPendingStakingFlow(true);
                           handleConnectAnother();
                         }}
-                        className="w-full md:w-1/4 bg-green-500 hover:bg-green-600 text-black"
+                        className="w-full md:w-1/4 bg-primary hover:bg-primary text-black"
                       >
                         <Wallet className="mr-2 h-4 w-4" />
                         Connect Wallet

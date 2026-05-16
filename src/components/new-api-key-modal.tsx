@@ -53,14 +53,14 @@ export function NewApiKeyModal({
           </DialogTitle>
         </DialogHeader>
         <div className="relative mt-6">
-          <div className="relative p-4 bg-gray-800 border-2 border-orange-500 rounded-md">
+          <div className="relative p-4 bg-gray-800 border-2 border-orange-500 rounded">
             <div className="font-mono text-sm text-white break-all pr-12">
               {apiKey}
             </div>
             <Button
               variant="outline"
               size="icon"
-              className="absolute top-2 right-2 h-8 w-8 border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+              className="absolute top-2 right-2 h-8 w-8 border-primary text-primary hover:bg-primary hover:text-white"
               onClick={handleCopy}
             >
               {copied ? (
@@ -73,7 +73,7 @@ export function NewApiKeyModal({
         </div>
         <DialogFooter className="mt-6">
           <Button
-            className="w-full bg-green-500 hover:bg-green-600 text-white"
+            className="w-full bg-primary hover:bg-primary text-white"
             onClick={() => onOpenChange(false)}
           >
             Close

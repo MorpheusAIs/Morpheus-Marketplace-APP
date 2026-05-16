@@ -80,7 +80,7 @@ export function VerifyApiKeyModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] bg-card text-foreground rounded-lg p-6">
+      <DialogContent className="sm:max-w-[425px] bg-card text-foreground rounded p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
             Verify Your API Key
@@ -128,7 +128,7 @@ export function VerifyApiKeyModal({
           </Button>
           <Button
             variant="default"
-            className="bg-green-500 hover:bg-green-600 text-white"
+            className="bg-primary hover:bg-primary text-white"
             onClick={handleVerify}
             disabled={isVerifying || !apiKey.trim()}
           >

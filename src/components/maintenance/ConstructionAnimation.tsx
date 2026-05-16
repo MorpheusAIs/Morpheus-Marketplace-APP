@@ -131,53 +131,53 @@ export default function ConstructionAnimation() {
       <rect
         x="55" y="60" width="90" height="80" rx="2"
         fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.15"
-        className="text-green-500"
+        className="text-primary"
       />
       {/* Window holes */}
-      <rect x="65" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
-      <rect x="85" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
-      <rect x="105" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
-      <rect x="125" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
-      <rect x="65" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
-      <rect x="85" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
-      <rect x="105" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
-      <rect x="125" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-green-500" />
+      <rect x="65" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
+      <rect x="85" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
+      <rect x="105" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
+      <rect x="125" y="72" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
+      <rect x="65" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
+      <rect x="85" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
+      <rect x="105" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
+      <rect x="125" y="92" width="14" height="14" rx="1" fill="currentColor" opacity="0.08" className="text-primary" />
 
       {/* Crane tower */}
-      <rect x="148" y="20" width="6" height="120" rx="1" fill="currentColor" opacity="0.25" className="text-green-500" />
+      <rect x="148" y="20" width="6" height="120" rx="1" fill="currentColor" opacity="0.25" className="text-primary" />
       {/* Crane base */}
-      <rect x="140" y="135" width="22" height="5" rx="1" fill="currentColor" opacity="0.3" className="text-green-500" />
+      <rect x="140" y="135" width="22" height="5" rx="1" fill="currentColor" opacity="0.3" className="text-primary" />
 
       {/* Crane arm (pivots at top of tower) */}
       <g className="crane-arm" style={{ transformOrigin: '151px 24px' }}>
-        <rect x="80" y="20" width="74" height="4" rx="1" fill="currentColor" opacity="0.35" className="text-green-500" />
+        <rect x="80" y="20" width="74" height="4" rx="1" fill="currentColor" opacity="0.35" className="text-primary" />
         {/* Lattice detail */}
-        <line x1="90" y1="20" x2="100" y2="24" stroke="currentColor" strokeWidth="0.5" opacity="0.2" className="text-green-500" />
-        <line x1="110" y1="20" x2="120" y2="24" stroke="currentColor" strokeWidth="0.5" opacity="0.2" className="text-green-500" />
-        <line x1="130" y1="20" x2="140" y2="24" stroke="currentColor" strokeWidth="0.5" opacity="0.2" className="text-green-500" />
+        <line x1="90" y1="20" x2="100" y2="24" stroke="currentColor" strokeWidth="0.5" opacity="0.2" className="text-primary" />
+        <line x1="110" y1="20" x2="120" y2="24" stroke="currentColor" strokeWidth="0.5" opacity="0.2" className="text-primary" />
+        <line x1="130" y1="20" x2="140" y2="24" stroke="currentColor" strokeWidth="0.5" opacity="0.2" className="text-primary" />
 
         {/* Cable and block */}
         <g className="crane-cable" style={{ transformOrigin: '95px 24px' }}>
-          <line x1="95" y1="24" x2="95" y2="55" stroke="currentColor" strokeWidth="1" opacity="0.3" className="text-green-500" />
-          <rect x="90" y="52" width="10" height="8" rx="1" fill="currentColor" opacity="0.3" className="text-green-500" />
+          <line x1="95" y1="24" x2="95" y2="55" stroke="currentColor" strokeWidth="1" opacity="0.3" className="text-primary" />
+          <rect x="90" y="52" width="10" height="8" rx="1" fill="currentColor" opacity="0.3" className="text-primary" />
         </g>
       </g>
 
       {/* Bricks being placed */}
-      <rect className="brick text-green-400" x="55" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
-      <rect className="brick text-green-400" x="69" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
-      <rect className="brick text-green-400" x="83" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
-      <rect className="brick text-green-400" x="97" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
+      <rect className="brick text-primary" x="55" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
+      <rect className="brick text-primary" x="69" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
+      <rect className="brick text-primary" x="83" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
+      <rect className="brick text-primary" x="97" y="55" width="12" height="6" rx="1" fill="currentColor" opacity="0" />
 
       {/* Gear (large) */}
       <g className="gear" style={{ transformOrigin: '30px 105px' }}>
-        <circle cx="30" cy="105" r="12" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4" className="text-green-500" />
-        <circle cx="30" cy="105" r="4" fill="currentColor" opacity="0.3" className="text-green-500" />
+        <circle cx="30" cy="105" r="12" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4" className="text-primary" />
+        <circle cx="30" cy="105" r="4" fill="currentColor" opacity="0.3" className="text-primary" />
         {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
           <rect
             key={angle}
             x="28" y="91" width="4" height="4" rx="0.5"
-            fill="currentColor" opacity="0.4" className="text-green-500"
+            fill="currentColor" opacity="0.4" className="text-primary"
             transform={`rotate(${angle} 30 105)`}
           />
         ))}
@@ -185,13 +185,13 @@ export default function ConstructionAnimation() {
 
       {/* Gear (small) */}
       <g className="gear-small" style={{ transformOrigin: '47px 97px' }}>
-        <circle cx="47" cy="97" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.35" className="text-green-500" />
-        <circle cx="47" cy="97" r="2.5" fill="currentColor" opacity="0.25" className="text-green-500" />
+        <circle cx="47" cy="97" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.35" className="text-primary" />
+        <circle cx="47" cy="97" r="2.5" fill="currentColor" opacity="0.25" className="text-primary" />
         {[0, 60, 120, 180, 240, 300].map((angle) => (
           <rect
             key={angle}
             x="45.5" y="89" width="3" height="3" rx="0.5"
-            fill="currentColor" opacity="0.35" className="text-green-500"
+            fill="currentColor" opacity="0.35" className="text-primary"
             transform={`rotate(${angle} 47 97)`}
           />
         ))}
@@ -199,14 +199,14 @@ export default function ConstructionAnimation() {
 
       {/* Hard hat */}
       <g className="hard-hat">
-        <path d="M88 120 Q100 108 112 120" fill="currentColor" opacity="0.5" className="text-green-500" />
-        <rect x="85" y="119" width="30" height="4" rx="1.5" fill="currentColor" opacity="0.6" className="text-green-500" />
+        <path d="M88 120 Q100 108 112 120" fill="currentColor" opacity="0.5" className="text-primary" />
+        <rect x="85" y="119" width="30" height="4" rx="1.5" fill="currentColor" opacity="0.6" className="text-primary" />
       </g>
 
       {/* Wrench */}
       <g className="wrench" style={{ transformOrigin: '178px 118px' }}>
-        <rect x="168" y="100" width="3" height="20" rx="1" fill="currentColor" opacity="0.4" className="text-green-500" transform="rotate(-30 169 110)" />
-        <circle cx="170" cy="96" r="5" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4" className="text-green-500" />
+        <rect x="168" y="100" width="3" height="20" rx="1" fill="currentColor" opacity="0.4" className="text-primary" transform="rotate(-30 169 110)" />
+        <circle cx="170" cy="96" r="5" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4" className="text-primary" />
       </g>
 
       {/* Traffic cone */}
@@ -231,10 +231,10 @@ export default function ConstructionAnimation() {
       </g>
 
       {/* Dust particles */}
-      <circle className="dust text-green-500" cx="70" cy="135" r="1.5" fill="currentColor" opacity="0" />
-      <circle className="dust text-green-500" cx="90" cy="138" r="1" fill="currentColor" opacity="0" />
-      <circle className="dust text-green-500" cx="110" cy="133" r="1.5" fill="currentColor" opacity="0" />
-      <circle className="dust text-green-500" cx="130" cy="136" r="1" fill="currentColor" opacity="0" />
+      <circle className="dust text-primary" cx="70" cy="135" r="1.5" fill="currentColor" opacity="0" />
+      <circle className="dust text-primary" cx="90" cy="138" r="1" fill="currentColor" opacity="0" />
+      <circle className="dust text-primary" cx="110" cy="133" r="1.5" fill="currentColor" opacity="0" />
+      <circle className="dust text-primary" cx="130" cy="136" r="1" fill="currentColor" opacity="0" />
     </svg>
   );
 }

@@ -364,7 +364,7 @@ export default function TestPage() {
             <CardContent>
               <Button 
                 onClick={() => router.push('/api-keys')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white"
+                className="w-full bg-primary hover:bg-primary text-white"
               >
                 Go to API Keys
               </Button>
@@ -386,7 +386,7 @@ export default function TestPage() {
         {/* API Key Selection and Model Selection */}
         <div className="flex flex-col md:flex-row gap-4 md:gap-6 mt-4 md:mt-6">
           {/* API Key Selection */}
-          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm flex-1">
+          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded shadow-sm flex-1">
             <CardContent className="flex flex-col gap-3">
               {/* Row 1: Label and Switch Key Button (Desktop) */}
               <div className="hidden sm:flex sm:items-center gap-3">
@@ -406,7 +406,7 @@ export default function TestPage() {
                 {/* Mobile: Show name and badge on same row */}
                 <div className="flex sm:hidden items-center justify-between gap-2">
                   <span className="text-sm font-medium text-foreground">{apiKeyName || apiKeys.find(key => key.key_prefix === apiKeyPrefix)?.name || ''}</span>
-                  <Badge variant="default" className="flex items-center gap-1 bg-green-500/20 text-green-500 shrink-0">
+                  <Badge variant="default" className="flex items-center gap-1 bg-primary/20 text-primary shrink-0">
                     <Check className="h-4 w-4" />
                     Ready for Testing
                   </Badge>
@@ -415,7 +415,7 @@ export default function TestPage() {
                 <div className="hidden sm:flex sm:items-center gap-2 sm:gap-4 flex-1 min-w-0">
                   <span className="text-sm font-medium text-foreground shrink-0">{apiKeyName || apiKeys.find(key => key.key_prefix === apiKeyPrefix)?.name || ''}</span>
                   <span className="font-mono text-sm break-all flex-1 min-w-0">{apiKeyPrefix}...</span>
-                  <Badge variant="default" className="flex items-center gap-1 bg-green-500/20 text-green-500 shrink-0">
+                  <Badge variant="default" className="flex items-center gap-1 bg-primary/20 text-primary shrink-0">
                     <Check className="h-4 w-4" />
                     Ready for Testing
                   </Badge>
@@ -432,7 +432,7 @@ export default function TestPage() {
           </Card>
 
           {/* Model Selection */}
-          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm flex-1">
+          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded shadow-sm flex-1">
             <CardContent>
               <div className="flex items-center justify-between mb-2">
                 <Label>Model</Label>
@@ -464,7 +464,7 @@ export default function TestPage() {
         </div>
 
         {/* User Prompt */}
-        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-4 md:mt-6">
+        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded shadow-sm mt-4 md:mt-6">
           <CardContent>
             <Label htmlFor="user-prompt">User Prompt</Label>
             <Textarea
@@ -477,7 +477,7 @@ export default function TestPage() {
             />
             <Button
               variant="default"
-              className="bg-green-600 hover:bg-green-700 text-white mt-4 w-full md:w-auto"
+              className="bg-primary hover:bg-primary text-white mt-4 w-full md:w-auto"
               onClick={handleSendRequest}
               disabled={isLoading || !prompt.trim()}
             >
@@ -487,7 +487,7 @@ export default function TestPage() {
         </Card>
 
         {/* Output */}
-        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-4 md:mt-6">
+        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded shadow-sm mt-4 md:mt-6">
           <CardContent>
             <h2 className="text-lg md:text-xl font-semibold mb-4">Select Output</h2>
             <Tabs defaultValue="response-content">
@@ -508,7 +508,7 @@ export default function TestPage() {
               </TabsList>
               <TabsContent value="response-content" className="mt-4">
                 {responseContent ? (
-                  <div className="bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
+                  <div className="bg-black p-3 md:p-4 rounded border border-gray-300/20">
                     <pre className="text-white whitespace-pre-wrap text-xs md:text-sm overflow-x-auto">{responseContent}</pre>
                   </div>
                 ) : (
@@ -517,7 +517,7 @@ export default function TestPage() {
               </TabsContent>
               <TabsContent value="curl-request" className="mt-4">
                 {curlRequest ? (
-                  <div className="relative bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
+                  <div className="relative bg-black p-3 md:p-4 rounded border border-gray-300/20">
                     <Button
                       variant="outline"
                       size="icon"
@@ -538,7 +538,7 @@ export default function TestPage() {
               </TabsContent>
               <TabsContent value="server-response" className="mt-4">
                 {serverResponse ? (
-                  <div className="relative bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
+                  <div className="relative bg-black p-3 md:p-4 rounded border border-gray-300/20">
                     <Button
                       variant="outline"
                       size="icon"

@@ -749,7 +749,7 @@ export default function ChatPage() {
             <CardContent>
               <Button 
                 onClick={() => router.push('/api-keys')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white"
+                className="w-full bg-primary hover:bg-primary text-white"
               >
                 Go to API Keys
               </Button>
