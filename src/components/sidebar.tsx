@@ -65,6 +65,7 @@ export function Sidebar() {
   };
 
   const buildItems: NavItem[] = [
+    { label: "API Keys", icon: Key, href: "/api-keys" },
     {
       label: "Playground",
       icon: Play,
@@ -73,7 +74,6 @@ export function Sidebar() {
       disabledReason:
         'A Default API key must be set and verified before using the "Playground". Go to API Keys to set your Default API Key.',
     },
-    { label: "API Keys", icon: Key, href: "/api-keys" },
     {
       label: "Models",
       icon: Box,
