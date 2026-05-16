@@ -121,7 +121,7 @@ export function CreateApiKeyDialog({
         <DialogFooter className="pt-6">
           <Button
             type="submit"
-            className="w-full bg-primary text-white hover:bg-primary rounded py-2 text-lg font-semibold"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary rounded py-2 text-lg font-semibold"
             onClick={handleSubmit}
             disabled={!keyName.trim() || !!duplicateError}
           >

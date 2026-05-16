@@ -63,7 +63,7 @@ export function NavUser({
         <div className="flex items-center gap-2 px-2 py-2">
           <Avatar className="h-8 w-8 rounded">
             <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded bg-primary text-white">
+            <AvatarFallback className="rounded bg-primary text-primary-foreground">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
@@ -141,7 +141,7 @@ export function NavUser({
         >
           <Avatar className="h-8 w-8 rounded">
             <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded bg-primary text-white">
+            <AvatarFallback className="rounded bg-primary text-primary-foreground">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
@@ -162,7 +162,7 @@ export function NavUser({
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
             <Avatar className="h-8 w-8 rounded">
               <AvatarImage src={user.avatar} alt={displayName} />
-              <AvatarFallback className="rounded bg-primary text-white">
+              <AvatarFallback className="rounded bg-primary text-primary-foreground">
                 {avatarFallback}
               </AvatarFallback>
             </Avatar>

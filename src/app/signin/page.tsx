@@ -197,7 +197,7 @@ export default function SignInPage() {
                 <Field>
                   <Button
                     type="submit"
-                    className="w-full bg-primary hover:bg-primary text-white"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     disabled={isSubmitting}
                   >
                     <span>Sign in</span>

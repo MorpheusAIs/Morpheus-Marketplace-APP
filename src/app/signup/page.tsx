@@ -293,7 +293,7 @@ export default function SignUpPage() {
                 <Field>
                   <Button
                     type="submit"
-                    className="w-full bg-primary hover:bg-primary text-white flex items-center justify-center space-x-2"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center space-x-2"
                     disabled={isSubmitting}
                   >
                     <span>Continue</span>

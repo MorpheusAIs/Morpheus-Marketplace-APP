@@ -34,7 +34,7 @@ export default function NotFound() {
           <div className="flex flex-col gap-3">
             <Button
               asChild
-              className="w-full bg-primary hover:bg-primary text-white"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Link href="/">
                 <Home className="h-4 w-4 mr-2" />

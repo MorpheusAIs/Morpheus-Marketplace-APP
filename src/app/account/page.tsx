@@ -62,7 +62,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-white border-white hover:bg-white hover:text-black w-full md:w-auto shrink-0"
+                className="border-primary/25 w-full md:w-auto shrink-0"
                 onClick={handleCopyAccountId}
                 disabled={!user?.sub}
               >
@@ -91,7 +91,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-white border-white hover:bg-white hover:text-black w-full md:w-auto shrink-0"
+                className="border-primary/25 w-full md:w-auto shrink-0"
                 onClick={() => setIsEmailModalOpen(true)}
               >
                 <Pencil className="mr-2 h-4 w-4" />
@@ -110,7 +110,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-white border-white hover:bg-white hover:text-black w-full md:w-auto shrink-0"
+                className="border-primary/25 w-full md:w-auto shrink-0"
                 onClick={() => setIsPasswordModalOpen(true)}
               >
                 <Pencil className="mr-2 h-4 w-4" />

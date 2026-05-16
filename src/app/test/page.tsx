@@ -364,7 +364,7 @@ export default function TestPage() {
             <CardContent>
               <Button 
                 onClick={() => router.push('/api-keys')}
-                className="w-full bg-primary hover:bg-primary text-white"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Go to API Keys
               </Button>
@@ -477,7 +477,7 @@ export default function TestPage() {
             />
             <Button
               variant="default"
-              className="bg-primary hover:bg-primary text-white mt-4 w-full md:w-auto"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground mt-4 w-full md:w-auto"
               onClick={handleSendRequest}
               disabled={isLoading || !prompt.trim()}
             >

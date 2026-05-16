@@ -199,7 +199,7 @@ function ForgotPasswordContent() {
                   <Field>
                     <Button
                       type="submit"
-                      className="w-full bg-primary hover:bg-primary text-white"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       disabled={isSubmitting}
                     >
                       <span>Send Reset Code</span>
@@ -287,7 +287,7 @@ function ForgotPasswordContent() {
                   <Field>
                     <Button
                       type="submit"
-                      className="w-full bg-primary hover:bg-primary text-white"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       disabled={isSubmitting}
                     >
                       <span>Reset Password</span>

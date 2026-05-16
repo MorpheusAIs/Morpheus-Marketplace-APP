@@ -60,7 +60,7 @@ export function AgeVerificationGate() {
         )}
 
         <Button
-          className="w-full bg-primary hover:bg-primary text-white"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           disabled={!checked || isSubmitting}
           onClick={handleConfirm}
         >

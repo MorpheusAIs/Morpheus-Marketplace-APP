@@ -210,7 +210,7 @@ function ConfirmRegistrationContent() {
               <div className="space-y-3">
                 <Button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary text-white flex items-center justify-center space-x-2"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center space-x-2"
                   disabled={isSubmitting || isResending}
                 >
                   <span>Confirm Account</span>

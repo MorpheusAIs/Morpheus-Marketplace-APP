@@ -60,7 +60,7 @@ export function NewApiKeyModal({
             <Button
               variant="outline"
               size="icon"
-              className="absolute top-2 right-2 h-8 w-8 border-primary text-primary hover:bg-primary hover:text-white"
+              className="absolute top-2 right-2 h-8 w-8 border-primary text-primary hover:bg-primary/90 hover:text-primary-foreground"
               onClick={handleCopy}
             >
               {copied ? (
@@ -73,7 +73,7 @@ export function NewApiKeyModal({
         </div>
         <DialogFooter className="mt-6">
           <Button
-            className="w-full bg-primary hover:bg-primary text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={() => onOpenChange(false)}
           >
             Close

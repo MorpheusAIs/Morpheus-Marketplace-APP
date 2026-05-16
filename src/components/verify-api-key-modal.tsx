@@ -128,7 +128,7 @@ export function VerifyApiKeyModal({
           </Button>
           <Button
             variant="default"
-            className="bg-primary hover:bg-primary text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={handleVerify}
             disabled={isVerifying || !apiKey.trim()}
           >
