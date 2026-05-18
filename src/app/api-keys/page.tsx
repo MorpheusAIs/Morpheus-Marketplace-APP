@@ -722,9 +722,14 @@ function ApiKeysPageContent() {
               ) : (
                 <>
                   {currentDefaultKey ? (
-                    <span className="inline-flex items-center gap-1.5 h-9 px-3 text-sm border border-border rounded bg-background">
-                      <Star className="h-3.5 w-3.5 fill-primary text-primary" />
-                      {currentDefaultKey.name}
+                    <span className="inline-flex items-center gap-2 h-9 px-3 text-sm border border-border rounded bg-background text-foreground">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {currentDefaultKey.key_prefix}…
+                      </span>
+                      <span className="truncate max-w-[120px]">{currentDefaultKey.name}</span>
+                      <Badge className="bg-primary text-primary-foreground text-[10px]">
+                        Default
+                      </Badge>
                     </span>
                   ) : (
                     <span className="h-9 px-3 text-sm text-muted-foreground border border-input rounded bg-background flex items-center">
