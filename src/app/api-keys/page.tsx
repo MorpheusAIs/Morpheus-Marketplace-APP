@@ -178,14 +178,19 @@ function ApiKeysPageContent() {
   }, [apiKeys, statsByKey]);
 
   const counts = useMemo(() => {
-    const c = { all: rows.length, active: 0, stale: 0, revoked: 0 };
-    for (const r of rows) c[r.bucket] += 1;
+    const c = { all: 0, active: 0, stale: 0, revoked: 0 };
+    for (const r of rows) {
+      c[r.bucket] += 1;
+      if (r.bucket !== "revoked") c.all += 1;
+    }
     return c;
   }, [rows]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = rows.filter((r) => {
+      // "All" hides revoked keys; pick the dedicated Revoked tab to see them.
+      if (tab === "all" && r.bucket === "revoked") return false;
       if (tab !== "all" && r.bucket !== tab) return false;
       if (!q) return true;
       const nameHit = (r.key.name || "").toLowerCase().includes(q);
