@@ -39,12 +39,27 @@ export function aggregateKeyStats(
   return stats;
 }
 
-/** Render relative-time labels like "2 min ago", "6 hours ago", "3 days ago", "Never". */
-export function formatRelativeTime(iso: string | null): string {
-  if (!iso) return "Never";
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  const diffMs = now - then;
+/**
+ * Render relative-time labels like "2 min ago", "6 hours ago", "3 days ago".
+ * The window we aggregate over is 30 days, so a null `lastUsedIso` means we
+ * have no signal from the last 30 days. We disambiguate the two cases that
+ * collapse into "no signal":
+ * - If the key was created less than 30 days ago, no signal really means
+ *   "never used" (we'd have seen activity in our window).
+ * - Otherwise, the truth is ">30d ago" — could be never, could be 31 days,
+ *   we can't tell without a backend last_used_at field.
+ */
+export function formatRelativeTime(
+  lastUsedIso: string | null,
+  createdAtIso?: string,
+): string {
+  if (!lastUsedIso) {
+    if (!createdAtIso) return ">30d ago";
+    const ageDays =
+      (Date.now() - new Date(createdAtIso).getTime()) / 86_400_000;
+    return ageDays < 30 ? "Never" : ">30d ago";
+  }
+  const diffMs = Date.now() - new Date(lastUsedIso).getTime();
   const minute = 60_000;
   const hour = 60 * minute;
   const day = 24 * hour;

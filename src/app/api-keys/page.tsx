@@ -527,7 +527,7 @@ function ApiKeysPageContent() {
                             : "bg-amber-400",
                         )}
                       />
-                      {formatRelativeTime(stats.lastUsedAt)}
+                      {formatRelativeTime(stats.lastUsedAt, key.created_at)}
                     </div>
                     <div className="font-mono tabular-nums text-foreground">
                       {formatNumber(stats.requests)}
@@ -612,7 +612,7 @@ function ApiKeysPageContent() {
                       <div>
                         <div className="text-muted-foreground">Last used</div>
                         <div className="text-foreground">
-                          {formatRelativeTime(stats.lastUsedAt)}
+                          {formatRelativeTime(stats.lastUsedAt, key.created_at)}
                         </div>
                       </div>
                       <div>
