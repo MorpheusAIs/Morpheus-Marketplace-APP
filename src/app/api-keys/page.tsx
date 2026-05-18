@@ -13,6 +13,8 @@ import {
   Search,
   MoreVertical,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +113,8 @@ function ApiKeysPageContent() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<FilterTab>("all");
   const [copiedBase, setCopiedBase] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
 
   // 30-day window for per-key stats
   const fromIso = useMemo(() => {
@@ -181,14 +185,40 @@ function ApiKeysPageContent() {
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
+    const filtered = rows.filter((r) => {
       if (tab !== "all" && r.bucket !== tab) return false;
       if (!q) return true;
       const nameHit = (r.key.name || "").toLowerCase().includes(q);
       const last4 = r.key.key_prefix.slice(-4).toLowerCase();
       return nameHit || last4.includes(q);
     });
-  }, [rows, tab, search]);
+    // Default key pinned to the top; then most-recently-used; then most
+    // requests; revoked keys fall to the bottom of their tab.
+    return filtered.sort((a, b) => {
+      const aDefault = a.key.is_default || a.key.id === defaultApiKey?.id;
+      const bDefault = b.key.is_default || b.key.id === defaultApiKey?.id;
+      if (aDefault !== bDefault) return aDefault ? -1 : 1;
+      if (a.key.is_active !== b.key.is_active) return a.key.is_active ? -1 : 1;
+      const aTime = a.stats.lastUsedAt ? new Date(a.stats.lastUsedAt).getTime() : 0;
+      const bTime = b.stats.lastUsedAt ? new Date(b.stats.lastUsedAt).getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
+      if (a.stats.requests !== b.stats.requests) return b.stats.requests - a.stats.requests;
+      return new Date(b.key.created_at).getTime() - new Date(a.key.created_at).getTime();
+    });
+  }, [rows, tab, search, defaultApiKey]);
+
+  // Pagination — reset to first page whenever the filter set shrinks/changes
+  const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  useEffect(() => {
+    setPage(0);
+  }, [tab, search]);
+  useEffect(() => {
+    if (page >= pageCount) setPage(pageCount - 1);
+  }, [page, pageCount]);
+  const visibleRows = useMemo(
+    () => filteredRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [filteredRows, page],
+  );
 
   // ---- handlers (preserved from the previous implementation) ----
   const handleCreateKey = async (name: string) => {
@@ -449,14 +479,14 @@ function ApiKeysPageContent() {
               <div>Spend · 30D</div>
               <div />
             </div>
-            {filteredRows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                 {apiKeys.length === 0
                   ? "No API keys yet. Create your first key above."
                   : "No keys match the current filter."}
               </div>
             ) : (
-              filteredRows.map(({ key, stats }) => {
+              visibleRows.map(({ key, stats }) => {
                 const isDefault =
                   key.is_default || key.id === defaultApiKey?.id;
                 return (
@@ -465,25 +495,14 @@ function ApiKeysPageContent() {
                     className="grid grid-cols-[1.6fr_1.1fr_1fr_1fr_1fr_1fr_40px] gap-4 px-4 py-3 border-b border-border/60 last:border-b-0 items-center text-sm"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => handleStarClick(key.id, key.name, isDefault)}
-                        className={cn(
-                          "shrink-0 rounded p-0.5 transition-colors",
-                          isDefault
-                            ? "text-primary"
-                            : "text-muted-foreground/40 hover:text-primary",
-                        )}
-                        aria-label={isDefault ? "Default key" : "Make default key"}
-                        title={isDefault ? "Default key" : "Make default key"}
-                      >
-                        <Star
-                          className={cn("h-3.5 w-3.5", isDefault && "fill-primary")}
-                        />
-                      </button>
                       <span className="text-foreground truncate">{key.name}</span>
+                      {isDefault && (
+                        <Badge className="bg-primary text-primary-foreground text-[10px] shrink-0">
+                          Default
+                        </Badge>
+                      )}
                       {!key.is_active && (
-                        <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
+                        <Badge variant="outline" className="text-[10px] border-border text-muted-foreground shrink-0">
                           Revoked
                         </Badge>
                       )}
@@ -548,38 +567,33 @@ function ApiKeysPageContent() {
 
           {/* Mobile card view */}
           <div className="md:hidden divide-y divide-border">
-            {filteredRows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                 {apiKeys.length === 0
                   ? "No API keys yet. Create your first key above."
                   : "No keys match the current filter."}
               </div>
             ) : (
-              filteredRows.map(({ key, stats }) => {
+              visibleRows.map(({ key, stats }) => {
                 const isDefault =
                   key.is_default || key.id === defaultApiKey?.id;
                 return (
                   <div key={key.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <button
-                          type="button"
-                          onClick={() => handleStarClick(key.id, key.name, isDefault)}
-                          className={cn(
-                            "shrink-0 rounded p-0.5",
-                            isDefault
-                              ? "text-primary"
-                              : "text-muted-foreground/40",
-                          )}
-                          aria-label={isDefault ? "Default key" : "Make default key"}
-                        >
-                          <Star
-                            className={cn("h-3.5 w-3.5", isDefault && "fill-primary")}
-                          />
-                        </button>
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="text-foreground font-medium truncate">
                           {key.name}
                         </span>
+                        {isDefault && (
+                          <Badge className="bg-primary text-primary-foreground text-[10px] shrink-0">
+                            Default
+                          </Badge>
+                        )}
+                        {!key.is_active && (
+                          <Badge variant="outline" className="text-[10px] border-border text-muted-foreground shrink-0">
+                            Revoked
+                          </Badge>
+                        )}
                       </div>
                       <code className="font-mono text-xs text-muted-foreground shrink-0">
                         {key.key_prefix}…
@@ -623,6 +637,49 @@ function ApiKeysPageContent() {
               })
             )}
           </div>
+
+          {/* Pagination */}
+          {filteredRows.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-border text-xs text-muted-foreground">
+              <span>
+                Showing{" "}
+                <span className="text-foreground font-medium">
+                  {page * PAGE_SIZE + 1}
+                  &ndash;
+                  {Math.min((page + 1) * PAGE_SIZE, filteredRows.length)}
+                </span>{" "}
+                of{" "}
+                <span className="text-foreground font-medium">
+                  {filteredRows.length}
+                </span>
+              </span>
+              <div className="inline-flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <span className="px-2 tabular-nums">
+                  {page + 1} / {pageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                  disabled={page >= pageCount - 1}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Footer: default-key selector + reveal-once note */}
           <div className="border-t border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
