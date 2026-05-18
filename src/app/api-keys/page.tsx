@@ -90,9 +90,9 @@ function formatNumber(n: number): string {
 }
 
 function formatCurrency(n: number): string {
-  if (n === 0) return "$0.00";
-  if (n < 0.01) return "<$0.01";
-  return `$${n.toFixed(2)}`;
+  if (n === 0) return "$0.0000";
+  if (n < 0.0001) return "<$0.0001";
+  return `$${n.toFixed(4)}`;
 }
 
 function ApiKeysPageContent() {

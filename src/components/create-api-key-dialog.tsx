@@ -121,12 +121,12 @@ export function CreateApiKeyDialog({
         <DialogFooter className="pt-6">
           <Button
             type="submit"
-            className="w-full bg-primary text-primary-foreground hover:bg-primary rounded py-2 text-lg font-semibold"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={handleSubmit}
             disabled={!keyName.trim() || !!duplicateError}
           >
             Create Key
-            <ArrowRight className="ml-2 h-5 w-5" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </DialogFooter>
       </DialogContent>
