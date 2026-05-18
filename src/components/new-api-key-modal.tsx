@@ -35,8 +35,10 @@ export function NewApiKeyModal({
 
   // Strip subdomain prefixes like "dev." so the user copies a clean
   // production-shaped URL into their .env.
+  // Strip non-prod subdomain prefixes (dev., staging., etc.) so the
+  // copied .env shows a clean production-shaped host.
   const baseUrl = DOC_URLS.baseAPI().replace(
-    /https?:\/\/[a-z0-9-]+\.mor\.org/i,
+    /https?:\/\/[a-z0-9.-]+\.mor\.org/i,
     "https://api.mor.org",
   );
 
@@ -81,18 +83,18 @@ MORPHEUS_BASE_URL=${baseUrl}`;
           <code className="flex-1 self-center px-2 font-mono text-sm text-foreground break-all">
             {apiKey}
           </code>
-          <Button
-            size="sm"
-            className="h-auto px-3 bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shrink-0"
+          <button
+            type="button"
             onClick={() => copy(apiKey, setCopiedKey)}
+            aria-label="Copy API key"
+            className="self-center inline-flex items-center justify-center h-8 w-8 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/10 transition-colors shrink-0"
           >
             {copiedKey ? (
-              <Check className="h-3.5 w-3.5" />
+              <Check className="h-3.5 w-3.5 text-primary" />
             ) : (
               <Copy className="h-3.5 w-3.5" />
             )}
-            {copiedKey ? "Copied" : "Copy"}
-          </Button>
+          </button>
         </div>
 
         {/* .env snippet */}
