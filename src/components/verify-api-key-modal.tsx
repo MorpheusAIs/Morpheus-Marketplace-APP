@@ -93,34 +93,33 @@ export function VerifyApiKeyModal({
           To ensure the security of your data, we need you to verify the full API key to
           enable Test functionality.
         </p>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="api-key-input" className="text-base font-semibold text-foreground">
-              Enter Full API Key
-            </Label>
-            <Input
-              id="api-key-input"
-              type="password"
-              placeholder={`${keyPrefix}...`}
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setError("");
-              }}
-              className="col-span-4 bg-input border-input text-foreground"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleVerify();
-                }
-              }}
-            />
-            <p className="text-xs text-muted-foreground mt-1 col-span-4">
-              Must start with "{keyPrefix}" and be exactly 74 characters
-            </p>
-            {error && (
-              <p className="text-xs text-red-500 mt-1 col-span-4">{error}</p>
-            )}
-          </div>
+        <div className="flex flex-col gap-2 py-4">
+          <Label
+            htmlFor="api-key-input"
+            className="text-sm font-semibold text-foreground whitespace-nowrap"
+          >
+            Enter Full API Key
+          </Label>
+          <Input
+            id="api-key-input"
+            type="password"
+            placeholder={`${keyPrefix}...`}
+            value={apiKey}
+            onChange={(e) => {
+              setApiKey(e.target.value);
+              setError("");
+            }}
+            className="bg-input border-input text-foreground"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleVerify();
+              }
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            Must start with &quot;{keyPrefix}&quot; and be exactly 74 characters
+          </p>
+          {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
         <DialogFooter className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={handleClose}>

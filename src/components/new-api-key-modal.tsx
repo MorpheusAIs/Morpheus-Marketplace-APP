@@ -61,7 +61,7 @@ MORPHEUS_BASE_URL=${baseUrl}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] bg-card text-card-foreground border border-primary/40 rounded">
+      <DialogContent className="sm:max-w-[560px] bg-card text-card-foreground">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-xl font-semibold text-foreground">
             Save this key now
