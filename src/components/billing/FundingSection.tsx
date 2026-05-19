@@ -198,6 +198,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             <Button
               variant="outline"
               className="w-full justify-between h-auto p-4"
+              data-analytics-action="open-stripe-checkout"
+              data-analytics-destination={stripePaymentLinkUrl || undefined}
               onClick={() => openStripeCheckout()}
               disabled={!stripePaymentLinkUrl}
             >
@@ -217,6 +219,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
             <Button
               variant="outline"
               className="w-full justify-between h-auto p-4"
+              data-analytics-action="open-coinbase-payment-dialog"
+              data-analytics-destination="coinbase-checkout"
               onClick={() => handlePaymentMethodClick('coinbase')}
               disabled={!userId}
             >

@@ -154,6 +154,8 @@ export default function UsageAnalyticsPage() {
             onClick={() => router.push('/usage-analytics/export-data')}
             variant="outline"
             className="text-primary border-primary hover:bg-primary/10"
+            data-analytics-action="export-usage-data"
+            data-analytics-destination="/usage-analytics/export-data"
           >
             Export Data
           </Button>

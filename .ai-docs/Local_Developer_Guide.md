@@ -113,13 +113,6 @@ NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=gllbg66ej476tsaf2ibfjc7g8
 NEXT_PUBLIC_COGNITO_DOMAIN=auth.mor.org
 
 # =============================================================================
-# Analytics - Google Analytics & Google Tag Manager
-# =============================================================================
-# Leave empty to disable tracking in development
-NEXT_PUBLIC_GA_ID=
-NEXT_PUBLIC_GTM_ID=
-
-# =============================================================================
 # Model Filtering Configuration
 # =============================================================================
 NEXT_PUBLIC_ALLOWED_MODEL_TYPES=LLM, EMBEDDING
@@ -156,8 +149,6 @@ NEXT_PUBLIC_PROJECT_ID=
 | `NEXT_PUBLIC_COGNITO_REGION` | AWS region | `us-east-2` |
 | `NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID` | Cognito client | `gllbg66ej476tsaf2ibfjc7g8` |
 | `NEXT_PUBLIC_COGNITO_DOMAIN` | Auth domain | `auth.mor.org` |
-| `NEXT_PUBLIC_GA_ID` | Google Analytics | Leave empty for dev |
-| `NEXT_PUBLIC_GTM_ID` | Google Tag Manager | Leave empty for dev |
 | `NEXT_PUBLIC_ALLOWED_MODEL_TYPES` | Model types to display | `LLM, EMBEDDING` |
 | `NEXT_PUBLIC_DEFAULT_MODEL` | Default model selection | `hermes-4-14b` |
 | `NEXT_PUBLIC_DEFAULT_AUTOMATION_ENABLED` | Default automation state | `true` |
@@ -336,7 +327,7 @@ src/
 │   ├── ai-elements/         # Chat/AI components (conversation, messages)
 │   ├── auth/                # Auth-specific components
 │   ├── billing/             # Billing components (charts, tables, widgets)
-│   ├── providers/           # Context providers (GTM, Query)
+│   ├── providers/           # Context providers (Query)
 │   └── ui/                  # shadcn/ui components
 ├── config/                   # Configuration files
 │   └── appkit.tsx           # Reown AppKit config (Web3)
@@ -748,4 +739,3 @@ For questions or clarifications about this guide:
 - Contact the development team leads
 
 **Happy coding! 🚀**
-

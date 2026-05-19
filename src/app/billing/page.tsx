@@ -103,6 +103,8 @@ export default function BillingPage() {
                 onClick={handleViewBilling}
                 className="w-full"
                 variant="default"
+                data-analytics-action="view-billing"
+                data-analytics-destination="/billing"
               >
                 View Billing
               </Button>

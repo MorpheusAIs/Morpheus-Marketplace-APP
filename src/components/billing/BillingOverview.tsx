@@ -647,7 +647,13 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
             </SelectTrigger>
             <SelectContent>
               {apiKeyOptions.map((key) => (
-                <SelectItem key={key.id} value={key.id}>
+                <SelectItem
+                  key={key.id}
+                  value={key.id}
+                  data-analytics-action="select-billing-api-key-filter"
+                  data-analytics-label={`API key filter: ${key.name}`}
+                  data-analytics-destination={`billing-api-key-filter:${key.id}`}
+                >
                   {key.name}
                 </SelectItem>
               ))}

@@ -165,6 +165,8 @@ export function PaymentAmountDialog({
             <Button
               type="button"
               className="flex-1"
+              data-analytics-action="continue-to-payment"
+              data-analytics-destination={`${paymentMethod}-checkout`}
               onClick={handleConfirm}
               disabled={isLoading}
             >

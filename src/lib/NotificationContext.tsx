@@ -45,6 +45,36 @@ const getNotificationIcon = (type: NotificationType) => {
   }
 };
 
+function trackNotificationAction(label: string, destination: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  let normalizedDestination = destination;
+  let linkDomain = window.location.hostname;
+
+  try {
+    const url = new URL(destination, window.location.href);
+    normalizedDestination = url.origin === window.location.origin
+      ? `${url.pathname}${url.search}${url.hash}`
+      : `${url.origin}${url.pathname}${url.search}${url.hash}`;
+    linkDomain = url.hostname;
+  } catch {
+    normalizedDestination = destination;
+  }
+
+  window.umami?.track('button-click', {
+    current_path: window.location.pathname,
+    page_title: document.title || 'Morpheus Inference API Admin',
+    page_section: window.location.pathname.split('/').filter(Boolean)[0] || 'home',
+    element_area: 'notification',
+    button_text: label,
+    action_name: 'notification-action',
+    destination: normalizedDestination,
+    link_domain: linkDomain,
+  });
+}
+
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const showNotification = useCallback((notification: Omit<Notification, 'id'>) => {
     const { type, title, message, duration, actionLabel, actionUrl } = notification;
@@ -57,6 +87,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         action: {
           label: actionLabel,
           onClick: () => {
+            trackNotificationAction(actionLabel, actionUrl);
             // Use Next.js router if available, otherwise fallback to window.location
             if (typeof window !== 'undefined') {
               window.location.href = actionUrl;
@@ -173,4 +204,3 @@ export function useNotification() {
   }
   return context;
 }
-
