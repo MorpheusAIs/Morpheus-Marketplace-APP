@@ -53,21 +53,21 @@ export function CookiesPageClient() {
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-x-4 gap-y-2 justify-center text-sm">
           <Link
             href="/privacy"
-            className="text-green-500 hover:text-green-400 hover:underline font-medium"
+            className="text-primary hover:text-primary hover:underline font-medium"
           >
             Privacy Policy
           </Link>
           <span className="text-muted-foreground">·</span>
           <Link
             href="/terms"
-            className="text-green-500 hover:text-green-400 hover:underline font-medium"
+            className="text-primary hover:text-primary hover:underline font-medium"
           >
             Terms of Service
           </Link>
           <span className="text-muted-foreground">·</span>
           <Link
             href="/signin"
-            className="text-green-500 hover:text-green-400 hover:underline font-medium"
+            className="text-primary hover:text-primary hover:underline font-medium"
           >
             Return to Sign in
           </Link>

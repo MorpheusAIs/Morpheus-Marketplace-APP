@@ -45,7 +45,7 @@ export function Navbar({
           <ExternalLink className="h-4 w-4" />
         </Link>
         <Link href={signInHref}>
-          <Button variant="default" className="bg-green-500 hover:bg-green-600 text-white">
+          <Button variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground">
             Sign In
           </Button>
         </Link>

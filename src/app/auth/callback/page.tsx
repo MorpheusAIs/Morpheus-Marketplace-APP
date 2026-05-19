@@ -71,7 +71,7 @@ function AuthCallbackContent() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="mb-4">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
           <h1 className="text-xl font-semibold text-foreground mb-2">
             Completing sign in...

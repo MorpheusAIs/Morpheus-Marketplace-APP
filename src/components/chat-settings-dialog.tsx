@@ -293,7 +293,7 @@ export function ChatSettingsDialog({
           </Button>
           <Button
             variant="default"
-            className="bg-green-500 hover:bg-green-600 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={handleSave}
           >
             Save Changes

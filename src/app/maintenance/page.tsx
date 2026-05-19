@@ -16,7 +16,7 @@ export default function MaintenancePage() {
         <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
       </div>
 
-      <Card className="w-full max-w-[500px] mx-auto bg-card text-card-foreground rounded-lg shadow-lg">
+      <Card className="w-full max-w-[500px] mx-auto bg-card text-card-foreground rounded shadow-lg">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <ConstructionAnimation />
@@ -31,7 +31,7 @@ export default function MaintenancePage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground text-center leading-relaxed">
+          <div className="rounded border border-border bg-muted/40 p-4 text-sm text-muted-foreground text-center leading-relaxed">
             We apologize for the inconvenience. Please check back in a little while —
             we expect to be back up very soon.
           </div>

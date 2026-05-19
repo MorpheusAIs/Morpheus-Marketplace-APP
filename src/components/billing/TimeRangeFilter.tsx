@@ -61,7 +61,7 @@ export function TimeRangeFilter({ value, onChange, onCustomRangeChange }: TimeRa
             size="sm"
             onClick={() => handleRangeChange(range.value)}
             className={cn(
-              value === range.value && 'bg-green-500 hover:bg-green-600 text-black'
+              value === range.value && 'bg-primary hover:bg-primary text-black'
             )}
           >
             {range.value === 'custom' && <CalendarIcon className="mr-2 h-4 w-4" />}
@@ -71,7 +71,7 @@ export function TimeRangeFilter({ value, onChange, onCustomRangeChange }: TimeRa
       </div>
 
       {showCustom && (
-        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-wrap items-end gap-3 rounded border border-border bg-card p-4">
           {/* Start Date Picker */}
           <div className="flex-1 min-w-[200px] space-y-2">
             <Label htmlFor="start-date">Start Date</Label>
@@ -148,7 +148,7 @@ export function TimeRangeFilter({ value, onChange, onCustomRangeChange }: TimeRa
           <Button
             onClick={handleApplyCustom}
             disabled={!startDate || !endDate}
-            className="bg-green-500 hover:bg-green-600 text-black"
+            className="bg-primary hover:bg-primary text-black"
           >
             Apply
           </Button>

@@ -123,7 +123,7 @@ export default function SignInPage() {
           />
           <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
         </div>
-        <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
+        <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">Sign in</CardTitle>
             <CardDescription className="text-muted-foreground">
@@ -154,7 +154,7 @@ export default function SignInPage() {
                     <FieldLabel htmlFor="password">Password</FieldLabel>
                     <Link
                       href="/forgot-password"
-                      className="ml-auto text-sm text-green-500 hover:underline underline-offset-2"
+                      className="ml-auto text-sm text-primary hover:underline underline-offset-2"
                     >
                       Forgot your password?
                     </Link>
@@ -187,7 +187,7 @@ export default function SignInPage() {
                     {error === "User doesn't exist" && (
                       <p className="text-sm text-muted-foreground">
                         Don&apos;t have an account?{" "}
-                        <Link href="/signup" className="text-green-500 hover:underline font-medium">
+                        <Link href="/signup" className="text-primary hover:underline font-medium">
                           Sign up here
                         </Link>
                       </p>
@@ -197,7 +197,7 @@ export default function SignInPage() {
                 <Field>
                   <Button
                     type="submit"
-                    className="w-full bg-green-500 hover:bg-green-600 text-white"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     disabled={isSubmitting}
                   >
                     <span>Sign in</span>
@@ -256,7 +256,7 @@ export default function SignInPage() {
                 <FieldDescription className="text-center space-y-2">
                   <span className="block">
                     Don&apos;t have an account?{" "}
-                    <Link href="/signup" className="text-green-500 hover:underline">
+                    <Link href="/signup" className="text-primary hover:underline">
                       Sign up
                     </Link>
                   </span>

@@ -61,9 +61,9 @@ export function NavUser({
       <div className="space-y-1">
         {/* User Info */}
         <div className="flex items-center gap-2 px-2 py-2">
-          <Avatar className="h-8 w-8 rounded-lg">
-            <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded-lg bg-green-600 text-white">
+          <Avatar className="h-8 w-8 rounded">
+            {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+            <AvatarFallback className="rounded bg-primary text-primary-foreground">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
@@ -137,32 +137,32 @@ export function NavUser({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-start h-auto py-2 px-2 hover:bg-gray-800"
+          className="w-full justify-start h-auto py-2 px-2 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
-          <Avatar className="h-8 w-8 rounded-lg">
-            <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded-lg bg-green-600 text-white">
+          <Avatar className="h-8 w-8 rounded">
+            {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+            <AvatarFallback className="rounded bg-primary text-primary-foreground">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight ml-2">
             <span className="truncate font-medium">{displayName}</span>
-            <span className="truncate text-xs text-gray-400">{displayEmail}</span>
+            <span className="truncate text-xs text-sidebar-foreground/60">{displayEmail}</span>
           </div>
           <ChevronsUpDown className="ml-auto h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-56 rounded-lg"
+        className="w-56 rounded"
         side="right"
         align="end"
         sideOffset={4}
       >
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={user.avatar} alt={displayName} />
-              <AvatarFallback className="rounded-lg bg-green-600 text-white">
+            <Avatar className="h-8 w-8 rounded">
+              {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+              <AvatarFallback className="rounded bg-primary text-primary-foreground">
                 {avatarFallback}
               </AvatarFallback>
             </Avatar>

@@ -29,7 +29,7 @@ export function DataExport({ usageData, isLoading }: DataExportProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-4">
+        <div className="flex items-center justify-between rounded border border-border bg-muted/50 p-4">
           <div>
             <p className="font-medium text-foreground">CSV Export</p>
             <p className="text-sm text-muted-foreground">
@@ -39,7 +39,7 @@ export function DataExport({ usageData, isLoading }: DataExportProps) {
           <Button
             onClick={handleExport}
             disabled={isLoading || usageData.length === 0}
-            className="bg-green-500 hover:bg-green-600 text-black"
+            className="bg-primary hover:bg-primary text-black"
           >
             <Download className="mr-2 h-4 w-4" />
             Download CSV
@@ -48,7 +48,7 @@ export function DataExport({ usageData, isLoading }: DataExportProps) {
 
         {/* Preview Table */}
         {usageData.length > 0 && (
-          <div className="rounded-lg border border-border">
+          <div className="rounded border border-border">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b border-border bg-muted/50">
@@ -96,7 +96,7 @@ export function DataExport({ usageData, isLoading }: DataExportProps) {
         )}
 
         {usageData.length === 0 && !isLoading && (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center">
+          <div className="rounded border border-dashed border-border p-8 text-center">
             <p className="text-muted-foreground">No usage data available to export</p>
           </div>
         )}

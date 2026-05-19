@@ -33,7 +33,7 @@ import { formatCurrency, formatLargeNumber, formatLocaleDate } from '@/lib/utils
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 import type { UsageEntryResponse, UsageListResponse } from '@/types/billing';
 
-const COLORS = ['#00FF85', '#20DC8E', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6'];
+const COLORS = ['#5CE3B0', '#5CE3B0', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6'];
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -45,7 +45,7 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, label, valueFormatter }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border bg-background p-3 shadow-lg">
+      <div className="rounded border bg-background p-3 shadow-lg">
         <p className="text-sm font-medium text-foreground">{label}</p>
         {payload.map((entry, index: number) => (
           <p key={index} className="text-sm text-muted-foreground">
@@ -332,7 +332,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
       {/* Top Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Total Usage Card */}
-        <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20">
+        <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -341,14 +341,14 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
                   {isLoading ? (
-                    <Skeleton className="h-10 w-28 rounded-md" />
+                    <Skeleton className="h-10 w-28 rounded" />
                   ) : (
                     formatLargeNumber(totalTokens)
                   )}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">Total tokens processed</p>
               </div>
-              <Database className="h-6 w-6 text-green-500" />
+              <Database className="h-6 w-6 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
@@ -363,7 +363,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
                         {isLoading ? (
-                          <Skeleton className="h-4 w-14 rounded-md" />
+                          <Skeleton className="h-4 w-14 rounded" />
                         ) : (
                           <span className="font-medium">{formatLargeNumber(key.value)}</span>
                         )}
@@ -397,17 +397,17 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
                   {isLoading ? (
-                    <Skeleton className="h-10 w-24 rounded-md" />
+                    <Skeleton className="h-10 w-24 rounded" />
                   ) : (
                     formatCurrency(totalCost)
                   )}
                 </CardTitle>
                 <div className="flex items-center gap-4 mt-2 text-sm">
                   <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <div className="w-2 h-2 rounded-full bg-primary" />
                     <span className="text-muted-foreground">Staking:</span>
                     {isLoading ? (
-                      <Skeleton className="h-4 w-16 rounded-md" />
+                      <Skeleton className="h-4 w-16 rounded" />
                     ) : (
                       <span className="font-medium">{formatCurrency(stakingTotal)}</span>
                     )}
@@ -416,7 +416,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                     <div className="w-2 h-2 rounded-full bg-orange-500" />
                     <span className="text-muted-foreground">Credits:</span>
                     {isLoading ? (
-                      <Skeleton className="h-4 w-16 rounded-md" />
+                      <Skeleton className="h-4 w-16 rounded" />
                     ) : (
                       <span className="font-medium">{formatCurrency(creditTotal)}</span>
                     )}
@@ -438,7 +438,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-foreground truncate max-w-[150px]">{key.name}</span>
                         {isLoading ? (
-                          <Skeleton className="h-4 w-14 rounded-md" />
+                          <Skeleton className="h-4 w-14 rounded" />
                         ) : (
                           <span className="font-medium text-orange-500">{formatCurrency(key.value)}</span>
                         )}
@@ -499,7 +499,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                         <span className="text-muted-foreground truncate max-w-[120px]">{entry.name}</span>
                       </div>
                       {isLoading ? (
-                        <Skeleton className="h-4 w-14 rounded-md" />
+                        <Skeleton className="h-4 w-14 rounded" />
                       ) : (
                         <span className="font-medium">{formatCurrency(entry.value)}</span>
                       )}
@@ -556,7 +556,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                         <span className="text-muted-foreground truncate max-w-[120px]">{entry.name}</span>
                       </div>
                       {isLoading ? (
-                        <Skeleton className="h-4 w-14 rounded-md" />
+                        <Skeleton className="h-4 w-14 rounded" />
                       ) : (
                         <span className="font-medium">{formatCurrency(entry.value)}</span>
                       )}
@@ -613,7 +613,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                         <span className="text-muted-foreground">{entry.name}</span>
                       </div>
                       {isLoading ? (
-                        <Skeleton className="h-4 w-14 rounded-md" />
+                        <Skeleton className="h-4 w-14 rounded" />
                       ) : (
                         <span className="font-medium">{formatLargeNumber(entry.value)}</span>
                       )}
@@ -636,7 +636,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
 
       {/* API Key Filter */}
       <div className="flex items-center gap-3">
-        <Filter className="h-4 w-4 text-green-500" />
+        <Filter className="h-4 w-4 text-primary" />
         <div className="flex items-center gap-2 flex-1 max-w-xs">
           <Label htmlFor="key-filter" className="text-sm font-medium whitespace-nowrap">
             Filter by Key:
@@ -667,15 +667,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Avg</span>
-              {isLoading ? <Skeleton className="h-4 w-16 rounded-md" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.avg)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-16 rounded" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Min</span>
-              {isLoading ? <Skeleton className="h-4 w-16 rounded-md" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.min)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-16 rounded" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Max</span>
-              {isLoading ? <Skeleton className="h-4 w-16 rounded-md" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.max)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-16 rounded" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.max)}</span>}
             </div>
           </CardContent>
         </Card>
@@ -689,15 +689,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Avg</span>
-              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.avg)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Min</span>
-              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.min)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Max</span>
-              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.max)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.max)}</span>}
             </div>
           </CardContent>
         </Card>
@@ -711,15 +711,15 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Avg</span>
-              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.avg)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Min</span>
-              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.min)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Max</span>
-              {isLoading ? <Skeleton className="h-4 w-14 rounded-md" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.max)}</span>}
+              {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.max)}</span>}
             </div>
           </CardContent>
         </Card>
@@ -756,7 +756,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                   type="monotone"
                   dataKey="staking"
                   name="Staked Spend"
-                  stroke="#00FF85"
+                  stroke="#5CE3B0"
                   strokeWidth={2}
                   dot={false}
                 />

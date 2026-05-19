@@ -66,7 +66,7 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-card text-card-foreground rounded-lg p-6">
+      <AlertDialogContent className="bg-card text-card-foreground rounded p-6">
         <AlertDialogHeader className="space-y-4 mb-6">
           <AlertDialogTitle className="text-2xl font-bold text-red-500">
             Delete Account

@@ -159,7 +159,7 @@ function ForgotPasswordContent() {
           />
           <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
         </div>
-        <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded-lg shadow-lg">
+        <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">
               {step === "request" ? "Reset Password" : "Enter Reset Code"}
@@ -194,12 +194,12 @@ function ForgotPasswordContent() {
                     <p className="text-sm text-red-500">{error}</p>
                   )}
                   {successMessage && (
-                    <p className="text-sm text-green-500">{successMessage}</p>
+                    <p className="text-sm text-primary">{successMessage}</p>
                   )}
                   <Field>
                     <Button
                       type="submit"
-                      className="w-full bg-green-500 hover:bg-green-600 text-white"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       disabled={isSubmitting}
                     >
                       <span>Send Reset Code</span>
@@ -208,7 +208,7 @@ function ForgotPasswordContent() {
                   </Field>
                   <FieldDescription className="text-center">
                     Remember your password?{" "}
-                    <Link href="/signin" className="text-green-500 hover:underline">
+                    <Link href="/signin" className="text-primary hover:underline">
                       Sign in
                     </Link>
                   </FieldDescription>
@@ -282,12 +282,12 @@ function ForgotPasswordContent() {
                     <p className="text-sm text-red-500">{error}</p>
                   )}
                   {successMessage && (
-                    <p className="text-sm text-green-500">{successMessage}</p>
+                    <p className="text-sm text-primary">{successMessage}</p>
                   )}
                   <Field>
                     <Button
                       type="submit"
-                      className="w-full bg-green-500 hover:bg-green-600 text-white"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       disabled={isSubmitting}
                     >
                       <span>Reset Password</span>
@@ -307,7 +307,7 @@ function ForgotPasswordContent() {
                   </Field>
                   <FieldDescription className="text-center">
                     Remember your password?{" "}
-                    <Link href="/signin" className="text-green-500 hover:underline">
+                    <Link href="/signin" className="text-primary hover:underline">
                       Sign in
                     </Link>
                   </FieldDescription>

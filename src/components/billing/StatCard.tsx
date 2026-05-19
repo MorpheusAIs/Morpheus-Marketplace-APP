@@ -36,7 +36,7 @@ export function StatCard({
           <div className="flex-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             {isLoading ? (
-              <Skeleton className="mt-2 h-9 w-24 rounded-md" />
+              <Skeleton className="mt-2 h-9 w-24 rounded" />
             ) : (
               <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
             )}
@@ -48,7 +48,7 @@ export function StatCard({
                 <span
                   className={cn(
                     'text-xs font-medium',
-                    trend.isPositive ? 'text-green-500' : 'text-red-500'
+                    trend.isPositive ? 'text-primary' : 'text-red-500'
                   )}
                 >
                   {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
