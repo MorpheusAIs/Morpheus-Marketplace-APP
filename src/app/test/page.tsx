@@ -25,6 +25,7 @@ import { logModelName } from "@/lib/model-name-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { validateJsonDepth, safeJsonParseOrNull } from "@/lib/utils/safe-json";
+import { calculateCostUsd } from "@/lib/model-pricing";
 
 import {
   ParametersPanel,
@@ -102,6 +103,7 @@ function generateCurlSnippet(
     frequency_penalty: params.frequencyPenalty,
     presence_penalty: params.presencePenalty,
     stream: params.stream,
+    ...(params.stream ? { stream_options: { include_usage: true } } : {}),
     ...(params.stopSequences.length > 0 ? { stop: params.stopSequences } : {}),
   };
   return `curl -X POST '${API_URLS.chatCompletions()}' \\
@@ -133,7 +135,7 @@ response = client.chat.completions.create(
     top_p=${params.topP},
     frequency_penalty=${params.frequencyPenalty},
     presence_penalty=${params.presencePenalty},
-    stream=${params.stream ? "True" : "False"},${params.stopSequences.length > 0 ? `\n    stop=${JSON.stringify(params.stopSequences)},` : ""}
+    stream=${params.stream ? "True" : "False"},${params.stream ? `\n    stream_options={"include_usage": True},` : ""}${params.stopSequences.length > 0 ? `\n    stop=${JSON.stringify(params.stopSequences)},` : ""}
 )
 
 print(response.choices[0].message.content)`;
@@ -161,7 +163,7 @@ const response = await client.chat.completions.create({
   top_p: ${params.topP},
   frequency_penalty: ${params.frequencyPenalty},
   presence_penalty: ${params.presencePenalty},
-  stream: ${params.stream},${params.stopSequences.length > 0 ? `\n  stop: ${JSON.stringify(params.stopSequences)},` : ""}
+  stream: ${params.stream},${params.stream ? `\n  stream_options: { include_usage: true },` : ""}${params.stopSequences.length > 0 ? `\n  stop: ${JSON.stringify(params.stopSequences)},` : ""}
 });
 
 console.log(response.choices[0].message.content);`;
@@ -460,6 +462,13 @@ export default function TestPage() {
           presence_penalty: params.presencePenalty,
           stream: params.stream,
         };
+        if (params.stream) {
+          // OpenAI-compatible streaming requires this opt-in for the server
+          // to emit a `usage` block in the SSE stream. Without it, prompt /
+          // completion token counts are not reported and cost can't be
+          // calculated.
+          requestBody.stream_options = { include_usage: true };
+        }
         if (params.stopSequences.length > 0) {
           requestBody.stop = params.stopSequences;
         }
@@ -496,6 +505,15 @@ export default function TestPage() {
           const decoder = new TextDecoder();
           let buffer = "";
           let finalChunk: Record<string, unknown> | null = null;
+          // Usage / finish_reason can arrive in any chunk (often a dedicated
+          // chunk near the end of the stream, not the very last one). Track
+          // them across all chunks so they survive subsequent chunks that
+          // don't include them.
+          type UsageBlock = { prompt_tokens?: number; completion_tokens?: number };
+          let usageFromConsumer: UsageBlock | undefined;
+          let usageFromProvider: UsageBlock | undefined;
+          let usageRaw: UsageBlock | undefined;
+          let finishReasonFromStream: string | null = null;
           let accumulated = "";
 
           const flush = (chunk: string) => {
@@ -508,8 +526,21 @@ export default function TestPage() {
               const parsed = safeJsonParseOrNull(raw, { maxDepth: 100 });
               if (!parsed) continue;
               finalChunk = parsed as Record<string, unknown>;
-              const choices = (parsed as { choices?: Array<{ delta?: { content?: string } }> }).choices;
-              const delta = choices?.[0]?.delta?.content;
+              const typed = parsed as {
+                usage?: UsageBlock;
+                usage_from_consumer?: UsageBlock;
+                usage_from_provider?: UsageBlock;
+                choices?: Array<{
+                  delta?: { content?: string };
+                  finish_reason?: string;
+                }>;
+              };
+              if (typed.usage_from_consumer) usageFromConsumer = typed.usage_from_consumer;
+              if (typed.usage_from_provider) usageFromProvider = typed.usage_from_provider;
+              if (typed.usage) usageRaw = typed.usage;
+              const choiceFinish = typed.choices?.[0]?.finish_reason;
+              if (choiceFinish) finishReasonFromStream = choiceFinish;
+              const delta = typed.choices?.[0]?.delta?.content;
               if (delta) {
                 accumulated += delta;
                 setMessages((prev) =>
@@ -538,36 +569,27 @@ export default function TestPage() {
 
           const latencyMs = Date.now() - startTime;
 
-          // Extract usage and finish_reason from final chunk.
           // Prefer usage_from_consumer (what the user actually paid for) over
           // the raw `usage` block, which includes provider-side overhead like
-          // hidden system primers.
-          const finalParsed = finalChunk as {
-            usage?: { prompt_tokens?: number; completion_tokens?: number };
-            usage_from_consumer?: { prompt_tokens?: number; completion_tokens?: number };
-            usage_from_provider?: { prompt_tokens?: number; completion_tokens?: number };
-            choices?: Array<{ finish_reason?: string }>;
-          } | null;
-
+          // hidden system primers. Values were accumulated across all chunks
+          // because the dedicated usage chunk is not always the last one.
           const effectiveUsage =
-            finalParsed?.usage_from_consumer ??
-            finalParsed?.usage_from_provider ??
-            finalParsed?.usage;
+            usageFromConsumer ?? usageFromProvider ?? usageRaw;
           const tokensIn = effectiveUsage?.prompt_tokens ?? null;
           const tokensOut = effectiveUsage?.completion_tokens ?? null;
-          const reason = finalParsed?.choices?.[0]?.finish_reason ?? null;
+          const reason = finishReasonFromStream;
+          const finalParsed = finalChunk as {
+            detail?: string;
+            error?: { message?: string };
+          } | null;
 
-          let costUsd: number | null = null;
-          if (
-            tokensIn !== null &&
-            tokensOut !== null &&
-            currentModel?.input_price_per_million &&
+          const costUsd = calculateCostUsd(
+            selectedModel,
+            tokensIn,
+            tokensOut,
+            currentModel?.input_price_per_million,
             currentModel?.output_price_per_million
-          ) {
-            costUsd =
-              (tokensIn / 1_000_000) * currentModel.input_price_per_million +
-              (tokensOut / 1_000_000) * currentModel.output_price_per_million;
-          }
+          );
 
           setMetrics({ latencyMs, tokensIn, tokensOut, costUsd });
           setFinishReason(reason);
@@ -617,17 +639,13 @@ export default function TestPage() {
           const tokensIn = effectiveUsage?.prompt_tokens ?? null;
           const tokensOut = effectiveUsage?.completion_tokens ?? null;
 
-          let costUsd: number | null = null;
-          if (
-            tokensIn !== null &&
-            tokensOut !== null &&
-            currentModel?.input_price_per_million &&
+          const costUsd = calculateCostUsd(
+            selectedModel,
+            tokensIn,
+            tokensOut,
+            currentModel?.input_price_per_million,
             currentModel?.output_price_per_million
-          ) {
-            costUsd =
-              (tokensIn / 1_000_000) * currentModel.input_price_per_million +
-              (tokensOut / 1_000_000) * currentModel.output_price_per_million;
-          }
+          );
 
           setMetrics({ latencyMs, tokensIn, tokensOut, costUsd });
 
@@ -849,7 +867,11 @@ export default function TestPage() {
               </span>
               <Select
                 value={selectedModel}
-                onValueChange={setSelectedModel}
+                onValueChange={(value) => {
+                  if (value === selectedModel) return;
+                  setSelectedModel(value);
+                  clearConversation();
+                }}
                 disabled={loadingModels}
               >
                 <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs font-mono text-foreground shadow-none focus:ring-0 focus:outline-none min-w-[80px] max-w-[200px] [&>svg]:h-3 [&>svg]:w-3 [&>svg]:ml-1 [&>svg]:opacity-50">
@@ -869,16 +891,6 @@ export default function TestPage() {
                   )}
                 </SelectContent>
               </Select>
-              {currentModel?.context_length && (
-                <span className="text-muted-foreground hidden sm:inline">
-                  · {Math.round(currentModel.context_length / 1000)}k ctx
-                </span>
-              )}
-              {currentModel?.input_price_per_million && (
-                <span className="text-muted-foreground hidden sm:inline">
-                  · ${currentModel.input_price_per_million.toFixed(2)}/M in
-                </span>
-              )}
             </div>
 
             {/* Key pill */}
