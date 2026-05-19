@@ -867,7 +867,11 @@ export default function TestPage() {
               </span>
               <Select
                 value={selectedModel}
-                onValueChange={setSelectedModel}
+                onValueChange={(value) => {
+                  if (value === selectedModel) return;
+                  setSelectedModel(value);
+                  clearConversation();
+                }}
                 disabled={loadingModels}
               >
                 <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs font-mono text-foreground shadow-none focus:ring-0 focus:outline-none min-w-[80px] max-w-[200px] [&>svg]:h-3 [&>svg]:w-3 [&>svg]:ml-1 [&>svg]:opacity-50">
