@@ -5,22 +5,33 @@
 @source "../node_modules/streamdown/dist/index.js";
 
 :root {
-  /* Primary Colors from Branding Guide */
+  /* Legacy brand tokens (kept so existing components keep working) */
   --matrix-green: #03160E;
   --eclipse: #1C302F;
-  --neon-mint: #00FF85;
-  --emerald: #20DC8E;
-  --midnight: #0C0C0C;
-  --platinum: #EBEBEB;
+  --neon-mint: #5CE3B0;
+  --emerald: #5CE3B0;
+  --midnight: #0a0b0d;
+  --platinum: #e9eae8;
 
-  /* Default theme colors */
+  /* Ink & Mint design tokens (from Morpheus landing redesign) */
+  --ink-bg: #0a0b0d;
+  --ink-bg-elev: #0f1113;
+  --ink-panel: #111417;
+  --ink-hairline: rgba(255, 255, 255, 0.07);
+  --ink-hairline-strong: rgba(255, 255, 255, 0.14);
+  --ink-text: #e9eae8;
+  --ink-text-dim: #9ca09c;
+  --ink-text-mute: #5e635f;
+  --ink-accent: oklch(84% 0.16 168);
+  --ink-accent-ink: #06120c;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
 }
 
 
@@ -104,10 +115,10 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --font-sans: Geist, sans-serif;
-    --font-serif: Georgia, serif;
-    --font-mono: Geist Mono, monospace;
-    --radius: 0.5rem;
+    --font-sans: var(--font-sans), 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: var(--font-serif), 'Instrument Serif', ui-serif, Georgia, serif;
+    --font-mono: var(--font-mono), 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --radius: 0.25rem;
     --shadow-x: 0px;
     --shadow-y: 1px;
     --shadow-blur: 2px;
@@ -127,42 +138,43 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
     --sidebar-background: 0 0% 98%;
   }
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 223.8136 -172.5242% 100.0000%;
-    --card: 223.8136 0.0000% 3.5452%;
-    --card-foreground: 223.8136 -172.5242% 100.0000%;
-    --popover: 223.8136 0.0000% 6.8692%;
-    --popover-foreground: 223.8136 -172.5242% 100.0000%;
-    --primary: 151.1675 165.4567% 29.6529%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 223.8136 0.0000% 13.1499%;
-    --secondary-foreground: 223.8136 -172.5242% 100.0000%;
-    --muted: 223.8136 0.0000% 11.3040%;
-    --muted-foreground: 223.8136 0.0000% 64.4710%;
-    --accent: 223.8136 0.0000% 19.8916%;
-    --accent-foreground: 223.8136 -172.5242% 100.0000%;
-    --destructive: 359.9132 100.2494% 67.8807%;
+    /* Ink & Mint palette — mapped to shadcn HSL vars */
+    --background: 220 13% 4%;            /* #0a0b0d ink-bg */
+    --foreground: 60 4% 91%;              /* #e9eae8 ink-text */
+    --card: 210 13% 7%;                   /* #0f1113 ink-bg-elev */
+    --card-foreground: 60 4% 91%;
+    --popover: 210 13% 8%;                /* #111417 ink-panel */
+    --popover-foreground: 60 4% 91%;
+    --primary: 157 65% 63%;               /* mint accent */
+    --primary-foreground: 150 56% 5%;     /* #06120c accent-ink */
+    --secondary: 210 10% 12%;
+    --secondary-foreground: 60 4% 91%;
+    --muted: 210 10% 11%;
+    --muted-foreground: 108 3% 62%;       /* #9ca09c text-dim */
+    --accent: 157 65% 63%;                /* mint accent */
+    --accent-foreground: 150 56% 5%;
+    --destructive: 359 100% 68%;
     --destructive-foreground: 0 0% 0%;
-    --border: 223.8136 0.0000% 14.0871%;
-    --input: 223.8136 0.0000% 19.8916%;
-    --ring: 223.8136 0.0000% 64.4710%;
-    --chart-1: 40.6655 100.2361% 50.9228%;
-    --chart-2: 218.1624 90.0354% 55.1618%;
-    --chart-3: 223.8136 0.0000% 45.6078%;
-    --chart-4: 223.8136 0.0000% 32.3067%;
-    --chart-5: 223.8136 0.0001% 89.5577%;
-    --sidebar: oklch(0.18 0 0);
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --font-sans: Geist, sans-serif;
-    --font-serif: Georgia, serif;
-    --font-mono: Geist Mono, monospace;
-    --radius: 0.5rem;
+    --border: 210 8% 14%;                 /* hairline */
+    --input: 210 8% 14%;
+    --ring: 157 65% 63%;
+    --chart-1: 157 65% 63%;
+    --chart-2: 168 60% 50%;
+    --chart-3: 75 50% 60%;
+    --chart-4: 200 40% 50%;
+    --chart-5: 60 4% 91%;
+    --sidebar: 210 13% 6%;
+    --sidebar-foreground: 60 4% 91%;
+    --sidebar-accent: 210 10% 12%;
+    --sidebar-primary: 157 65% 63%;
+    --sidebar-primary-foreground: 150 56% 5%;
+    --sidebar-accent-foreground: 60 4% 91%;
+    --sidebar-border: 210 8% 14%;
+    --sidebar-ring: 157 65% 63%;
+    --font-sans: var(--font-sans), 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: var(--font-serif), 'Instrument Serif', ui-serif, Georgia, serif;
+    --font-mono: var(--font-mono), 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --radius: 0.25rem;
     --shadow-x: 0px;
     --shadow-y: 1px;
     --shadow-blur: 2px;
@@ -223,14 +235,14 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 
 /* Sonner Toast Custom Styling */
 [data-sonner-toast] {
-  background-color: #0C0C0C !important; /* midnight black */
-  border: 1px solid rgba(32, 220, 142, 0.3) !important; /* emerald border */
-  box-shadow: 0 0 20px rgba(32, 220, 142, 0.5), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important; /* green shadow */
-  color: #20DC8E !important; /* emerald text */
+  background-color: #0a0b0d !important; /* midnight black */
+  border: 1px solid rgba(92, 227, 176, 0.3) !important; /* emerald border */
+  box-shadow: 0 0 20px rgba(92, 227, 176, 0.5), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important; /* green shadow */
+  color: #5CE3B0 !important; /* emerald text */
 }
 
 [data-sonner-toast] [data-title] {
-  color: #20DC8E !important; /* emerald for title */
+  color: #5CE3B0 !important; /* emerald for title */
   font-weight: 600;
 }
 
@@ -240,13 +252,13 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 
 /* Success toast - green theme */
 [data-sonner-toast][data-type="success"] {
-  background-color: #0C0C0C !important;
-  border-color: rgba(32, 220, 142, 0.4) !important;
-  box-shadow: 0 0 20px rgba(32, 220, 142, 0.6), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+  background-color: #0a0b0d !important;
+  border-color: rgba(92, 227, 176, 0.4) !important;
+  box-shadow: 0 0 20px rgba(92, 227, 176, 0.6), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
 }
 
 [data-sonner-toast][data-type="success"] [data-title] {
-  color: #20DC8E !important;
+  color: #5CE3B0 !important;
 }
 
 [data-sonner-toast][data-type="success"] [data-description] {
@@ -255,13 +267,13 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 
 /* Info toast - green theme */
 [data-sonner-toast][data-type="info"] {
-  background-color: #0C0C0C !important;
-  border-color: rgba(32, 220, 142, 0.3) !important;
-  box-shadow: 0 0 20px rgba(32, 220, 142, 0.5), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+  background-color: #0a0b0d !important;
+  border-color: rgba(92, 227, 176, 0.3) !important;
+  box-shadow: 0 0 20px rgba(92, 227, 176, 0.5), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
 }
 
 [data-sonner-toast][data-type="info"] [data-title] {
-  color: #20DC8E !important;
+  color: #5CE3B0 !important;
 }
 
 [data-sonner-toast][data-type="info"] [data-description] {
@@ -270,7 +282,7 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 
 /* Error toast - red theme */
 [data-sonner-toast][data-type="error"] {
-  background-color: #0C0C0C !important;
+  background-color: #0a0b0d !important;
   border-color: rgba(239, 68, 68, 0.4) !important; /* red-500 border */
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important; /* red shadow */
 }
@@ -285,7 +297,7 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 
 /* Warning toast - red theme */
 [data-sonner-toast][data-type="warning"] {
-  background-color: #0C0C0C !important;
+  background-color: #0a0b0d !important;
   border-color: rgba(239, 68, 68, 0.4) !important; /* red-500 border */
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important; /* red shadow */
 }
@@ -313,7 +325,7 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 
 /* Close button styling */
 [data-sonner-toast] [data-close-button] {
-  background-color: #0C0C0C !important; /* midnight black */
+  background-color: #0a0b0d !important; /* midnight black */
   color: currentColor !important;
   opacity: 0.7 !important;
   border-radius: 4px !important;
@@ -321,7 +333,7 @@ input.bg-gray-100, textarea.bg-gray-100, select.bg-gray-100 {
 
 [data-sonner-toast] [data-close-button]:hover {
   opacity: 1 !important;
-  background-color: #0C0C0C !important;
+  background-color: #0a0b0d !important;
 }
 
 /* Recharts hover background styling - reduce opacity for subtle effect */

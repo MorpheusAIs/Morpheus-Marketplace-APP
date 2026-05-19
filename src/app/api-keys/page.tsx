@@ -1,23 +1,24 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Trash2,
+  Plus,
+  Pencil,
+  X,
+  Copy,
+  Check,
+  Star,
+  Search,
+  MoreVertical,
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Pencil, X } from "lucide-react";
-import { AuthenticatedLayout } from "@/components/authenticated-layout";
-import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
-import { apiPost, apiDelete, apiPut } from "@/lib/api/apiService";
-import { formatLocaleDate, ensureUTCTimestamp } from "@/lib/utils/billing-utils";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -25,11 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { API_URLS, API_CONFIG } from "@/lib/api/config";
-import { useNotification } from "@/lib/NotificationContext";
-import { CreateApiKeyDialog } from "@/components/create-api-key-dialog";
-import { NewApiKeyModal } from "@/components/new-api-key-modal";
-import { VerifyApiKeyModal } from "@/components/verify-api-key-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +43,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AuthenticatedLayout } from "@/components/authenticated-layout";
+import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { apiPost, apiDelete, apiPut } from "@/lib/api/apiService";
+import { formatLocaleDate, ensureUTCTimestamp } from "@/lib/utils/billing-utils";
+import { API_URLS, DOC_URLS } from "@/lib/api/config";
+import { useNotification } from "@/lib/NotificationContext";
+import { CreateApiKeyDialog } from "@/components/create-api-key-dialog";
+import { NewApiKeyModal } from "@/components/new-api-key-modal";
+import { VerifyApiKeyModal } from "@/components/verify-api-key-modal";
+import { useBillingTransactionsAll } from "@/lib/hooks/use-billing";
+import { useNetworkStatus } from "@/components/network-status/use-network-status";
+import { NetworkStatusDot } from "@/components/network-status/network-status-dot";
+import { QuickStart } from "@/components/api-keys/quick-start";
+import {
+  aggregateKeyStats,
+  formatRelativeTime,
+  type KeyStats,
+} from "@/components/api-keys/key-stats";
+import { cn } from "@/lib/utils";
 
 interface ApiKeyResponse {
   key: string;
@@ -47,10 +69,38 @@ interface ApiKeyResponse {
   name: string;
 }
 
+type FilterTab = "all" | "active" | "stale" | "revoked";
+
+function formatCreated(dateString: string): string {
+  const date = new Date(ensureUTCTimestamp(dateString));
+  const now = new Date();
+  const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.floor(
+    (today.getTime() - dateDay.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return formatLocaleDate(date);
+}
+
+function formatNumber(n: number): string {
+  return new Intl.NumberFormat("en-US").format(n);
+}
+
+function formatCurrency(n: number): string {
+  if (n === 0) return "$0.0000";
+  if (n < 0.0001) return "<$0.0001";
+  return `$${n.toFixed(4)}`;
+}
+
 function ApiKeysPageContent() {
   const { apiKeys, refreshApiKeys, defaultApiKey, getValidToken } = useCognitoAuth();
   const { success, error, warning } = useNotification();
   const searchParams = useSearchParams();
+  const network = useNetworkStatus();
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isNewKeyModalOpen, setIsNewKeyModalOpen] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -60,74 +110,131 @@ function ApiKeysPageContent() {
   const [pendingDefaultKeyId, setPendingDefaultKeyId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [keyToDelete, setKeyToDelete] = useState<{ id: number; name: string; isDefault: boolean } | null>(null);
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<FilterTab>("all");
+  const [copiedBase, setCopiedBase] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
+
+  // 30-day window for per-key stats
+  const fromIso = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString();
+  }, []);
+  const { data: ledger } = useBillingTransactionsAll({ from: fromIso });
+  const statsByKey = useMemo<Map<number, KeyStats>>(
+    () => aggregateKeyStats(ledger?.items ?? []),
+    [ledger],
+  );
+
+  const baseUrl = useMemo(() => DOC_URLS.baseAPI(), []);
 
   useEffect(() => {
-    if (searchParams.get('create') === 'true') {
+    if (searchParams.get("create") === "true") {
       setIsCreateDialogOpen(true);
     }
   }, [searchParams]);
 
   useEffect(() => {
     let mounted = true;
-
     const validateSession = async () => {
       if (!mounted) return;
       await getValidToken();
     };
-
     void validateSession();
-
-    const intervalId = window.setInterval(() => {
-      void validateSession();
-    }, 60_000);
-
-    const onFocus = () => {
-      void validateSession();
+    const intervalId = window.setInterval(() => void validateSession(), 60_000);
+    const onFocus = () => void validateSession();
+    const onVis = () => {
+      if (document.visibilityState === "visible") void validateSession();
     };
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void validateSession();
-      }
-    };
-
     window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       mounted = false;
       window.clearInterval(intervalId);
       window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [getValidToken]);
 
-  // Filter to only show active API keys in the UI
-  // Deleted keys are kept in the context for usage analytics matching
-  const activeApiKeys = apiKeys.filter(key => key.is_active);
+  const activeApiKeys = apiKeys.filter((k) => k.is_active);
+  const currentDefaultKey =
+    activeApiKeys.find((k) => k.is_default) ?? defaultApiKey ?? null;
 
-  // Derive the default key only from active keys — deleted keys may still carry
-  // is_default: true in the backend cache and must not appear in the selector
-  const currentDefaultKey = activeApiKeys.find(key => key.is_default) ?? defaultApiKey ?? null;
+  // ---- derived: rows with stats and bucket ----
+  const rows = useMemo(() => {
+    return apiKeys.map((k) => {
+      const stats = statsByKey.get(k.id) ?? {
+        requests: 0,
+        spend: 0,
+        lastUsedAt: null as string | null,
+      };
+      let bucket: FilterTab = "active";
+      if (!k.is_active) bucket = "revoked";
+      else if (stats.requests === 0) bucket = "stale";
+      return { key: k, stats, bucket };
+    });
+  }, [apiKeys, statsByKey]);
 
+  const counts = useMemo(() => {
+    const c = { all: 0, active: 0, stale: 0, revoked: 0 };
+    for (const r of rows) {
+      c[r.bucket] += 1;
+      if (r.bucket !== "revoked") c.all += 1;
+    }
+    return c;
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = rows.filter((r) => {
+      // "All" hides revoked keys; pick the dedicated Revoked tab to see them.
+      if (tab === "all" && r.bucket === "revoked") return false;
+      if (tab !== "all" && r.bucket !== tab) return false;
+      if (!q) return true;
+      const nameHit = (r.key.name || "").toLowerCase().includes(q);
+      const last4 = r.key.key_prefix.slice(-4).toLowerCase();
+      return nameHit || last4.includes(q);
+    });
+    // Default key pinned to the top; then most-recently-used; then most
+    // requests; revoked keys fall to the bottom of their tab.
+    return filtered.sort((a, b) => {
+      const aDefault = a.key.is_default || a.key.id === defaultApiKey?.id;
+      const bDefault = b.key.is_default || b.key.id === defaultApiKey?.id;
+      if (aDefault !== bDefault) return aDefault ? -1 : 1;
+      if (a.key.is_active !== b.key.is_active) return a.key.is_active ? -1 : 1;
+      const aTime = a.stats.lastUsedAt ? new Date(a.stats.lastUsedAt).getTime() : 0;
+      const bTime = b.stats.lastUsedAt ? new Date(b.stats.lastUsedAt).getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
+      if (a.stats.requests !== b.stats.requests) return b.stats.requests - a.stats.requests;
+      return new Date(b.key.created_at).getTime() - new Date(a.key.created_at).getTime();
+    });
+  }, [rows, tab, search, defaultApiKey]);
+
+  // Pagination — reset to first page whenever the filter set shrinks/changes
+  const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  useEffect(() => {
+    setPage(0);
+  }, [tab, search]);
+  useEffect(() => {
+    if (page >= pageCount) setPage(pageCount - 1);
+  }, [page, pageCount]);
+  const visibleRows = useMemo(
+    () => filteredRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [filteredRows, page],
+  );
+
+  // ---- handlers (preserved from the previous implementation) ----
   const handleCreateKey = async (name: string) => {
     const token = await getValidToken();
     if (!token) {
       error("Authentication Required", "Please sign in to create API keys");
       return;
     }
-
     try {
-      const response = await apiPost<ApiKeyResponse>(
-        API_URLS.keys(),
-        { name },
-        token
-      );
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
+      const response = await apiPost<ApiKeyResponse>(API_URLS.keys(), { name }, token);
+      if (response.error) throw new Error(response.error);
       if (response.data && response.data.key) {
         setNewlyCreatedKey(response.data.key);
         setIsCreateDialogOpen(false);
@@ -141,13 +248,8 @@ function ApiKeysPageContent() {
   };
 
   const handleDeleteClick = (keyId: number, keyName: string) => {
-    // A key is treated as default if the apiKeys list marks it so OR if the
-    // context's defaultApiKey points to it — the two sources can diverge when
-    // autoSelectFirstApiKey sets defaultApiKey from the decrypted-key endpoint
-    // while the list endpoint still returns is_default: false for that key
-    const keyToDeleteData = apiKeys.find(key => key.id === keyId);
-    const isDefaultKey = keyToDeleteData?.is_default || keyId === defaultApiKey?.id || false;
-
+    const k = apiKeys.find((x) => x.id === keyId);
+    const isDefaultKey = k?.is_default || keyId === defaultApiKey?.id || false;
     setKeyToDelete({ id: keyId, name: keyName, isDefault: isDefaultKey });
     setShowDeleteDialog(true);
   };
@@ -159,47 +261,36 @@ function ApiKeysPageContent() {
       error("Authentication Required", "Please sign in to delete keys");
       return;
     }
-
-    const wasDefaultKey = keyToDelete.isDefault;
-    // Pre-compute remaining active keys before the async delete so we avoid
-    // stale-closure issues when reading React state inside callbacks
-    const remainingActiveKeys = activeApiKeys.filter(k => k.id !== keyToDelete.id);
-
+    const wasDefault = keyToDelete.isDefault;
+    const remaining = activeApiKeys.filter((k) => k.id !== keyToDelete.id);
     try {
       const response = await apiDelete(API_URLS.deleteKey(keyToDelete.id), token);
-      if (response.error) {
-        throw new Error(response.error);
+      if (response.error) throw new Error(response.error);
+      if (wasDefault || remaining.length === 0) {
+        sessionStorage.removeItem("verified_api_key");
+        sessionStorage.removeItem("verified_api_key_prefix");
+        sessionStorage.removeItem("verified_api_key_timestamp");
+        sessionStorage.removeItem("verified_api_key_name");
+        localStorage.removeItem("selected_api_key_prefix");
       }
-
-      // Always clear stored credentials when the verified key may be gone
-      if (wasDefaultKey || remainingActiveKeys.length === 0) {
-        sessionStorage.removeItem('verified_api_key');
-        sessionStorage.removeItem('verified_api_key_prefix');
-        sessionStorage.removeItem('verified_api_key_timestamp');
-        sessionStorage.removeItem('verified_api_key_name');
-        localStorage.removeItem('selected_api_key_prefix');
-      }
-
       await refreshApiKeys();
-
-      if (wasDefaultKey) {
-        if (remainingActiveKeys.length > 0) {
+      if (wasDefault) {
+        if (remaining.length > 0) {
           warning(
             "Default API Key Changed",
             `"${keyToDelete.name}" was deleted. Another key has been set as your default. You will need to verify it before using the API.`,
-            { duration: 8000 }
+            { duration: 8000 },
           );
         } else {
           warning(
             "Default API Key Deleted",
             "You've deleted your default API key. Please create a new key to continue using the API.",
-            { duration: 8000 }
+            { duration: 8000 },
           );
         }
       } else {
         success("API Key Deleted", `The API key "${keyToDelete.name}" has been deleted.`);
       }
-      
       setShowDeleteDialog(false);
       setKeyToDelete(null);
     } catch (err) {
@@ -215,34 +306,13 @@ function ApiKeysPageContent() {
   const handleVerifySuccess = async () => {
     setIsVerifyModalOpen(false);
     setSelectedKeyPrefix("");
-    
-    // If we were setting a default key, do that now after verification
     if (pendingDefaultKeyId !== null) {
-      const pendingKey = apiKeys.find(key => key.id === pendingDefaultKeyId);
-      if (pendingKey) {
-        await handleSetDefaultKey(pendingKey.id, pendingKey.name);
-      }
+      const pendingKey = apiKeys.find((k) => k.id === pendingDefaultKeyId);
+      if (pendingKey) await handleSetDefaultKey(pendingKey.id, pendingKey.name);
       setPendingDefaultKeyId(null);
     } else {
       success("API Key Verified", "Your API key has been verified. You can now use the Test feature.");
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    // Parse as UTC so that API timestamps without timezone info aren't shifted
-    // by the browser's local offset (MOR-368: fixes "-1 days ago" / "Yesterday"
-    // for keys created just after midnight UTC by users in negative UTC offsets)
-    const date = new Date(ensureUTCTimestamp(dateString));
-    const now = new Date();
-    // Compare calendar dates in the user's local timezone
-    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const diffDays = Math.floor((today.getTime() - dateDay.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return formatLocaleDate(date);
   };
 
   const handleSetDefaultKey = async (keyId: number, keyName: string) => {
@@ -251,12 +321,9 @@ function ApiKeysPageContent() {
       error("Authentication Required", "Please sign in to set default key");
       return;
     }
-
     try {
       const response = await apiPut(API_URLS.setDefaultKey(keyId), {}, token);
-      if (response.error) {
-        throw new Error(response.error);
-      }
+      if (response.error) throw new Error(response.error);
       await refreshApiKeys();
       setIsEditingDefaultKey(false);
       success("Default API Key Updated", `"${keyName}" is now your default API key and has been verified.`);
@@ -266,225 +333,426 @@ function ApiKeysPageContent() {
   };
 
   const handleDefaultKeyChange = (keyId: string) => {
-    const selectedKey = apiKeys.find(key => key.id.toString() === keyId);
-    if (selectedKey && selectedKey.id !== currentDefaultKey?.id) {
-      // Open verification modal first, same as clicking Select in the table
-      setPendingDefaultKeyId(selectedKey.id);
-      setSelectedKeyPrefix(selectedKey.key_prefix);
-      setIsEditingDefaultKey(false); // Close edit mode while verification is happening
+    const selected = apiKeys.find((k) => k.id.toString() === keyId);
+    if (selected && selected.id !== currentDefaultKey?.id) {
+      setPendingDefaultKeyId(selected.id);
+      setSelectedKeyPrefix(selected.key_prefix);
+      setIsEditingDefaultKey(false);
       setIsVerifyModalOpen(true);
     } else {
       setIsEditingDefaultKey(false);
     }
   };
 
+  const handleStarClick = (keyId: number, keyName: string, currentlyDefault: boolean) => {
+    if (currentlyDefault) return;
+    setPendingDefaultKeyId(keyId);
+    const k = apiKeys.find((x) => x.id === keyId);
+    if (k) {
+      setSelectedKeyPrefix(k.key_prefix);
+      setIsVerifyModalOpen(true);
+    } else {
+      handleSetDefaultKey(keyId, keyName);
+    }
+  };
+
+  const handleCopyBase = async () => {
+    try {
+      await navigator.clipboard.writeText(baseUrl);
+      setCopiedBase(true);
+      setTimeout(() => setCopiedBase(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  };
+
   return (
     <AuthenticatedLayout>
-      <div className="flex-1 overflow-y-auto p-4 md:p-8">
-        <h1 className="text-2xl md:text-4xl font-bold text-foreground">API Keys</h1>
-        <p className="text-base md:text-lg text-muted-foreground mt-2">Manage your Morpheus API keys.</p>
-
-        <div className="bg-card p-4 md:p-6 rounded-lg mt-6 md:mt-8 border border-border">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <h2 className="text-xl md:text-2xl font-semibold text-foreground">My API Keys</h2>
-            <Button
-              variant="default"
-              className="w-full sm:w-auto"
-              onClick={() => setIsCreateDialogOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create New Key
-            </Button>
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground">API keys</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-2">
+              Authenticate requests to the Morpheus inference API.{" "}
+              <a
+                href="https://apidocs.mor.org?utm_source=api-admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline inline-flex items-center gap-0.5"
+              >
+                Read the docs <ArrowUpRight className="h-3.5 w-3.5" />
+              </a>
+            </p>
           </div>
+          <Button
+            variant="default"
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            Create key
+          </Button>
+        </div>
 
-          {/* Desktop Table View */}
-          <div className="hidden md:block">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-left text-muted-foreground font-medium">Name</TableHead>
-                  <TableHead className="text-left text-muted-foreground font-medium">API Key</TableHead>
-                  <TableHead className="text-left text-muted-foreground font-medium">Created</TableHead>
-                  <TableHead className="text-right text-muted-foreground font-medium">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeApiKeys.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                      No API keys found. Create your first key below.
-                    </TableCell>
-                  </TableRow>
+        {/* Base URL + Quick start */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded border border-border bg-card p-4 flex flex-col gap-3">
+            <span className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+              Base URL
+            </span>
+            <div className="flex items-center gap-2 rounded border border-border bg-background p-2">
+              <code className="flex-1 self-center px-2 font-mono text-sm text-foreground truncate">
+                {baseUrl}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyBase}
+                aria-label="Copy base URL"
+                className="inline-flex items-center justify-center h-7 w-7 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/10 transition-colors shrink-0"
+              >
+                {copiedBase ? (
+                  <Check className="h-3.5 w-3.5 text-primary" />
                 ) : (
-                  activeApiKeys.map((apiKey) => {
-                    return (
-                      <TableRow 
-                        key={apiKey.id}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="text-foreground">{apiKey.name}</span>
-                            {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
-                              <Badge variant="default" className="bg-green-600 text-white">
-                                Default
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm text-foreground">
-                          {apiKey.key_prefix}...
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(apiKey.created_at)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                            onClick={() => handleDeleteClick(apiKey.id, apiKey.name)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+                  <Copy className="h-3.5 w-3.5" />
                 )}
-              </TableBody>
-            </Table>
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                OpenAI-compatible
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                {network ? (
+                  <NetworkStatusDot level={network.status} className="h-1.5 w-1.5" />
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                )}
+                {network?.label ?? "Status unknown"}
+              </span>
+            </div>
+          </div>
+          <QuickStart baseUrl={baseUrl} />
+        </div>
+
+        {/* Keys table card */}
+        <div className="rounded border border-border bg-card">
+          {/* Search + filter tabs */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3 p-4 border-b border-border">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or last-4..."
+                className="pl-9 h-9 bg-background border-border"
+              />
+            </div>
+            <div className="inline-flex items-center gap-0.5 rounded border border-border bg-background p-0.5 self-start md:self-auto">
+              {(["all", "active", "stale", "revoked"] as const).map((t) => {
+                const c = counts[t];
+                const showCount = (t === "stale" || t === "revoked") && c > 0;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTab(t)}
+                    className={cn(
+                      "h-7 px-3 text-xs rounded capitalize transition-colors",
+                      tab === t
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t}
+                    {showCount && <span className="ml-1 text-muted-foreground/70">· {c}</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
-            {activeApiKeys.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No API keys found. Create your first key above.
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <div className="grid grid-cols-[1.6fr_1.1fr_1fr_1fr_1fr_1fr_40px] gap-4 px-4 py-3 border-b border-border text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+              <div>Name</div>
+              <div>Key</div>
+              <div>Created</div>
+              <div>Last used</div>
+              <div>Requests · 30D</div>
+              <div>Spend · 30D</div>
+              <div />
+            </div>
+            {visibleRows.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                {apiKeys.length === 0
+                  ? "No API keys yet. Create your first key above."
+                  : "No keys match the current filter."}
               </div>
             ) : (
-              activeApiKeys.map((apiKey) => (
-                <Card key={apiKey.id} className="border-border">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <CardTitle className="text-base font-semibold truncate">{apiKey.name}</CardTitle>
-                        {(apiKey.is_default || apiKey.id === defaultApiKey?.id) && (
-                          <Badge variant="default" className="bg-green-600 text-white shrink-0">
-                            Default
-                          </Badge>
+              visibleRows.map(({ key, stats }) => {
+                const isDefault =
+                  key.is_default || key.id === defaultApiKey?.id;
+                return (
+                  <div
+                    key={key.id}
+                    className="grid grid-cols-[1.6fr_1.1fr_1fr_1fr_1fr_1fr_40px] gap-4 px-4 py-3 border-b border-border/60 last:border-b-0 items-center text-sm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-foreground truncate">{key.name}</span>
+                      {isDefault && (
+                        <Badge className="bg-primary text-primary-foreground text-[10px] shrink-0">
+                          Default
+                        </Badge>
+                      )}
+                      {!key.is_active && (
+                        <Badge variant="outline" className="text-[10px] border-border text-muted-foreground shrink-0">
+                          Revoked
+                        </Badge>
+                      )}
+                    </div>
+                    <code className="font-mono text-xs text-muted-foreground truncate">
+                      {key.key_prefix}…
+                    </code>
+                    <div className="text-muted-foreground">
+                      {formatCreated(key.created_at)}
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 text-muted-foreground">
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          stats.lastUsedAt
+                            ? "bg-primary"
+                            : "bg-amber-400",
                         )}
-                      </div>
-                      <span className="font-mono text-xs text-muted-foreground shrink-0">
-                        {apiKey.key_prefix}...
-                      </span>
+                      />
+                      {formatRelativeTime(stats.lastUsedAt, key.created_at)}
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Created:</span>
-                      <span className="text-foreground">{formatDate(apiKey.created_at)}</span>
+                    <div className="font-mono tabular-nums text-foreground">
+                      {formatNumber(stats.requests)}
                     </div>
-                    <div className="pt-2 border-t border-border">
-                      <Button
-                        variant="ghost"
-                        className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                        onClick={() => handleDeleteClick(apiKey.id, apiKey.name)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </Button>
+                    <div className="font-mono tabular-nums text-foreground">
+                      {formatCurrency(stats.spend)}
                     </div>
-                  </CardContent>
-                </Card>
-              ))
+                    <div className="flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="h-7 w-7 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
+                            aria-label="Key actions"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          {!isDefault && key.is_active && (
+                            <DropdownMenuItem
+                              onClick={() => handleStarClick(key.id, key.name, false)}
+                            >
+                              <Star className="mr-2 h-3.5 w-3.5" /> Set as default
+                            </DropdownMenuItem>
+                          )}
+                          {!isDefault && key.is_active && <DropdownMenuSeparator />}
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClick(key.id, key.name)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
 
-          <div className="mt-4 pt-4 border-t border-border">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <p className="text-xs md:text-sm text-muted-foreground break-all md:break-normal">
-                Base URL: {" "}
-                <a
-                  href={API_CONFIG.BASE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-green-500 hover:text-green-600 underline"
-                >
-                  {API_CONFIG.BASE_URL}
-                </a>
-              </p>
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
-                <span className="text-xs md:text-sm text-muted-foreground">Default API key:</span>
-                {isEditingDefaultKey ? (
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={currentDefaultKey?.id.toString() || ""}
-                      onValueChange={handleDefaultKeyChange}
-                    >
-                      <SelectTrigger className="w-full md:w-[200px]">
-                        <SelectValue placeholder="Select API key" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeApiKeys.map((key) => (
-                          <SelectItem
-                            key={key.id}
-                            value={key.id.toString()}
-                            data-analytics-action="select-default-api-key"
-                            data-analytics-label={`Default API key: ${key.name}`}
-                            data-analytics-destination={`default-api-key:${key.id}`}
-                          >
-                            {key.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                      onClick={() => setIsEditingDefaultKey(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {currentDefaultKey ? (
-                      <Select
-                        value={currentDefaultKey.id.toString()}
-                        disabled={true}
-                      >
-                        <SelectTrigger className="w-full md:w-[200px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem
-                            value={currentDefaultKey.id.toString()}
-                            data-analytics-action="view-default-api-key"
-                            data-analytics-label={`Current default API key: ${currentDefaultKey.name}`}
-                            data-analytics-destination={`default-api-key:${currentDefaultKey.id}`}
-                          >
-                            {currentDefaultKey.name}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="w-full md:w-[200px] h-9 px-3 py-2 text-sm text-muted-foreground border border-input rounded-md bg-background flex items-center">
-                        No default key
-                      </div>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                      onClick={() => setIsEditingDefaultKey(true)}
-                      disabled={activeApiKeys.length === 0}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-border">
+            {visibleRows.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                {apiKeys.length === 0
+                  ? "No API keys yet. Create your first key above."
+                  : "No keys match the current filter."}
               </div>
+            ) : (
+              visibleRows.map(({ key, stats }) => {
+                const isDefault =
+                  key.is_default || key.id === defaultApiKey?.id;
+                return (
+                  <div key={key.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <span className="text-foreground font-medium truncate">
+                          {key.name}
+                        </span>
+                        {isDefault && (
+                          <Badge className="bg-primary text-primary-foreground text-[10px] shrink-0">
+                            Default
+                          </Badge>
+                        )}
+                        {!key.is_active && (
+                          <Badge variant="outline" className="text-[10px] border-border text-muted-foreground shrink-0">
+                            Revoked
+                          </Badge>
+                        )}
+                      </div>
+                      <code className="font-mono text-xs text-muted-foreground shrink-0">
+                        {key.key_prefix}…
+                      </code>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <div className="text-muted-foreground">Created</div>
+                        <div className="text-foreground">{formatCreated(key.created_at)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Last used</div>
+                        <div className="text-foreground">
+                          {formatRelativeTime(stats.lastUsedAt, key.created_at)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Requests · 30d</div>
+                        <div className="text-foreground font-mono">
+                          {formatNumber(stats.requests)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Spend · 30d</div>
+                        <div className="text-foreground font-mono">
+                          {formatCurrency(stats.spend)}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteClick(key.id, key.name)}
+                      className="w-full text-destructive border-border hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-3.5 w-3.5" />
+                      Delete
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination */}
+          {filteredRows.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-border text-xs text-muted-foreground">
+              <span>
+                Showing{" "}
+                <span className="text-foreground font-medium">
+                  {page * PAGE_SIZE + 1}
+                  &ndash;
+                  {Math.min((page + 1) * PAGE_SIZE, filteredRows.length)}
+                </span>{" "}
+                of{" "}
+                <span className="text-foreground font-medium">
+                  {filteredRows.length}
+                </span>
+              </span>
+              <div className="inline-flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <span className="px-2 tabular-nums">
+                  {page + 1} / {pageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                  disabled={page >= pageCount - 1}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Footer: default-key selector + reveal-once note */}
+          <div className="border-t border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-xs text-muted-foreground">
+              Keys are shown in full only once at creation. Store them in a secrets manager.
+            </p>
+            <div className="flex items-center gap-2 self-end md:self-auto">
+              <span className="text-xs text-muted-foreground">Default API key:</span>
+              {isEditingDefaultKey ? (
+                <>
+                  <Select
+                    value={currentDefaultKey?.id.toString() || ""}
+                    onValueChange={handleDefaultKeyChange}
+                  >
+                    <SelectTrigger className="w-[200px] h-9">
+                      <SelectValue placeholder="Select API key" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeApiKeys.map((k) => (
+                        <SelectItem
+                          key={k.id}
+                          value={k.id.toString()}
+                          data-analytics-action="select-default-api-key"
+                          data-analytics-label={`Default API key: ${k.name}`}
+                          data-analytics-destination={`default-api-key:${k.id}`}
+                        >
+                          {k.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    onClick={() => setIsEditingDefaultKey(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {currentDefaultKey ? (
+                    <span className="inline-flex items-center gap-2 h-9 px-3 text-sm border border-border rounded bg-background text-foreground">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {currentDefaultKey.key_prefix}…
+                      </span>
+                      <span className="truncate max-w-[120px]">{currentDefaultKey.name}</span>
+                      <Badge className="bg-primary text-primary-foreground text-[10px]">
+                        Default
+                      </Badge>
+                    </span>
+                  ) : (
+                    <span className="h-9 px-3 text-sm text-muted-foreground border border-input rounded bg-background flex items-center">
+                      No default key
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    onClick={() => setIsEditingDefaultKey(true)}
+                    disabled={activeApiKeys.length === 0}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -507,18 +775,16 @@ function ApiKeysPageContent() {
         open={isVerifyModalOpen}
         onOpenChangeAction={(open) => {
           setIsVerifyModalOpen(open);
-          // If modal is closed without success, reset pending default key state
           if (!open && pendingDefaultKeyId !== null) {
             setPendingDefaultKeyId(null);
             setIsEditingDefaultKey(false);
           }
         }}
         keyPrefix={selectedKeyPrefix}
-        keyName={apiKeys.find(key => key.key_prefix === selectedKeyPrefix)?.name}
+        keyName={apiKeys.find((k) => k.key_prefix === selectedKeyPrefix)?.name}
         onVerifySuccessAction={handleVerifySuccess}
       />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -526,16 +792,23 @@ function ApiKeysPageContent() {
             <AlertDialogDescription>
               {keyToDelete?.isDefault ? (
                 <>
-                  <span className="font-semibold text-yellow-600 dark:text-yellow-500">Warning:</span> You are about to delete your <span className="font-semibold">default API key</span> "{keyToDelete?.name}".
-                  <br /><br />
-                  {activeApiKeys.length > 1 
-                    ? "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it." 
-                    : "After deletion, you will need to create and set a new default API key to continue using the API."
-                  } This action cannot be undone.
+                  <span className="font-semibold text-yellow-600 dark:text-yellow-500">
+                    Warning:
+                  </span>{" "}
+                  You are about to delete your{" "}
+                  <span className="font-semibold">default API key</span> &quot;
+                  {keyToDelete?.name}&quot;.
+                  <br />
+                  <br />
+                  {activeApiKeys.length > 1
+                    ? "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it."
+                    : "After deletion, you will need to create and set a new default API key to continue using the API."}{" "}
+                  This action cannot be undone.
                 </>
               ) : (
                 <>
-                  Are you sure you want to delete the API key "{keyToDelete?.name}"? This action cannot be undone.
+                  Are you sure you want to delete the API key &quot;{keyToDelete?.name}&quot;?
+                  This action cannot be undone.
                 </>
               )}
             </AlertDialogDescription>

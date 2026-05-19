@@ -190,7 +190,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+            <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
               {error}
             </div>
           )}
@@ -204,7 +204,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
               disabled={!stripePaymentLinkUrl}
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-md">
+                <div className="p-2 bg-muted rounded">
                   <CreditCard className="h-5 w-5" />
                 </div>
                 <div className="text-left">
@@ -225,7 +225,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
               disabled={!userId}
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-md">
+                <div className="p-2 bg-muted rounded">
                   <Coins className="h-5 w-5" />
                 </div>
                 <div className="text-left">

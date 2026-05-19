@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter_Tight, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import Script from 'next/script';
 import { CognitoAuthProvider } from '@/lib/auth/CognitoAuthContext';
 import { ConversationProvider } from '@/lib/ConversationContext';
@@ -10,9 +10,30 @@ import { UmamiInteractionTracker } from '@/components/umami-interaction-tracker'
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
 import { CoinbaseNotificationListener } from '@/components/CoinbaseNotificationListener';
+import { getRegionInfo } from '@/lib/utils/region';
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const interTight = Inter_Tight({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Morpheus Inference API Admin",
@@ -30,9 +51,22 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Region-aware consent state is exposed on `window.MorpheusConsent` for the
+  // Umami session-replay script. GA / GTM tags were removed in this branch.
+  const { consentMode, country, region } = await getRegionInfo();
+  const consentBootstrap = `window.MorpheusConsent=${JSON.stringify({
+    mode: consentMode,
+    country,
+    region,
+  })};`;
+
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${interTight.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}>
       <head>
+        <script
+          id="morpheus-consent-bootstrap"
+          dangerouslySetInnerHTML={{ __html: consentBootstrap }}
+        />
         <Script
           id="umami-analytics"
           src="https://umami-production-5f98.up.railway.app/script.js"
@@ -49,7 +83,7 @@ export default async function RootLayout({
           strategy="afterInteractive"
         />
       </head>
-      <body className={inter.className}>
+      <body className={interTight.className}>
         <QueryProvider>
           <NotificationProvider>
             <UmamiInteractionTracker />

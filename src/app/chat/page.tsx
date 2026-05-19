@@ -730,7 +730,7 @@ export default function ChatPage() {
             <CardContent>
               <Button 
                 onClick={() => router.push('/api-keys')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 data-analytics-action="go-to-api-keys"
                 data-analytics-destination="/api-keys"
               >

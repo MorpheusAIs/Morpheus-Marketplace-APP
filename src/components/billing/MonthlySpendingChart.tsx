@@ -49,7 +49,7 @@ const MONTH_NAMES = [
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border bg-background p-3 shadow-lg">
+      <div className="rounded border bg-background p-3 shadow-lg">
         <p className="text-sm font-medium text-foreground">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} className="text-sm text-muted-foreground">
@@ -250,8 +250,8 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
                   </p>
                   <p className="mt-2 text-2xl font-bold">{formatCurrency(stats.total)}</p>
                 </div>
-                <div className="rounded-lg bg-green-500/20 p-2">
-                  <DollarSign className="h-5 w-5 text-green-500" />
+                <div className="rounded bg-primary/20 p-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -291,16 +291,16 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
                 </div>
                 {stats.trend !== 0 && (
                   <div
-                    className={`rounded-lg p-2 ${
+                    className={`rounded p-2 ${
                       stats.trend > 0
                         ? 'bg-red-500/20'
-                        : 'bg-green-500/20'
+                        : 'bg-primary/20'
                     }`}
                   >
                     {stats.trend > 0 ? (
                       <TrendingUp className="h-5 w-5 text-red-500" />
                     ) : (
-                      <TrendingDown className="h-5 w-5 text-green-500" />
+                      <TrendingDown className="h-5 w-5 text-primary" />
                     )}
                   </div>
                 )}
@@ -324,8 +324,8 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
             <BarChart data={chartData}>
               <defs>
                 <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00FF85" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#00FF85" stopOpacity={0.3} />
+                  <stop offset="5%" stopColor="#5CE3B0" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#5CE3B0" stopOpacity={0.3} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -380,9 +380,9 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
                 type="monotone"
                 dataKey="amount"
                 name="Spending"
-                stroke="#00FF85"
+                stroke="#5CE3B0"
                 strokeWidth={3}
-                dot={{ fill: '#00FF85', r: 4 }}
+                dot={{ fill: '#5CE3B0', r: 4 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
@@ -397,7 +397,7 @@ export function MonthlySpendingChart({ year, mode = 'gross' }: MonthlySpendingCh
           <CardDescription>Detailed spending by month</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded border">
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-muted/50">
                 <tr>

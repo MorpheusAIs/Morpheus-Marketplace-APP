@@ -116,7 +116,7 @@ export default function ExportDataPage() {
               <Button
                 onClick={handleExport}
                 disabled={isLoading || filteredData.length === 0}
-                className="bg-green-500 hover:bg-green-600 text-black"
+                className="bg-primary hover:bg-primary text-black"
               >
                 <Download className="mr-2 h-4 w-4" />
                 Download CSV
@@ -142,7 +142,7 @@ export default function ExportDataPage() {
 
             {/* Table */}
             {error ? (
-              <div className="flex flex-col items-center justify-center p-8 rounded-lg border border-red-500/20 bg-red-500/5 text-red-500">
+              <div className="flex flex-col items-center justify-center p-8 rounded border border-red-500/20 bg-red-500/5 text-red-500">
                 <AlertCircle className="h-8 w-8 mb-2" />
                 <p className="font-medium">Failed to load usage data</p>
                 <p className="text-sm mt-1 opacity-80">{error.message}</p>
@@ -162,7 +162,7 @@ export default function ExportDataPage() {
                 ))}
               </div>
             ) : filteredData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-12">
+              <div className="flex flex-col items-center justify-center rounded border border-dashed border-border p-12">
                 <CalendarIcon className="h-12 w-12 text-muted-foreground/50" />
                 <p className="mt-4 text-lg font-medium text-foreground">No data found</p>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -173,7 +173,7 @@ export default function ExportDataPage() {
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="rounded border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -217,7 +217,7 @@ export default function ExportDataPage() {
                           <TableCell className="text-right tabular-nums font-medium">
                             {(entry.tokens_total ?? 0).toLocaleString()}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums text-green-500">
+                          <TableCell className="text-right tabular-nums text-primary">
                             {formatCurrency(entry.amount_staking)}
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-blue-500">
@@ -269,7 +269,7 @@ export default function ExportDataPage() {
                               onClick={() => setCurrentPage(pageNum)}
                               className={
                                 currentPage === pageNum
-                                  ? 'bg-green-500 hover:bg-green-600 text-black'
+                                  ? 'bg-primary hover:bg-primary text-black'
                                   : ''
                               }
                             >
@@ -295,31 +295,31 @@ export default function ExportDataPage() {
         </Card>
 
         {/* Information */}
-        <Card className="border-green-500/20 bg-green-500/5">
+        <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Export Information</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">•</span>
+                  <span className="text-primary">•</span>
                   <span>
                     The table shows the last 90 days of API usage data by default.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">•</span>
+                  <span className="text-primary">•</span>
                   <span>
                     Use the search box to filter by model name or endpoint
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">•</span>
+                  <span className="text-primary">•</span>
                   <span>
                     Click &ldquo;Download CSV&rdquo; to export all filtered records to a spreadsheet.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">•</span>
+                  <span className="text-primary">•</span>
                   <span>
                     Costs are split between staking credits (green) and paid balance (blue).
                   </span>

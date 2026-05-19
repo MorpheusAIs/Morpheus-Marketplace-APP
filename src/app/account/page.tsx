@@ -62,7 +62,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-white border-white hover:bg-white hover:text-black w-full md:w-auto shrink-0"
+                className="border-primary/25 w-full md:w-auto shrink-0"
                 onClick={handleCopyAccountId}
                 disabled={!user?.sub}
               >
@@ -91,7 +91,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-white border-white hover:bg-white hover:text-black w-full md:w-auto shrink-0"
+                className="border-primary/25 w-full md:w-auto shrink-0"
                 onClick={() => setIsEmailModalOpen(true)}
               >
                 <Pencil className="mr-2 h-4 w-4" />
@@ -110,7 +110,7 @@ export default function AccountSettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-white border-white hover:bg-white hover:text-black w-full md:w-auto shrink-0"
+                className="border-primary/25 w-full md:w-auto shrink-0"
                 onClick={() => setIsPasswordModalOpen(true)}
               >
                 <Pencil className="mr-2 h-4 w-4" />
@@ -119,7 +119,7 @@ export default function AccountSettingsPage() {
             </div>
 
             {/* Delete Account */}
-            <div className="mt-4 md:mt-8 p-4 bg-red-900/20 border border-red-500 rounded-md flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="mt-4 md:mt-8 p-4 bg-red-900/20 border border-red-500 rounded flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-red-500 text-sm md:text-base">Delete Account</p>
                 <p className="text-xs md:text-sm text-red-400 mt-1">WARNING! This action can not be undone</p>

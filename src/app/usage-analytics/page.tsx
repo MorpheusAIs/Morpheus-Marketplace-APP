@@ -130,7 +130,7 @@ export default function UsageAnalyticsPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-4">
+          <div className="flex items-center gap-2 rounded border border-red-500/20 bg-red-500/10 p-4">
             <AlertCircle className="h-5 w-5 text-red-500" />
             <div>
               <p className="text-sm font-medium text-foreground">Failed to load usage data</p>
@@ -153,7 +153,7 @@ export default function UsageAnalyticsPage() {
           <Button
             onClick={() => router.push('/usage-analytics/export-data')}
             variant="outline"
-            className="text-green-500 border-green-500 hover:bg-green-500/10"
+            className="text-primary border-primary hover:bg-primary/10"
             data-analytics-action="export-usage-data"
             data-analytics-destination="/usage-analytics/export-data"
           >
@@ -226,7 +226,7 @@ export default function UsageAnalyticsPage() {
 
         {/* Debug Panel - MOR-337 Diagnostic Info */}
         {process.env.NODE_ENV === 'development' && usageData && (
-          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-6">
+          <div className="rounded border border-yellow-500/30 bg-yellow-500/5 p-6">
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-500" />
               Debug Information (MOR-337)
@@ -269,7 +269,7 @@ export default function UsageAnalyticsPage() {
         )}
 
         {/* Additional Information */}
-        <div className="rounded-lg border border-border bg-muted/30 p-6">
+        <div className="rounded border border-border bg-muted/30 p-6">
           <h3 className="text-lg font-semibold text-foreground mb-3">
             Understanding Your Usage
           </h3>

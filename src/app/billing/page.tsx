@@ -90,8 +90,8 @@ export default function BillingPage() {
         <div className="container mx-auto flex min-h-[calc(100vh-200px)] items-center justify-center p-6">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+                <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
               <CardTitle className="text-2xl">Payment Successful!</CardTitle>
               <CardDescription className="text-base">
@@ -128,7 +128,7 @@ export default function BillingPage() {
 
         {/* Error Alert */}
         {balanceError && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-4">
+          <div className="flex items-center gap-2 rounded border border-red-500/20 bg-red-500/10 p-4">
             <AlertCircle className="h-5 w-5 text-red-500" />
             <div>
               <p className="text-sm font-medium text-foreground">Failed to load billing data</p>
@@ -143,7 +143,7 @@ export default function BillingPage() {
         {isLoadingBalance ? (
           <div className="grid gap-4 md:grid-cols-2">
             {[...Array(2)].map((_, i) => (
-              <Skeleton key={i} className="h-[140px] rounded-xl" />
+              <Skeleton key={i} className="h-[140px] rounded" />
             ))}
           </div>
         ) : balance ? (
@@ -173,7 +173,7 @@ export default function BillingPage() {
           {/* Left Column - Funding (2/3 width) */}
           <div className="lg:col-span-2">
             {isLoadingBalance ? (
-              <Skeleton className="h-[800px] rounded-xl" />
+              <Skeleton className="h-[800px] rounded" />
             ) : (
               <FundingSection
                 currentBalance={balance?.total_available ?? '0'}

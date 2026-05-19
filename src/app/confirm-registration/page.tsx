@@ -157,7 +157,7 @@ function ConfirmRegistrationContent() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md p-6 bg-card text-card-foreground rounded-lg shadow-lg">
+        <Card className="w-full max-w-md p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">
               Confirm Your Account
@@ -210,7 +210,7 @@ function ConfirmRegistrationContent() {
               <div className="space-y-3">
                 <Button
                   type="submit"
-                  className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center space-x-2"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center space-x-2"
                   disabled={isSubmitting || isResending}
                 >
                   <span>Confirm Account</span>
@@ -231,7 +231,7 @@ function ConfirmRegistrationContent() {
           </CardContent>
           <CardFooter className="text-center justify-center text-sm text-muted-foreground">
             Didn't receive the code?{" "}
-            <Link href="/signup" className="text-green-500 hover:underline ml-1">
+            <Link href="/signup" className="text-primary hover:underline ml-1">
               Sign up again
             </Link>
           </CardFooter>
@@ -246,7 +246,7 @@ export default function ConfirmRegistrationPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>

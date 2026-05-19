@@ -93,7 +93,7 @@ export function PaymentAmountDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-full max-w-md p-6 bg-card text-card-foreground rounded-lg shadow-lg border-none">
+      <DialogContent className="w-full max-w-md p-6 bg-card text-card-foreground rounded shadow-lg border-none">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-2xl font-bold text-foreground">
             Add Funds with {paymentMethodName}
@@ -146,7 +146,7 @@ export function PaymentAmountDialog({
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-500">
+            <div className="rounded bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-500">
               {error}
             </div>
           )}

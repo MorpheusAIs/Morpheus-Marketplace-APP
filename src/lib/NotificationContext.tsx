@@ -33,15 +33,15 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const getNotificationIcon = (type: NotificationType) => {
   switch (type) {
     case 'success':
-      return <CheckCircle2 className="h-5 w-5" style={{ color: '#20DC8E' }} />; // emerald green
+      return <CheckCircle2 className="h-5 w-5" style={{ color: '#5CE3B0' }} />; // emerald green
     case 'error':
       return <XCircle className="h-5 w-5" style={{ color: '#ef4444' }} />; // red-500
     case 'warning':
       return <AlertTriangle className="h-5 w-5" style={{ color: '#ef4444' }} />; // red-500
     case 'info':
-      return <Info className="h-5 w-5" style={{ color: '#20DC8E' }} />; // emerald green
+      return <Info className="h-5 w-5" style={{ color: '#5CE3B0' }} />; // emerald green
     default:
-      return <Info className="h-5 w-5" style={{ color: '#20DC8E' }} />;
+      return <Info className="h-5 w-5" style={{ color: '#5CE3B0' }} />;
   }
 };
 
