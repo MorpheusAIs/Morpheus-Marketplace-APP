@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,6 @@ import {
   ResponsePanel,
   type ResponseMetrics,
 } from "@/components/playground/response-panel";
-import {
-  buildPricingMap,
-  lookupPricing,
-  computeCost,
-} from "@/components/playground/model-pricing";
-import { useBillingTransactionsAll } from "@/lib/hooks/use-billing";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                                  */
@@ -370,26 +364,6 @@ export default function TestPage() {
   /* ---------------------------------------------------------------- */
   const currentModel = filteredModels.find((m) => m.id === selectedModel);
 
-  // Per-token pricing isn't exposed on /v1/models, but every ledger entry
-  // includes it. Build a model → pricing map from the user's recent usage
-  // (90 day window) so the playground can display a real cost estimate.
-  const pricingFromIso = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 90);
-    return d.toISOString();
-  }, []);
-  const { data: pricingLedger } = useBillingTransactionsAll({
-    from: pricingFromIso,
-  });
-  const pricingMap = useMemo(
-    () => buildPricingMap(pricingLedger?.items ?? []),
-    [pricingLedger],
-  );
-  const currentPricing = useMemo(
-    () => lookupPricing(pricingMap, currentModel?.id, currentModel?.blockchainId),
-    [pricingMap, currentModel?.id, currentModel?.blockchainId],
-  );
-
   /* ---------------------------------------------------------------- */
   /* Message management                                                 */
   /* ---------------------------------------------------------------- */
@@ -584,17 +558,15 @@ export default function TestPage() {
           const reason = finalParsed?.choices?.[0]?.finish_reason ?? null;
 
           let costUsd: number | null = null;
-          if (tokensIn !== null && tokensOut !== null) {
-            const pricing =
-              currentPricing ??
-              (currentModel?.input_price_per_million &&
-              currentModel?.output_price_per_million
-                ? {
-                    inputPricePerMillion: currentModel.input_price_per_million,
-                    outputPricePerMillion: currentModel.output_price_per_million,
-                  }
-                : null);
-            if (pricing) costUsd = computeCost(pricing, tokensIn, tokensOut);
+          if (
+            tokensIn !== null &&
+            tokensOut !== null &&
+            currentModel?.input_price_per_million &&
+            currentModel?.output_price_per_million
+          ) {
+            costUsd =
+              (tokensIn / 1_000_000) * currentModel.input_price_per_million +
+              (tokensOut / 1_000_000) * currentModel.output_price_per_million;
           }
 
           setMetrics({ latencyMs, tokensIn, tokensOut, costUsd });
@@ -646,17 +618,15 @@ export default function TestPage() {
           const tokensOut = effectiveUsage?.completion_tokens ?? null;
 
           let costUsd: number | null = null;
-          if (tokensIn !== null && tokensOut !== null) {
-            const pricing =
-              currentPricing ??
-              (currentModel?.input_price_per_million &&
-              currentModel?.output_price_per_million
-                ? {
-                    inputPricePerMillion: currentModel.input_price_per_million,
-                    outputPricePerMillion: currentModel.output_price_per_million,
-                  }
-                : null);
-            if (pricing) costUsd = computeCost(pricing, tokensIn, tokensOut);
+          if (
+            tokensIn !== null &&
+            tokensOut !== null &&
+            currentModel?.input_price_per_million &&
+            currentModel?.output_price_per_million
+          ) {
+            costUsd =
+              (tokensIn / 1_000_000) * currentModel.input_price_per_million +
+              (tokensOut / 1_000_000) * currentModel.output_price_per_million;
           }
 
           setMetrics({ latencyMs, tokensIn, tokensOut, costUsd });
@@ -904,10 +874,9 @@ export default function TestPage() {
                   · {Math.round(currentModel.context_length / 1000)}k ctx
                 </span>
               )}
-              {currentPricing && (
+              {currentModel?.input_price_per_million && (
                 <span className="text-muted-foreground hidden sm:inline">
-                  · ${currentPricing.inputPricePerMillion.toFixed(2)}/M in
-                  {" · "}${currentPricing.outputPricePerMillion.toFixed(2)}/M out
+                  · ${currentModel.input_price_per_million.toFixed(2)}/M in
                 </span>
               )}
             </div>
