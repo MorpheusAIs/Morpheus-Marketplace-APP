@@ -66,7 +66,7 @@ const STATUS_TYPES: { value: LedgerStatusEnum | 'all'; label: string }[] = [
 function getStatusColor(status: string) {
   switch (status) {
     case 'posted':
-      return 'bg-green-500/10 text-green-500 border-green-500/20';
+      return 'bg-primary/10 text-primary border-primary/20';
     case 'pending':
       return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
     case 'voided':
@@ -79,7 +79,7 @@ function getStatusColor(status: string) {
 function getTypeColor(type: string) {
   switch (type) {
     case 'purchase':
-      return 'bg-green-500/10 text-green-500';
+      return 'bg-primary/10 text-primary';
     case 'usage_charge':
       return 'bg-blue-500/10 text-blue-500';
     case 'refund':
@@ -353,7 +353,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
       <CardContent>
         {/* MOR-333: Data validation warnings */}
         {validationResult && validationResult.warnings.length > 0 && (
-          <div className="mb-6 rounded-lg border border-yellow-500/50 bg-yellow-500/5 p-4">
+          <div className="mb-6 rounded border border-yellow-500/50 bg-yellow-500/5 p-4">
             <div className="flex gap-3">
               <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
               <div className="space-y-2 flex-1">
@@ -373,7 +373,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
 
         {/* MOR-333: Block display if critical issues */}
         {validationResult && !shouldDisplay ? (
-          <div className="flex items-center justify-center p-12 border border-destructive/50 rounded-lg bg-destructive/5">
+          <div className="flex items-center justify-center p-12 border border-destructive/50 rounded bg-destructive/5">
             <div className="text-center space-y-4">
               <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
               <div>
@@ -412,7 +412,13 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                     </SelectTrigger>
                     <SelectContent>
                       {ENTRY_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
+                        <SelectItem
+                          key={type.value}
+                          value={type.value}
+                          data-analytics-action="select-transaction-type-filter"
+                          data-analytics-label={`Transaction type filter: ${type.label}`}
+                          data-analytics-destination={`transaction-type-filter:${type.value}`}
+                        >
                           {type.label}
                         </SelectItem>
                       ))}
@@ -421,7 +427,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                 </div>
               </div>
               
-              <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">
+              <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded">
                 <strong>Note:</strong> Only <code className="bg-muted px-1 py-0.5 rounded">usage_charge</code> transactions have API Keys and Models.
                 Other transaction types (purchases, refunds, adjustments) will show "N/A" for these columns.
               </div>
@@ -429,7 +435,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
 
             {/* Backend Date Filter Warning */}
             {dateFilterWarning && (
-              <div className="flex items-start gap-3 p-4 border border-yellow-500/50 bg-yellow-500/10 rounded-lg mb-4">
+              <div className="flex items-start gap-3 p-4 border border-yellow-500/50 bg-yellow-500/10 rounded mb-4">
                 <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-foreground">Date Filter May Not Be Working</p>
@@ -445,7 +451,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
               </div>
             )}
 
-        <div className="rounded-md border">
+        <div className="rounded border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -535,7 +541,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                         {formatCurrency(item.total_amount)}
                       </span>
                       {item.total_amount_staking > 0 && (
-                         <span className="block text-xs text-green-500">
+                         <span className="block text-xs text-primary">
                            {formatCurrency(item.total_amount_staking)} staked
                          </span>
                       )}

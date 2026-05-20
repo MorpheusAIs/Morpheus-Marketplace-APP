@@ -749,7 +749,9 @@ export default function ChatPage() {
             <CardContent>
               <Button 
                 onClick={() => router.push('/api-keys')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                data-analytics-action="go-to-api-keys"
+                data-analytics-destination="/api-keys"
               >
                 Go to API Keys
               </Button>
@@ -925,6 +927,9 @@ export default function ChatPage() {
                               setShowModelSelector(false);
                             }}
                             value={model.id}
+                            data-analytics-action="select-chat-model"
+                            data-analytics-label={`Chat model: ${model.id}`}
+                            data-analytics-destination={`chat-model:${model.id}`}
                           >
                             <ModelSelectorName>{model.id}</ModelSelectorName>
                             {selectedModel === model.id ? (
@@ -979,4 +984,3 @@ export default function ChatPage() {
     </AuthenticatedLayout>
   );
 }
-

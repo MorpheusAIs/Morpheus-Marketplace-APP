@@ -30,13 +30,13 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[var(--matrix-green)] py-12 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-end mb-8">
-        <Link href="/" className="px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded-md hover:bg-[var(--emerald)] transition-colors">
+        <Link href="/" className="px-4 py-2 bg-[var(--neon-mint)] text-[var(--matrix-green)] rounded hover:bg-[var(--emerald)] transition-colors">
           Home
         </Link>
       </div>
       
       <div className="flex items-center justify-center flex-grow">
-        <div className="max-w-md w-full space-y-8 bg-[var(--eclipse)] p-8 rounded-lg shadow-lg border border-[var(--emerald)]/30">
+        <div className="max-w-md w-full space-y-8 bg-[var(--eclipse)] p-8 rounded shadow-lg border border-[var(--emerald)]/30">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-[var(--neon-mint)]">
               Create your account
@@ -57,7 +57,7 @@ export default function RegisterPage() {
               
               <button
                 onClick={handleSignup}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-[var(--matrix-green)] bg-[var(--neon-mint)] hover:bg-[var(--emerald)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--emerald)] transition-colors"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded text-[var(--matrix-green)] bg-[var(--neon-mint)] hover:bg-[var(--emerald)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--emerald)] transition-colors"
               >
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                   ✨

@@ -201,7 +201,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-[#106F48] via-[#022C33] to-[#88018B] p-6 rounded-lg max-w-md w-full mx-4 shadow-2xl">
+      <div className="bg-gradient-to-br from-[#106F48] via-[#022C33] to-[#88018B] p-6 rounded max-w-md w-full mx-4 shadow-2xl">
         <div className="text-center mb-6">
           {/* Morpheus Logo */}
           <div className="w-4/5 mx-auto mb-6 flex items-center justify-center" style={{height: '80px'}}>
@@ -354,7 +354,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   setAgeConsent(e.target.checked);
                   if (e.target.checked) setError('');
                 }}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-green-500 cursor-pointer"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
               />
               <span className="text-xs text-white leading-relaxed opacity-80">
                 <em>I certify that I am at least 18 years old and the minimum age required in my country to consent to use the Services.</em>

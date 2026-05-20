@@ -8,7 +8,7 @@ A [Next.js](https://nextjs.org) application that provides the user interface for
 - 🔑 **API Key Management**: Create, manage, and delete API keys
 - ⚙️ **Automation Settings**: Configure automated session management
 - 💬 **Interactive Chat**: Real-time chat interface with model selection and history
-- 📊 **Analytics Integration**: Google Analytics 4 and Google Tag Manager support
+- 📊 **Analytics Integration**: Cookieless Umami analytics support
 - 🎨 **Modern UI**: Beautiful, responsive design with Tailwind CSS
 
 ## 📋 Prerequisites
@@ -47,13 +47,11 @@ NEXT_PUBLIC_API_BASE_URL=https://api.mor.org
 NEXT_PUBLIC_COGNITO_REGION=us-east-2
 NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID=gllbg66ej476tsaf2ibfjc7g8
 NEXT_PUBLIC_COGNITO_DOMAIN=auth.mor.org
-NEXT_PUBLIC_GA_ID=
-NEXT_PUBLIC_GTM_ID=
 NEXT_PUBLIC_ALLOWED_MODEL_TYPES=LLM
 NEXT_PUBLIC_DEFAULT_MODEL=LMR-Hermes-3-Llama-3.1-8B
 ```
 
-> 💡 **Tip**: Analytics tracking is disabled by default (GA_ID and GTM_ID are empty).
+> 💡 **Tip**: Public website analytics use the self-hosted Umami script configured in the app layout.
 
 ### 4. Run Development Server
 
@@ -96,7 +94,7 @@ morpheus-marketplace-app/
 │   ├── components/            # Reusable React components
 │   │   ├── ai-elements/      # AI chat components (messages, prompts, etc.)
 │   │   ├── auth/             # Authentication components
-│   │   ├── providers/        # Context providers (GTM, etc.)
+│   │   ├── providers/        # Context providers
 │   │   ├── ui/               # shadcn/ui components
 │   │   └── ...               # Other shared components
 │   ├── lib/                  # Utility libraries
@@ -138,13 +136,9 @@ This application is deployed using **AWS Amplify** with automatic deployments co
 
 ## 📊 Analytics Integration
 
-### Google Analytics 4 (GA4)
-- **Measurement ID**: `G-RQ88CWRH3X`
-- Real-time user analytics and behavior tracking
-
-### Google Tag Manager (GTM)
-- **Container ID**: `GTM-5SNC6HZ5`
-- Centralized tag management and advanced configurations
+### Umami
+- **Property**: `Inference API`
+- Cookieless page view and event analytics through the self-hosted Umami deployment
 
 ### Tracked Events
 - User authentication (login, signup, logout)

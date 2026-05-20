@@ -47,7 +47,7 @@ Want to learn more about what we do with any information we collect? Review the 
 2. HOW DO WE PROCESS YOUR INFORMATION?
 3. WHAT LEGAL BASES DO WE RELY ON TO PROCESS YOUR PERSONAL INFORMATION?
 4. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?
-5. DO WE USE COOKIES AND OTHER TRACKING TECHNOLOGIES?
+5. DO WE USE COOKIES OR COOKILESS ANALYTICS?
 6. DO WE OFFER ARTIFICIAL INTELLIGENCE-BASED PRODUCTS?
 7. HOW LONG DO WE KEEP YOUR INFORMATION?
 8. HOW DO WE KEEP YOUR INFORMATION SAFE?
@@ -86,11 +86,11 @@ All personal information that you provide to us must be true, complete, and accu
 
 ### **Information automatically collected**
 
-**In Short:** *Some information — such as browser and device characteristics — is collected automatically when you visit our Services.*
+**In Short:** *Some information, such as browser and device characteristics, is collected automatically when you visit our Services.*
 
 We automatically collect certain information when you visit, use, or navigate the Services. This information does not reveal your specific identity (like your name or contact information) but may include device and usage information, such as your browser and device characteristics, operating system, language preferences, referring URLs, device name, country, location, information about how and when you use our Services, and other technical information. This information is primarily needed to maintain the security and operation of our Services, and for our internal analytics and reporting purposes.
 
-Like many businesses, we also collect information through cookies and similar technologies. You can find out more about this in our Cookie Notice.
+We use self-hosted, cookieless Umami analytics for aggregate website analytics. Umami does not use analytics cookies or Google tracking scripts.
 
 The information we collect includes:
 
@@ -171,7 +171,7 @@ We may need to share your personal information in the following situations:
 * **Morpheus Decentralized Inference Marketplace.** When you submit API requests, your prompts are routed through the Morpheus Decentralized Inference Marketplace to third-party inference providers. **We do not pass any personal information (such as your name, email, or account details) to these providers.** All prompts are submitted through a single reference account and cannot be linked back to your individual identity by the inference providers. However, we cannot guarantee with absolute certainty that third-party inference providers on the decentralized marketplace do not log or store prompt data that passes through their systems. We encourage you to review the Morpheus network documentation for additional information about how decentralized providers handle data.
 * **Payment Processors.** When you purchase credits, your payment information is shared directly with our payment processors (Stripe for USD transactions, Coinbase Commerce for USDC transactions). We do not have access to or store your full payment details.
 * **Infrastructure Providers.** We use AWS and other cloud hosting providers to host our Services. These providers may have access to server infrastructure but are bound by their own privacy policies and contractual obligations to protect data.
-* **Analytics Providers.** We use Google Analytics to track and analyze usage of our website. See the "DO WE USE COOKIES AND OTHER TRACKING TECHNOLOGIES?" section for more details.
+* **Analytics Providers.** We use self-hosted Umami analytics to track and analyze aggregate usage of our website without analytics cookies. See the "DO WE USE COOKIES OR COOKILESS ANALYTICS?" section for more details.
 * **Business Transfers.** We may share or transfer your information in connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business to another company.
 * **Legal Requirements.** We may disclose your information where we are legally required to do so in order to comply with applicable law, governmental requests, a judicial proceeding, court order, or legal process.
 
@@ -179,17 +179,17 @@ We may need to share your personal information in the following situations:
 
 ---
 
-## **5. DO WE USE COOKIES AND OTHER TRACKING TECHNOLOGIES?**
+## **5. DO WE USE COOKIES OR COOKILESS ANALYTICS?**
 
-**In Short:** *We may use cookies and other tracking technologies to collect and store your information.*
+**In Short:** *We use cookieless analytics for aggregate website measurement and may use essential technologies required for account security or core service functionality.*
 
-We may use cookies and similar tracking technologies (like web beacons and pixels) to gather information when you interact with our Services. Some online tracking technologies help us maintain the security of our Services and your account, prevent crashes, fix bugs, save your preferences, and assist with basic site functions.
+We use self-hosted Umami analytics to understand aggregate page views and events for the Morpheus Inference API website. Umami is configured as cookieless analytics and replaces the legacy tag-based analytics stack.
 
-Specific information about how we use such technologies and how you can refuse certain cookies is set out in our Cookie Notice.
+We may still use essential technologies required to maintain the security of our Services and your account, prevent crashes, fix bugs, save your preferences, and support basic site functions.
 
-### **Google Analytics**
+### **Umami**
 
-We may share your information with Google Analytics to track and analyze the use of the Services. To opt out of being tracked by Google Analytics across the Services, visit https://tools.google.com/dlpage/gaoptout. You can opt out of Google Analytics Advertising Features through Ads Settings and Ad Settings for mobile apps. Other opt-out means include http://optout.networkadvertising.org/ and http://www.networkadvertising.org/mobile-choice. For more information on the privacy practices of Google, please visit the Google Privacy & Terms page.
+We use Umami for privacy-preserving analytics. Umami does not use analytics cookies, does not use advertising identifiers, and is not used by us for personalized advertising or cross-site tracking.
 
 ---
 
@@ -271,7 +271,7 @@ If you would at any time like to review or change the information in your accoun
 
 Upon your request to terminate your account, we will deactivate or delete your account and information from our active databases. However, we may retain some information in our files to prevent fraud, troubleshoot problems, assist with any investigations, enforce our legal terms and/or comply with applicable legal requirements.
 
-**Cookies and similar technologies:** Most web browsers are set to accept cookies by default. If you prefer, you can usually choose to set your browser to remove cookies and to reject cookies. If you choose to remove cookies or reject cookies, this could affect certain features or services of our Services. For further information, please see our Cookie Notice.
+**Essential technologies:** Your browser settings may allow you to remove or block local storage and essential browser technologies. If you block essential technologies, this could affect certain account, wallet, or security features of our Services.
 
 If you have questions or comments about your privacy rights, you may email us at frontierintelligence@proton.me.
 

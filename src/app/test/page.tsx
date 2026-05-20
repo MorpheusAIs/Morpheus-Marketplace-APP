@@ -1,33 +1,58 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, RefreshCw, Send, Copy, Key } from "lucide-react";
+  Key,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Send,
+} from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { API_URLS } from "@/lib/api/config";
-import { getAllowedModelTypes, filterModelsByType, selectDefaultModel } from "@/lib/model-filter-utils";
+import {
+  getAllowedModelTypes,
+  filterModelsByType,
+  selectDefaultModel,
+} from "@/lib/model-filter-utils";
 import { logModelName } from "@/lib/model-name-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { validateJsonDepth, safeJsonParseOrNull } from "@/lib/utils/safe-json";
+import { calculateCostUsd } from "@/lib/model-pricing";
+
+import {
+  ParametersPanel,
+  DEFAULT_PARAMS,
+  type PlaygroundParams,
+} from "@/components/playground/parameters-panel";
+import {
+  MessageBubble,
+  type ConversationMessage,
+  type MessageRole,
+} from "@/components/playground/message-bubble";
+import {
+  ResponsePanel,
+  type ResponseMetrics,
+} from "@/components/playground/response-panel";
+
+/* ------------------------------------------------------------------ */
+/* Types                                                                  */
+/* ------------------------------------------------------------------ */
 
 interface Model {
   id: string;
   blockchainId?: string;
   ModelType?: string;
+  input_price_per_million?: number;
+  output_price_per_million?: number;
+  context_length?: number;
 }
 
 interface ApiModelResponse {
@@ -37,123 +62,281 @@ interface ApiModelResponse {
   created?: number;
   modelType?: string;
   ModelType?: string;
+  input_price_per_million?: number;
+  output_price_per_million?: number;
+  context_length?: number;
 }
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                               */
+/* ------------------------------------------------------------------ */
+
+function generateId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function makeDefaultConversation(): ConversationMessage[] {
+  return [
+    { id: generateId(), role: "system", content: "You are a helpful assistant." },
+    { id: generateId(), role: "user", content: "" },
+  ];
+}
+
+function buildMessagesPayload(messages: ConversationMessage[]) {
+  return messages
+    .filter((m) => m.content.trim() !== "" || m.role === "system")
+    .map((m) => ({ role: m.role, content: m.content }));
+}
+
+function generateCurlSnippet(
+  apiKey: string,
+  modelId: string,
+  messages: ConversationMessage[],
+  params: PlaygroundParams
+): string {
+  const body = {
+    model: modelId,
+    messages: buildMessagesPayload(messages),
+    temperature: params.temperature,
+    max_tokens: params.maxTokens,
+    top_p: params.topP,
+    frequency_penalty: params.frequencyPenalty,
+    presence_penalty: params.presencePenalty,
+    stream: params.stream,
+    ...(params.stream ? { stream_options: { include_usage: true } } : {}),
+    ...(params.stopSequences.length > 0 ? { stop: params.stopSequences } : {}),
+  };
+  return `curl -X POST '${API_URLS.chatCompletions()}' \\
+  -H 'accept: application/json' \\
+  -H 'Authorization: Bearer ${apiKey}' \\
+  -H 'Content-Type: application/json' \\
+  -d '${JSON.stringify(body, null, 2)}'`;
+}
+
+function generatePythonSnippet(
+  apiKey: string,
+  modelId: string,
+  messages: ConversationMessage[],
+  params: PlaygroundParams
+): string {
+  const msgs = buildMessagesPayload(messages);
+  return `from openai import OpenAI
+
+client = OpenAI(
+    base_url="${API_URLS.chatCompletions().replace("/chat/completions", "")}",
+    api_key="${apiKey}",
+)
+
+response = client.chat.completions.create(
+    model="${modelId}",
+    messages=${JSON.stringify(msgs, null, 4).replace(/^/gm, "    ").trimStart()},
+    temperature=${params.temperature},
+    max_tokens=${params.maxTokens},
+    top_p=${params.topP},
+    frequency_penalty=${params.frequencyPenalty},
+    presence_penalty=${params.presencePenalty},
+    stream=${params.stream ? "True" : "False"},${params.stream ? `\n    stream_options={"include_usage": True},` : ""}${params.stopSequences.length > 0 ? `\n    stop=${JSON.stringify(params.stopSequences)},` : ""}
+)
+
+print(response.choices[0].message.content)`;
+}
+
+function generateNodeSnippet(
+  apiKey: string,
+  modelId: string,
+  messages: ConversationMessage[],
+  params: PlaygroundParams
+): string {
+  const msgs = buildMessagesPayload(messages);
+  return `import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "${API_URLS.chatCompletions().replace("/chat/completions", "")}",
+  apiKey: "${apiKey}",
+});
+
+const response = await client.chat.completions.create({
+  model: "${modelId}",
+  messages: ${JSON.stringify(msgs, null, 2).replace(/^/gm, "  ").trimStart()},
+  temperature: ${params.temperature},
+  max_tokens: ${params.maxTokens},
+  top_p: ${params.topP},
+  frequency_penalty: ${params.frequencyPenalty},
+  presence_penalty: ${params.presencePenalty},
+  stream: ${params.stream},${params.stream ? `\n  stream_options: { include_usage: true },` : ""}${params.stopSequences.length > 0 ? `\n  stop: ${JSON.stringify(params.stopSequences)},` : ""}
+});
+
+console.log(response.choices[0].message.content);`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Main component                                                        */
+/* ------------------------------------------------------------------ */
 
 export default function TestPage() {
   const router = useRouter();
   const { error: showError } = useNotification();
   const { apiKeys } = useCognitoAuth();
+
+  /* API key state */
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [apiKeyPrefix, setApiKeyPrefix] = useState("");
   const [apiKeyName, setApiKeyName] = useState("");
+
+  /* Model state */
   const [selectedModel, setSelectedModel] = useState("default");
-  const [prompt, setPrompt] = useState("What is the capital of New Hampshire?");
-  const [curlRequest, setCurlRequest] = useState("");
-  const [responseContent, setResponseContent] = useState("");
-  const [serverResponse, setServerResponse] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [filteredModels, setFilteredModels] = useState<Model[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [allowedTypes] = useState<string[]>(getAllowedModelTypes());
-  const [copiedCurl, setCopiedCurl] = useState(false);
-  const [copiedResponse, setCopiedResponse] = useState(false);
 
-  // Load API key from sessionStorage
+  /* Parameters */
+  const [params, setParams] = useState<PlaygroundParams>(DEFAULT_PARAMS);
+
+  /* Conversation */
+  const [messages, setMessages] = useState<ConversationMessage[]>(
+    makeDefaultConversation()
+  );
+
+  /* Response / metrics */
+  const [isLoading, setIsLoading] = useState(false);
+  const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<ResponseMetrics>({
+    latencyMs: null,
+    tokensIn: null,
+    tokensOut: null,
+    costUsd: null,
+  });
+  const [finishReason, setFinishReason] = useState<string | null>(null);
+  const [rawResponse, setRawResponse] = useState("");
+
+  /* Copy state (keyed by message id) */
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+
+  /* Mobile param accordion */
+  const [paramsOpen, setParamsOpen] = useState(false);
+
+  /* Scroll ref */
+  const convEndRef = useRef<HTMLDivElement>(null);
+
+  /* ---------------------------------------------------------------- */
+  /* Load API key from sessionStorage                                   */
+  /* ---------------------------------------------------------------- */
   useEffect(() => {
-    const storedApiKey = sessionStorage.getItem('verified_api_key');
-    const storedPrefix = sessionStorage.getItem('verified_api_key_prefix');
-    const storedName = sessionStorage.getItem('verified_api_key_name');
-    
+    const storedApiKey = sessionStorage.getItem("verified_api_key");
+    const storedPrefix = sessionStorage.getItem("verified_api_key_prefix");
+    const storedName = sessionStorage.getItem("verified_api_key_name");
+
     if (storedApiKey && storedPrefix) {
       setSelectedApiKey(storedApiKey);
       setApiKeyPrefix(storedPrefix);
-      
-      // Get API key name from sessionStorage or find it from apiKeys context
+
       if (storedName) {
         setApiKeyName(storedName);
       } else if (apiKeys.length > 0) {
-        // Try to find the API key name by matching the prefix
-        const matchingKey = apiKeys.find(key => key.key_prefix === storedPrefix);
+        const matchingKey = apiKeys.find(
+          (key) => key.key_prefix === storedPrefix
+        );
         if (matchingKey) {
           setApiKeyName(matchingKey.name);
-          sessionStorage.setItem('verified_api_key_name', matchingKey.name);
+          sessionStorage.setItem("verified_api_key_name", matchingKey.name);
         } else {
-          // If still not found, try to get it from the API keys list
-          // This handles the case where the prefix might not match exactly
-          const foundKey = apiKeys.find(key => 
-            storedPrefix.toLowerCase().startsWith(key.key_prefix.toLowerCase()) ||
-            key.key_prefix.toLowerCase().startsWith(storedPrefix.toLowerCase())
+          const foundKey = apiKeys.find(
+            (key) =>
+              storedPrefix
+                .toLowerCase()
+                .startsWith(key.key_prefix.toLowerCase()) ||
+              key.key_prefix
+                .toLowerCase()
+                .startsWith(storedPrefix.toLowerCase())
           );
           if (foundKey) {
             setApiKeyName(foundKey.name);
-            sessionStorage.setItem('verified_api_key_name', foundKey.name);
+            sessionStorage.setItem(
+              "verified_api_key_name",
+              foundKey.name
+            );
           }
         }
       }
     }
   }, [apiKeys]);
 
-  // Fetch available models
+  /* ---------------------------------------------------------------- */
+  /* Fetch models                                                        */
+  /* ---------------------------------------------------------------- */
   useEffect(() => {
     fetchAvailableModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter models to LLM only when models change
   useEffect(() => {
     if (models.length > 0) {
-      applyModelTypeFilter(models, 'LLM');
+      applyModelTypeFilter(models, "LLM");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [models]);
+
+  // Cmd/Ctrl+Enter shortcut wiring is set up further down, once
+  // handleSendRequest is defined (see effect after handleSendRequest).
+  const sendRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        sendRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const fetchAvailableModels = async () => {
     setLoadingModels(true);
     try {
       const response = await fetch(API_URLS.models(), {
-        method: 'GET',
-        headers: {
-          'accept': 'application/json'
-        }
+        method: "GET",
+        headers: { accept: "application/json" },
       });
-      
-      if (!response.ok) {
-        throw new Error(`API returned status ${response.status}`);
-      }
-      
-      // Safely parse response to prevent deep recursion attacks
+
+      if (!response.ok) throw new Error(`API returned status ${response.status}`);
+
       const responseText = await response.text();
       const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
-      if (!data) {
-        throw new Error('Failed to parse response or response exceeds maximum depth');
-      }
-      
-      // Handle the API response format: {"object":"list","data":[...]}
+      if (!data)
+        throw new Error(
+          "Failed to parse response or response exceeds maximum depth"
+        );
+
       const modelsArray = data.data || data;
-      
+
       if (Array.isArray(modelsArray)) {
-        // Format models from API response
         const formattedModels = modelsArray.map((model: ApiModelResponse) => ({
           id: model.id,
           blockchainId: model.blockchainID || model.blockchainId,
-          created: model.created,
-          ModelType: model.modelType || model.ModelType || 'UNKNOWN'
+          ModelType: model.modelType || model.ModelType || "UNKNOWN",
+          input_price_per_million: model.input_price_per_million,
+          output_price_per_million: model.output_price_per_million,
+          context_length: model.context_length,
         })) as Model[];
-        
-        // Filter to only LLM models
-        const llmModels = formattedModels.filter((model: Model) => 
-          (model.ModelType?.toUpperCase() || 'UNKNOWN') === 'LLM'
+
+        const llmModels = formattedModels.filter(
+          (model: Model) =>
+            (model.ModelType?.toUpperCase() || "UNKNOWN") === "LLM"
         );
-        const sortedModels = llmModels.sort((a: Model, b: Model) => a.id.localeCompare(b.id));
+        const sortedModels = llmModels.sort((a: Model, b: Model) =>
+          a.id.localeCompare(b.id)
+        );
         setModels(sortedModels);
-        applyModelTypeFilter(sortedModels, 'LLM');
+        applyModelTypeFilter(sortedModels, "LLM");
       } else {
-        const fallbackModels = [{ id: 'default', ModelType: 'LLM' }];
+        const fallbackModels = [{ id: "default", ModelType: "LLM" }];
         setModels(fallbackModels);
         setFilteredModels(fallbackModels);
       }
     } catch (error) {
-      console.error('Error fetching models:', error);
-      const fallbackModels = [{ id: 'default', ModelType: 'LLM' }];
+      console.error("Error fetching models:", error);
+      const fallbackModels = [{ id: "default", ModelType: "LLM" }];
       setModels(fallbackModels);
       setFilteredModels(fallbackModels);
     } finally {
@@ -161,192 +344,475 @@ export default function TestPage() {
     }
   };
 
-  const applyModelTypeFilter = (modelsToFilter: Model[], filterType: string) => {
-    const filtered = filterModelsByType(modelsToFilter, filterType, allowedTypes);
+  const applyModelTypeFilter = (
+    modelsToFilter: Model[],
+    filterType: string
+  ) => {
+    const filtered = filterModelsByType(
+      modelsToFilter,
+      filterType,
+      allowedTypes
+    );
     setFilteredModels(filtered);
-    
+
     if (filtered.length > 0) {
       const defaultModelId = selectDefaultModel(filtered);
-      if (defaultModelId) {
-        setSelectedModel(defaultModelId);
+      if (defaultModelId) setSelectedModel(defaultModelId);
+    }
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Derived model metadata                                             */
+  /* ---------------------------------------------------------------- */
+  const currentModel = filteredModels.find((m) => m.id === selectedModel);
+
+  /* ---------------------------------------------------------------- */
+  /* Message management                                                 */
+  /* ---------------------------------------------------------------- */
+  const updateMessageContent = (id: string, content: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, content } : m))
+    );
+  };
+
+  const addMessage = (role: MessageRole = "user") => {
+    setMessages((prev) => [
+      ...prev,
+      { id: generateId(), role, content: "" },
+    ]);
+    setTimeout(() => {
+      convEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+  };
+
+  const removeMessage = (id: string) => {
+    setMessages((prev) => {
+      const filtered = prev.filter((m) => m.id !== id);
+      // Always keep at least system + one user turn
+      const hasSystem = filtered.some((m) => m.role === "system");
+      const hasUser = filtered.some((m) => m.role === "user");
+      if (!hasSystem)
+        return [
+          { id: generateId(), role: "system", content: "You are a helpful assistant." },
+          ...filtered,
+        ];
+      if (!hasUser)
+        return [...filtered, { id: generateId(), role: "user", content: "" }];
+      return filtered;
+    });
+  };
+
+  const clearConversation = () => {
+    setMessages(makeDefaultConversation());
+    setMetrics({ latencyMs: null, tokensIn: null, tokensOut: null, costUsd: null });
+    setFinishReason(null);
+    setRawResponse("");
+    setStreamingMsgId(null);
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Send request                                                       */
+  /* ---------------------------------------------------------------- */
+  const handleSendRequest = useCallback(
+    async (overrideMessages?: ConversationMessage[]) => {
+      const msgsToSend = overrideMessages ?? messages;
+      const payload = buildMessagesPayload(msgsToSend);
+
+      // Need at least one non-empty user message
+      const hasUserContent = payload.some(
+        (m) => m.role === "user" && m.content.trim() !== ""
+      );
+      if (!hasUserContent || !selectedApiKey) {
+        showError(
+          "Validation Error",
+          "Please add a user message and ensure your API key is set"
+        );
+        return;
       }
-    }
-  };
 
-  const handleCopyCurl = async () => {
-    if (!curlRequest) return;
-    try {
-      await navigator.clipboard.writeText(curlRequest);
-      setCopiedCurl(true);
-      setTimeout(() => setCopiedCurl(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
+      setIsLoading(true);
+      setFinishReason(null);
 
-  const handleCopyResponse = async () => {
-    if (!serverResponse) return;
-    try {
-      await navigator.clipboard.writeText(serverResponse);
-      setCopiedResponse(true);
-      setTimeout(() => setCopiedResponse(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
-
-  const generateCurlRequest = () => {
-    const curl = `curl -X 'POST' \\
-'${API_URLS.chatCompletions()}' \\
--H 'accept: application/json' \\
--H 'Authorization: Bearer ${selectedApiKey}' \\
--H 'Content-Type: application/json' \\
--d '{
-    "model": "${selectedModel}",
-    "messages": [
-        {
-            "role": "system",
-            "content": "You are a helpful assistant."
-        },
-        {
-            "role": "user",
-            "content": "${prompt.replace(/'/g, "\\'")}"
-        }
-    ],
-    "stream": false
-}'`;
-    setCurlRequest(curl);
-  };
-
-  const handleSendRequest = async () => {
-    if (!prompt.trim() || !selectedApiKey) {
-      showError("Validation Error", "Please provide a prompt and ensure API key is set");
-      return;
-    }
-
-    setIsLoading(true);
-    setResponseContent("");
-    setServerResponse("");
-    generateCurlRequest();
-
-    try {
-      // Log model name for debugging
-      logModelName('sendRequest', selectedModel);
-
-      // Use model name exactly as returned from /v1/models endpoint
-      const requestBody = {
-        model: selectedModel,
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        stream: false
+      // Remove any trailing empty assistant message or add a new one
+      let updatedMessages = msgsToSend.filter(
+        (m) => !(m.role === "assistant" && m.content.trim() === "")
+      );
+      const assistantMsgId = generateId();
+      const assistantMsg: ConversationMessage = {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
       };
+      updatedMessages = [...updatedMessages, assistantMsg];
+      setMessages(updatedMessages);
+      setStreamingMsgId(assistantMsgId);
 
-      // Validate request body depth before stringifying to prevent deep recursion attacks
+      const startTime = Date.now();
+
       try {
-        validateJsonDepth(requestBody, { maxDepth: 100 });
-      } catch (error) {
-        showError("Validation Error", `Invalid request data: ${error instanceof Error ? error.message : 'Data exceeds maximum depth'}`);
-        setIsLoading(false);
-        return;
-      }
+        logModelName("sendRequest", selectedModel);
 
-      const response = await fetch(API_URLS.chatCompletions(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-          'Authorization': `Bearer ${selectedApiKey}`
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      // Safely parse response to prevent deep recursion attacks
-      const responseText = await response.text();
-      const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
-      if (!data) {
-        showError("Parse Error", "Failed to parse response or response exceeds maximum depth");
-        setIsLoading(false);
-        return;
-      }
-      setServerResponse(JSON.stringify(data, null, 2));
-
-      if (!response.ok) {
-        // Handle error response
-        const errorMessage = data.detail || data.error?.message || `HTTP ${response.status}`;
-        setResponseContent(`Error: ${errorMessage}`);
-        
-        // Handle model name errors (400 Bad Request)
-        if (response.status === 400) {
-          const isModelError = errorMessage.toLowerCase().includes('invalid model') || 
-                              errorMessage.toLowerCase().includes('model name') ||
-                              errorMessage.toLowerCase().includes('model=');
-          
-          if (isModelError) {
-            // Extract the model name the backend tried to use (if mentioned in error)
-            const backendModelMatch = errorMessage.match(/model=([^\s,}]+)/i);
-            const backendModelName = backendModelMatch ? backendModelMatch[1] : null;
-            
-            console.error('[Model Error] Backend inconsistency detected:', {
-              requestedModel: selectedModel,
-              backendAttemptedModel: backendModelName,
-              errorMessage: errorMessage,
-              fullError: data,
-              note: 'This model was returned from /v1/models but rejected by /v1/chat/completions'
-            });
-            
-            const errorMsg = backendModelName && backendModelName !== selectedModel
-              ? `The backend returned "${selectedModel}" in the models list but tried to use "${backendModelName}" when making the request. This is a backend configuration issue.`
-              : `The model "${selectedModel}" was returned from the models list but is not accepted by the chat endpoint. This is a backend configuration issue.`;
-            
-            showError(
-              "Model Configuration Error",
-              errorMsg,
-              { duration: 15000 }
-            );
-          }
+        const requestBody: Record<string, unknown> = {
+          model: selectedModel,
+          messages: payload,
+          temperature: params.temperature,
+          max_tokens: params.maxTokens,
+          top_p: params.topP,
+          frequency_penalty: params.frequencyPenalty,
+          presence_penalty: params.presencePenalty,
+          stream: params.stream,
+        };
+        if (params.stream) {
+          // OpenAI-compatible streaming requires this opt-in for the server
+          // to emit a `usage` block in the SSE stream. Without it, prompt /
+          // completion token counts are not reported and cost can't be
+          // calculated.
+          requestBody.stream_options = { include_usage: true };
         }
-        
-        // Check for automation disabled error and show helpful message
-        if (response.status === 403 && errorMessage.toLowerCase().includes('automation')) {
+        if (params.stopSequences.length > 0) {
+          requestBody.stop = params.stopSequences;
+        }
+
+        try {
+          validateJsonDepth(requestBody, { maxDepth: 100 });
+        } catch (error) {
           showError(
-            "Automation Disabled",
-            "Session automation is disabled. Please enable it in your Account settings to use the API.",
-            {
-              actionLabel: 'Go to Account',
-              actionUrl: '/account',
-              duration: 15000
-            }
+            "Validation Error",
+            `Invalid request data: ${
+              error instanceof Error
+                ? error.message
+                : "Data exceeds maximum depth"
+            }`
           );
-        } else {
-          showError("Request Failed", errorMessage);
+          setIsLoading(false);
+          setStreamingMsgId(null);
+          return;
         }
-        return;
-      }
 
-      if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-        setResponseContent(data.choices[0].message.content);
-      } else {
-        setResponseContent("No content found in response");
+        const response = await fetch(API_URLS.chatCompletions(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            accept: "application/json",
+            Authorization: `Bearer ${selectedApiKey}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        /* ---- Streaming path ---- */
+        if (params.stream && response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let finalChunk: Record<string, unknown> | null = null;
+          // Usage / finish_reason can arrive in any chunk (often a dedicated
+          // chunk near the end of the stream, not the very last one). Track
+          // them across all chunks so they survive subsequent chunks that
+          // don't include them.
+          type UsageBlock = { prompt_tokens?: number; completion_tokens?: number };
+          let usageFromConsumer: UsageBlock | undefined;
+          let usageFromProvider: UsageBlock | undefined;
+          let usageRaw: UsageBlock | undefined;
+          let finishReasonFromStream: string | null = null;
+          let accumulated = "";
+
+          const flush = (chunk: string) => {
+            // Process SSE lines
+            const lines = chunk.split("\n");
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const raw = line.slice(6).trim();
+              if (raw === "[DONE]") continue;
+              const parsed = safeJsonParseOrNull(raw, { maxDepth: 100 });
+              if (!parsed) continue;
+              finalChunk = parsed as Record<string, unknown>;
+              const typed = parsed as {
+                usage?: UsageBlock;
+                usage_from_consumer?: UsageBlock;
+                usage_from_provider?: UsageBlock;
+                choices?: Array<{
+                  delta?: { content?: string };
+                  finish_reason?: string;
+                }>;
+              };
+              if (typed.usage_from_consumer) usageFromConsumer = typed.usage_from_consumer;
+              if (typed.usage_from_provider) usageFromProvider = typed.usage_from_provider;
+              if (typed.usage) usageRaw = typed.usage;
+              const choiceFinish = typed.choices?.[0]?.finish_reason;
+              if (choiceFinish) finishReasonFromStream = choiceFinish;
+              const delta = typed.choices?.[0]?.delta?.content;
+              if (delta) {
+                accumulated += delta;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? { ...m, content: accumulated }
+                      : m
+                  )
+                );
+              }
+            }
+          };
+
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const boundary = buffer.lastIndexOf("\n");
+            if (boundary !== -1) {
+              flush(buffer.slice(0, boundary));
+              buffer = buffer.slice(boundary + 1);
+            }
+          }
+          if (buffer) flush(buffer);
+
+          const latencyMs = Date.now() - startTime;
+
+          // Prefer usage_from_consumer (what the user actually paid for) over
+          // the raw `usage` block, which includes provider-side overhead like
+          // hidden system primers. Values were accumulated across all chunks
+          // because the dedicated usage chunk is not always the last one.
+          const effectiveUsage =
+            usageFromConsumer ?? usageFromProvider ?? usageRaw;
+          const tokensIn = effectiveUsage?.prompt_tokens ?? null;
+          const tokensOut = effectiveUsage?.completion_tokens ?? null;
+          const reason = finishReasonFromStream;
+          const finalParsed = finalChunk as {
+            detail?: string;
+            error?: { message?: string };
+          } | null;
+
+          const costUsd = calculateCostUsd(
+            selectedModel,
+            tokensIn,
+            tokensOut,
+            currentModel?.input_price_per_million,
+            currentModel?.output_price_per_million
+          );
+
+          setMetrics({ latencyMs, tokensIn, tokensOut, costUsd });
+          setFinishReason(reason);
+          setRawResponse(
+            finalChunk ? JSON.stringify(finalChunk, null, 2) : ""
+          );
+
+          if (!response.ok) {
+            // Response was not ok — already consumed stream for error info
+            const errMsg =
+              (finalParsed as { detail?: string; error?: { message?: string } } | null)
+                ?.detail ||
+              (finalParsed as { detail?: string; error?: { message?: string } } | null)
+                ?.error?.message ||
+              `HTTP ${response.status}`;
+            handleResponseError(response.status, errMsg, finalParsed);
+          }
+        } else {
+          /* ---- Non-streaming path ---- */
+          const responseText = await response.text();
+          const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+          if (!data) {
+            showError(
+              "Parse Error",
+              "Failed to parse response or response exceeds maximum depth"
+            );
+            setIsLoading(false);
+            setStreamingMsgId(null);
+            return;
+          }
+
+          setRawResponse(JSON.stringify(data, null, 2));
+
+          const latencyMs = Date.now() - startTime;
+          const typedData = data as {
+            choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+            usage?: { prompt_tokens?: number; completion_tokens?: number };
+            usage_from_consumer?: { prompt_tokens?: number; completion_tokens?: number };
+            usage_from_provider?: { prompt_tokens?: number; completion_tokens?: number };
+            detail?: string;
+            error?: { message?: string };
+          };
+          const effectiveUsage =
+            typedData.usage_from_consumer ??
+            typedData.usage_from_provider ??
+            typedData.usage;
+          const tokensIn = effectiveUsage?.prompt_tokens ?? null;
+          const tokensOut = effectiveUsage?.completion_tokens ?? null;
+
+          const costUsd = calculateCostUsd(
+            selectedModel,
+            tokensIn,
+            tokensOut,
+            currentModel?.input_price_per_million,
+            currentModel?.output_price_per_million
+          );
+
+          setMetrics({ latencyMs, tokensIn, tokensOut, costUsd });
+
+          if (!response.ok) {
+            const errorMessage =
+              typedData.detail ||
+              typedData.error?.message ||
+              `HTTP ${response.status}`;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, content: `Error: ${errorMessage}` }
+                  : m
+              )
+            );
+            handleResponseError(response.status, errorMessage, typedData);
+            return;
+          }
+
+          const content =
+            typedData.choices?.[0]?.message?.content ??
+            "No content found in response";
+          const reason = typedData.choices?.[0]?.finish_reason ?? null;
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId ? { ...m, content } : m
+            )
+          );
+          setFinishReason(reason ?? null);
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Unknown error";
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: `Error: ${errorMessage}` }
+              : m
+          )
+        );
+        showError("Request Failed", errorMessage);
+      } finally {
+        setIsLoading(false);
+        setStreamingMsgId(null);
+        setTimeout(() => {
+          convEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 50);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setResponseContent(`Error: ${errorMessage}`);
-      setServerResponse(`Error: ${errorMessage}`);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [messages, selectedApiKey, selectedModel, params, currentModel]
+  );
+
+  // Keep the keyboard-shortcut ref pointed at the latest handler/state
+  // so Cmd/Ctrl+Enter never fires a stale closure.
+  useEffect(() => {
+    sendRef.current = () => {
+      if (!isLoading) handleSendRequest();
+    };
+  }, [handleSendRequest, isLoading]);
+
+  function handleResponseError(
+    status: number,
+    errorMessage: string,
+    data: unknown
+  ) {
+    if (status === 400) {
+      const isModelError =
+        errorMessage.toLowerCase().includes("invalid model") ||
+        errorMessage.toLowerCase().includes("model name") ||
+        errorMessage.toLowerCase().includes("model=");
+
+      if (isModelError) {
+        const backendModelMatch = errorMessage.match(/model=([^\s,}]+)/i);
+        const backendModelName = backendModelMatch
+          ? backendModelMatch[1]
+          : null;
+
+        console.error("[Model Error] Backend inconsistency detected:", {
+          requestedModel: selectedModel,
+          backendAttemptedModel: backendModelName,
+          errorMessage,
+          fullError: data,
+          note: "This model was returned from /v1/models but rejected by /v1/chat/completions",
+        });
+
+        const errMsg =
+          backendModelName && backendModelName !== selectedModel
+            ? `The backend returned "${selectedModel}" in the models list but tried to use "${backendModelName}" when making the request. This is a backend configuration issue.`
+            : `The model "${selectedModel}" was returned from the models list but is not accepted by the chat endpoint. This is a backend configuration issue.`;
+
+        showError("Model Configuration Error", errMsg, { duration: 15000 });
+      }
+    }
+
+    if (
+      status === 403 &&
+      errorMessage.toLowerCase().includes("automation")
+    ) {
+      showError(
+        "Automation Disabled",
+        "Session automation is disabled. Please enable it in your Account settings to use the API.",
+        { actionLabel: "Go to Account", actionUrl: "/account", duration: 15000 }
+      );
+    } else if (status !== 400) {
       showError("Request Failed", errorMessage);
-    } finally {
-      setIsLoading(false);
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Per-turn actions                                                   */
+  /* ---------------------------------------------------------------- */
+  const handleRegenerate = (assistantMsgId: string) => {
+    const idx = messages.findIndex((m) => m.id === assistantMsgId);
+    if (idx < 0) return;
+    // Slice up to (but not including) this assistant turn
+    const prior = messages.slice(0, idx);
+    // Remove the assistant message we're regenerating
+    setMessages(prior);
+    handleSendRequest(prior);
+  };
+
+  const handleCopyMessage = async (msg: ConversationMessage) => {
+    try {
+      await navigator.clipboard.writeText(msg.content);
+      setCopiedMsgId(msg.id);
+      setTimeout(() => setCopiedMsgId(null), 2000);
+    } catch {
+      /* ignore */
     }
   };
 
-  // Show message if no API key
+  const handleBranch = (assistantMsgId: string) => {
+    const idx = messages.findIndex((m) => m.id === assistantMsgId);
+    if (idx < 0) return;
+    const branchMsgs: ConversationMessage[] = messages
+      .slice(0, idx + 1)
+      .map((m) => ({ ...m, id: generateId() }));
+    setMessages(branchMsgs);
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Code snippets (memoised via callback deps)                         */
+  /* ---------------------------------------------------------------- */
+  const curlSnippet = generateCurlSnippet(
+    selectedApiKey,
+    selectedModel,
+    messages,
+    params
+  );
+  const pythonSnippet = generatePythonSnippet(
+    selectedApiKey,
+    selectedModel,
+    messages,
+    params
+  );
+  const nodeSnippet = generateNodeSnippet(
+    selectedApiKey,
+    selectedModel,
+    messages,
+    params
+  );
+
+  /* ---------------------------------------------------------------- */
+  /* API key gate                                                        */
+  /* ---------------------------------------------------------------- */
   if (!selectedApiKey || !apiKeyPrefix) {
     return (
       <AuthenticatedLayout>
@@ -358,13 +824,16 @@ export default function TestPage() {
                 API Key Required
               </CardTitle>
               <CardDescription>
-                A Default API key must be set and verified before using the &quot;Test&quot; features. Go to API Keys tab to set your Default API Key.
+                A Default API key must be set and verified before using the
+                Playground. Go to API Keys to set your Default API Key.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={() => router.push('/api-keys')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white"
+              <Button
+                onClick={() => router.push("/api-keys")}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                data-analytics-action="go-to-api-keys"
+                data-analytics-destination="/api-keys"
               >
                 Go to API Keys
               </Button>
@@ -375,193 +844,246 @@ export default function TestPage() {
     );
   }
 
+  /* ---------------------------------------------------------------- */
+  /* Render                                                              */
+  /* ---------------------------------------------------------------- */
   return (
     <AuthenticatedLayout>
-      <div className="flex-1 overflow-y-auto p-4 md:p-8">
-        <h1 className="text-2xl md:text-4xl font-bold text-foreground">API Test</h1>
-        <p className="text-muted-foreground text-base md:text-lg mt-2">
-          Type an example prompt and view the raw CURL request and server response
-        </p>
+      <div className="flex flex-col h-[calc(100svh-4rem)] min-h-0 overflow-hidden">
+        {/* ── TOP BAR ──────────────────────────────────────────────── */}
+        <header className="shrink-0 flex items-center justify-between gap-4 px-5 py-4 border-b border-border bg-background">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground leading-tight">
+              Playground
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Iterate on prompts before shipping
+            </p>
+          </div>
 
-        {/* API Key Selection and Model Selection */}
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6 mt-4 md:mt-6">
-          {/* API Key Selection */}
-          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm flex-1">
-            <CardContent className="flex flex-col gap-3">
-              {/* Row 1: Label and Switch Key Button (Desktop) */}
-              <div className="hidden sm:flex sm:items-center gap-3">
-                <Label className="text-sm font-medium shrink-0">Selected API Key:</Label>
-                <Button variant="outline" className="sm:ml-auto shrink-0" onClick={() => router.push('/api-keys')}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Switch Key
-                </Button>
-              </div>
-              {/* Mobile: Row 1 - Label */}
-              <div className="flex sm:hidden">
-                <Label className="text-sm font-medium">Selected API Key:</Label>
-              </div>
-              {/* Mobile: Row 2 - API Key Name and Badge */}
-              {/* Desktop: Row 2 - API Key Name, String, and Badge */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                {/* Mobile: Show name and badge on same row */}
-                <div className="flex sm:hidden items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-foreground">{apiKeyName || apiKeys.find(key => key.key_prefix === apiKeyPrefix)?.name || ''}</span>
-                  <Badge variant="default" className="flex items-center gap-1 bg-green-500/20 text-green-500 shrink-0">
-                    <Check className="h-4 w-4" />
-                    Ready for Testing
-                  </Badge>
-                </div>
-                {/* Desktop: Show name, string, and badge */}
-                <div className="hidden sm:flex sm:items-center gap-2 sm:gap-4 flex-1 min-w-0">
-                  <span className="text-sm font-medium text-foreground shrink-0">{apiKeyName || apiKeys.find(key => key.key_prefix === apiKeyPrefix)?.name || ''}</span>
-                  <span className="font-mono text-sm break-all flex-1 min-w-0">{apiKeyPrefix}...</span>
-                  <Badge variant="default" className="flex items-center gap-1 bg-green-500/20 text-green-500 shrink-0">
-                    <Check className="h-4 w-4" />
-                    Ready for Testing
-                  </Badge>
-                </div>
-              </div>
-              {/* Mobile: Row 2 - Switch Key Button */}
-              <div className="flex sm:hidden">
-                <Button variant="outline" className="w-full" onClick={() => router.push('/api-keys')}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Switch Key
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Model Selection */}
-          <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm flex-1">
-            <CardContent>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Model</Label>
-                <span className="text-xs md:text-sm text-muted-foreground">Model Type: LLM</span>
-              </div>
-              <Select value={selectedModel} onValueChange={setSelectedModel} disabled={loadingModels}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select a model" />
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            {/* Model pill */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-border bg-card text-xs text-foreground">
+              <span className="font-semibold tracking-widest uppercase text-muted-foreground text-[10px]">
+                MODEL
+              </span>
+              <Select
+                value={selectedModel}
+                onValueChange={(value) => {
+                  if (value === selectedModel) return;
+                  setSelectedModel(value);
+                  clearConversation();
+                }}
+                disabled={loadingModels}
+              >
+                <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs font-mono text-foreground shadow-none focus:ring-0 focus:outline-none min-w-[80px] max-w-[200px] [&>svg]:h-3 [&>svg]:w-3 [&>svg]:ml-1 [&>svg]:opacity-50">
+                  <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent>
                   {loadingModels ? (
-                    <SelectItem value="loading">Loading...</SelectItem>
+                    <SelectItem
+                      value="loading"
+                      data-analytics-action="select-test-model-loading"
+                      data-analytics-destination="test-model:loading"
+                    >
+                      Loading…
+                    </SelectItem>
                   ) : filteredModels.length === 0 ? (
-                    <SelectItem value="none">No models available</SelectItem>
+                    <SelectItem value="none" data-analytics-action="select-test-model-empty" data-analytics-destination="test-model:none">No models available</SelectItem>
                   ) : (
                     filteredModels.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.id.toLowerCase()}
+                      <SelectItem
+                        key={model.id}
+                        value={model.id}
+                        data-analytics-action="select-test-model"
+                        data-analytics-label={`Test model: ${model.id}`}
+                        data-analytics-destination={`test-model:${model.id}`}
+                      >
+                        {model.id}
                       </SelectItem>
                     ))
                   )}
                 </SelectContent>
               </Select>
-              <p className="text-muted-foreground text-xs md:text-sm mt-2">
-                {loadingModels ? 'Loading...' : `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''} available`}
-              </p>
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* Key pill */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-border bg-card text-xs">
+              <span className="font-semibold tracking-widest uppercase text-muted-foreground text-[10px]">
+                KEY
+              </span>
+              <span className="font-medium text-foreground">
+                {apiKeyName || "—"}
+              </span>
+              <span className="font-mono text-muted-foreground">
+                · {apiKeyPrefix}…
+              </span>
+            </div>
+          </div>
+        </header>
+
+        {/* ── MOBILE: PARAMETERS ACCORDION ────────────────────────── */}
+        <div className="md:hidden shrink-0 border-b border-border">
+          <button
+            onClick={() => setParamsOpen((o) => !o)}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span>Parameters</span>
+            {paramsOpen ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+          {paramsOpen && (
+            <div className="border-t border-border">
+              <ParametersPanel params={params} onChange={setParams} />
+            </div>
+          )}
         </div>
 
-        {/* User Prompt */}
-        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-4 md:mt-6">
-          <CardContent>
-            <Label htmlFor="user-prompt">User Prompt</Label>
-            <Textarea
-              id="user-prompt"
-              placeholder="Enter your prompt here..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={3}
-              className="mt-2"
-            />
-            <Button
-              variant="default"
-              className="bg-green-600 hover:bg-green-700 text-white mt-4 w-full md:w-auto"
-              onClick={handleSendRequest}
-              disabled={isLoading || !prompt.trim()}
-            >
-              {isLoading ? "Sending..." : "Send Request"}
-            </Button>
-          </CardContent>
-        </Card>
+        {/* ── THREE-COLUMN BODY ───────────────────────────────────── */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* LEFT — Parameters (desktop only) */}
+          <div className="hidden md:flex flex-col w-[272px] shrink-0 border-r border-border overflow-y-auto">
+            <ParametersPanel params={params} onChange={setParams} />
+          </div>
 
-        {/* Output */}
-        <Card className="p-4 md:p-6 bg-card text-card-foreground rounded-lg shadow-sm mt-4 md:mt-6">
-          <CardContent>
-            <h2 className="text-lg md:text-xl font-semibold mb-4">Select Output</h2>
-            <Tabs defaultValue="response-content">
-              <TabsList className="grid w-full grid-cols-3 gap-1 md:gap-2">
-                <TabsTrigger value="response-content" className="text-xs md:text-sm px-2 md:px-4">
-                  <span className="hidden sm:inline">Response Content</span>
-                  <span className="sm:hidden">Response</span>
-                </TabsTrigger>
-                <TabsTrigger value="curl-request" className="text-xs md:text-sm px-2 md:px-4">
-                  <Send className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4 shrink-0" />
-                  <span className="hidden sm:inline">Curl Request</span>
-                  <span className="sm:hidden">Curl</span>
-                </TabsTrigger>
-                <TabsTrigger value="server-response" className="text-xs md:text-sm px-2 md:px-4">
-                  <span className="hidden sm:inline">Server Response</span>
-                  <span className="sm:hidden">Server</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="response-content" className="mt-4">
-                {responseContent ? (
-                  <div className="bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
-                    <pre className="text-white whitespace-pre-wrap text-xs md:text-sm overflow-x-auto">{responseContent}</pre>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Send a request to see the response content</p>
-                )}
-              </TabsContent>
-              <TabsContent value="curl-request" className="mt-4">
-                {curlRequest ? (
-                  <div className="relative bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white"
-                      onClick={handleCopyCurl}
-                    >
-                      {copiedCurl ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <pre className="text-white whitespace-pre-wrap font-mono text-xs md:text-sm overflow-x-auto pr-12">{curlRequest}</pre>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Send a request to generate the cURL command</p>
-                )}
-              </TabsContent>
-              <TabsContent value="server-response" className="mt-4">
-                {serverResponse ? (
-                  <div className="relative bg-black p-3 md:p-4 rounded-md border border-gray-300/20">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white"
-                      onClick={handleCopyResponse}
-                    >
-                      {copiedResponse ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <pre className="text-white whitespace-pre-wrap font-mono text-xs md:text-sm overflow-x-auto pr-12">{serverResponse}</pre>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Send a request to see the server response</p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+          {/* MIDDLE — Conversation */}
+          <div className="flex flex-col flex-1 min-w-0 border-r border-border">
+            {/* Column header */}
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
+                Conversation
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => addMessage("user")}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Message
+                </button>
+                <button
+                  onClick={clearConversation}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {/* Messages list */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-5">
+              {messages.map((msg) => (
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  modelId={selectedModel}
+                  isStreaming={streamingMsgId === msg.id}
+                  onContentChange={(content) =>
+                    updateMessageContent(msg.id, content)
+                  }
+                  onRegenerate={
+                    msg.role === "assistant"
+                      ? () => handleRegenerate(msg.id)
+                      : undefined
+                  }
+                  onCopy={
+                    msg.role === "assistant"
+                      ? () => handleCopyMessage(msg)
+                      : undefined
+                  }
+                  onBranch={
+                    msg.role === "assistant"
+                      ? () => handleBranch(msg.id)
+                      : undefined
+                  }
+                  onRemove={
+                    // System messages are removable only when there's more than one
+                    ((): (() => void) | undefined => {
+                      if (msg.role === "system") {
+                        return messages.filter(m => m.role === "system").length > 1
+                          ? () => removeMessage(msg.id)
+                          : undefined;
+                      }
+                      return () => removeMessage(msg.id);
+                    })()
+                  }
+                  copiedId={copiedMsgId}
+                />
+              ))}
+              <div ref={convEndRef} />
+            </div>
+
+            <Separator />
+
+            {/* Composer */}
+            <div className="shrink-0 flex items-center gap-2 px-4 py-3">
+              <button
+                onClick={() => addMessage("user")}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Add message</span>
+              </button>
+
+              <div className="flex-1" />
+
+              <Button
+                onClick={() => handleSendRequest()}
+                disabled={isLoading}
+                className="h-8 px-3 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded gap-1.5"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Run
+                <kbd className="hidden sm:inline text-[10px] opacity-70 ml-0.5">⌘↩</kbd>
+              </Button>
+            </div>
+          </div>
+
+          {/* RIGHT — Response */}
+          <div className="hidden lg:flex flex-col w-[420px] shrink-0 min-h-0">
+            <ResponsePanel
+              content={
+                messages.find(
+                  (m) =>
+                    m.role === "assistant" &&
+                    (streamingMsgId === m.id || !isLoading)
+                )?.content ?? ""
+              }
+              metrics={metrics}
+              finishReason={finishReason}
+              rawResponse={rawResponse}
+              isLoading={isLoading}
+              curlSnippet={curlSnippet}
+              pythonSnippet={pythonSnippet}
+              nodeSnippet={nodeSnippet}
+            />
+          </div>
+        </div>
+
+        {/* ── MOBILE: Response panel below conversation ─────────── */}
+        <div className="lg:hidden shrink-0 border-t border-border max-h-72 overflow-y-auto">
+          <ResponsePanel
+            content={
+              messages.find(
+                (m) =>
+                  m.role === "assistant" &&
+                  (streamingMsgId === m.id || !isLoading)
+              )?.content ?? ""
+            }
+            metrics={metrics}
+            finishReason={finishReason}
+            rawResponse={rawResponse}
+            isLoading={isLoading}
+            curlSnippet={curlSnippet}
+            pythonSnippet={pythonSnippet}
+            nodeSnippet={nodeSnippet}
+          />
+        </div>
       </div>
     </AuthenticatedLayout>
   );
 }
-

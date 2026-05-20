@@ -28,14 +28,14 @@ interface UsageChartsProps {
   apiKeys?: APIKeyDB[];
 }
 
-const COLORS = ['#00FF85', '#20DC8E', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
+const COLORS = ['#5CE3B0', '#5CE3B0', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
 const TOKEN_TYPE_COLORS = ['#3b82f6', '#8b5cf6']; // Blue for Input, Purple for Output
 
 // Custom tooltip for charts
 const CustomTooltip = ({ active, payload, label, valueFormatter }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border bg-background p-3 shadow-lg">
+      <div className="rounded border bg-background p-3 shadow-lg">
         <p className="text-sm font-medium text-foreground">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} className="text-sm text-muted-foreground">
@@ -131,7 +131,7 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Avg:</span>
-                  <span className="font-medium text-green-500">
+                  <span className="font-medium text-primary">
                     {formatCurrency(stats.cost.avg)}
                   </span>
                 </div>
@@ -219,7 +219,7 @@ export function UsageCharts({ dailyData, selectedKeyId, apiKeys = [] }: UsageCha
                 type="monotone"
                 dataKey="Staking"
                 name="Staking"
-                stroke="#00FF85"
+                stroke="#5CE3B0"
                 strokeWidth={2}
                 dot={false}
               />

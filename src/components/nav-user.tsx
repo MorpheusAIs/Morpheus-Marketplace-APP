@@ -7,7 +7,6 @@ import {
   LogOut,
   FileText,
   Shield,
-  Cookie,
 } from "lucide-react";
 import {
   Avatar,
@@ -61,9 +60,9 @@ export function NavUser({
       <div className="space-y-1">
         {/* User Info */}
         <div className="flex items-center gap-2 px-2 py-2">
-          <Avatar className="h-8 w-8 rounded-lg">
-            <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded-lg bg-green-600 text-white">
+          <Avatar className="h-8 w-8 rounded">
+            {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+            <AvatarFallback className="rounded bg-primary text-primary-foreground">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
@@ -76,7 +75,12 @@ export function NavUser({
         {/* Account Menu Item */}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => onAccountClick?.()} className="w-full justify-start">
+            <SidebarMenuButton
+              onClick={() => onAccountClick?.()}
+              className="w-full justify-start"
+              data-analytics-action="open-account"
+              data-analytics-destination="/account"
+            >
               <User className="h-4 w-4" />
               <span>Account</span>
             </SidebarMenuButton>
@@ -97,31 +101,14 @@ export function NavUser({
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="w-full justify-start">
-              <Link href="/cookies">
-                <Cookie className="h-4 w-4" />
-                <span>Cookie Policy</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => {
-                if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
-                  (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
-                }
-              }}
-              className="w-full justify-start"
-            >
-              <Cookie className="h-4 w-4" />
-              <span>Cookie Preferences</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
           {/* Log out Menu Item */}
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => onLogout?.()} className="w-full justify-start">
+            <SidebarMenuButton
+              onClick={() => onLogout?.()}
+              className="w-full justify-start"
+              data-analytics-action="logout"
+              data-analytics-destination="/signin"
+            >
               <LogOut className="h-4 w-4" />
               <span>Log out</span>
             </SidebarMenuButton>
@@ -137,32 +124,32 @@ export function NavUser({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="w-full justify-start h-auto py-2 px-2 hover:bg-gray-800"
+          className="w-full justify-start h-auto py-2 px-2 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
-          <Avatar className="h-8 w-8 rounded-lg">
-            <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="rounded-lg bg-green-600 text-white">
+          <Avatar className="h-8 w-8 rounded">
+            {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+            <AvatarFallback className="rounded bg-primary text-primary-foreground">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight ml-2">
             <span className="truncate font-medium">{displayName}</span>
-            <span className="truncate text-xs text-gray-400">{displayEmail}</span>
+            <span className="truncate text-xs text-sidebar-foreground/60">{displayEmail}</span>
           </div>
           <ChevronsUpDown className="ml-auto h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-56 rounded-lg"
+        className="w-56 rounded"
         side="right"
         align="end"
         sideOffset={4}
       >
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={user.avatar} alt={displayName} />
-              <AvatarFallback className="rounded-lg bg-green-600 text-white">
+            <Avatar className="h-8 w-8 rounded">
+              {user.avatar ? <AvatarImage src={user.avatar} alt={displayName} /> : null}
+              <AvatarFallback className="rounded bg-primary text-primary-foreground">
                 {avatarFallback}
               </AvatarFallback>
             </Avatar>
@@ -174,7 +161,11 @@ export function NavUser({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={onAccountClick}>
+          <DropdownMenuItem
+            onClick={onAccountClick}
+            data-analytics-action="open-account"
+            data-analytics-destination="/account"
+          >
             <User className="mr-2 h-4 w-4" />
             Account
           </DropdownMenuItem>
@@ -190,25 +181,13 @@ export function NavUser({
               Privacy
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/cookies">
-              <Cookie className="mr-2 h-4 w-4" />
-              Cookie Policy
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              if (typeof window !== "undefined" && (window as unknown as { Cookiebot?: { renew: () => void } }).Cookiebot) {
-                (window as unknown as { Cookiebot: { renew: () => void } }).Cookiebot.renew();
-              }
-            }}
-          >
-            <Cookie className="mr-2 h-4 w-4" />
-            Cookie Preferences
-          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onLogout}>
+        <DropdownMenuItem
+          onClick={onLogout}
+          data-analytics-action="logout"
+          data-analytics-destination="/signin"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Log out
         </DropdownMenuItem>
@@ -216,4 +195,3 @@ export function NavUser({
     </DropdownMenu>
   );
 }
-

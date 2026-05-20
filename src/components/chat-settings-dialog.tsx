@@ -105,7 +105,13 @@ export function ChatSettingsDialog({
               </SelectTrigger>
               <SelectContent>
                 {modelTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem
+                    key={type.value}
+                    value={type.value}
+                    data-analytics-action="select-chat-model-type"
+                    data-analytics-label={`Model type: ${type.label}`}
+                    data-analytics-destination={`chat-model-type:${type.value}`}
+                  >
                     {type.label}
                   </SelectItem>
                 ))}
@@ -117,7 +123,13 @@ export function ChatSettingsDialog({
               </SelectTrigger>
               <SelectContent>
                 {models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
+                  <SelectItem
+                    key={model.id}
+                    value={model.id}
+                    data-analytics-action="select-chat-model"
+                    data-analytics-label={`Model: ${model.id}`}
+                    data-analytics-destination={`chat-model:${model.id}`}
+                  >
                     {model.id}
                   </SelectItem>
                 ))}
@@ -293,7 +305,7 @@ export function ChatSettingsDialog({
           </Button>
           <Button
             variant="default"
-            className="bg-green-500 hover:bg-green-600 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={handleSave}
           >
             Save Changes
@@ -304,4 +316,3 @@ export function ChatSettingsDialog({
     </TooltipProvider>
   );
 }
-
