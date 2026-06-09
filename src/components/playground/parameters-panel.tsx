@@ -165,9 +165,9 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
               </>
             }
             value={params.maxTokens}
-            min={1}
-            max={32768}
-            step={64}
+            min={1000}
+            max={32000}
+            step={100}
             onChange={(v) => set("maxTokens", v)}
           />
           <SliderRow
