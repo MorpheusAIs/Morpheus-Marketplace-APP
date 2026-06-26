@@ -25,7 +25,7 @@ export interface PlaygroundParams {
 
 export const DEFAULT_PARAMS: PlaygroundParams = {
   temperature: 0.7,
-  maxTokens: 512,
+  maxTokens: 2000,
   topP: 1,
   frequencyPenalty: 0,
   presencePenalty: 0,
@@ -165,9 +165,9 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
               </>
             }
             value={params.maxTokens}
-            min={1}
-            max={4096}
-            step={1}
+            min={1000}
+            max={32000}
+            step={100}
             onChange={(v) => set("maxTokens", v)}
           />
           <SliderRow
