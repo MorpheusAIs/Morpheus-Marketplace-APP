@@ -432,6 +432,7 @@ export default function TestPage() {
 
       setIsLoading(true);
       setFinishReason(null);
+      setRawResponse("");
 
       // Remove any trailing empty assistant message or add a new one
       let updatedMessages = msgsToSend.filter(
@@ -499,8 +500,12 @@ export default function TestPage() {
           body: JSON.stringify(requestBody),
         });
 
-        /* ---- Streaming path ---- */
-        if (params.stream && response.body) {
+        /* ---- Streaming path (only when the server actually streams) ---- */
+        // Session / provider failures often return a JSON error body with a
+        // non-2xx status even when the client requested stream:true. Parsing
+        // that body as SSE leaves rawResponse empty — fall through to the
+        // JSON path whenever the response is not OK.
+        if (params.stream && response.ok && response.body) {
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let buffer = "";
@@ -608,10 +613,26 @@ export default function TestPage() {
             handleResponseError(response.status, errMsg, finalParsed);
           }
         } else {
-          /* ---- Non-streaming path ---- */
+          /* ---- Non-streaming / error JSON path ---- */
           const responseText = await response.text();
           const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+          // Always surface the literal API payload in the Response panel,
+          // even when JSON parsing fails or the request errored.
+          setRawResponse(
+            data ? JSON.stringify(data, null, 2) : responseText || ""
+          );
           if (!data) {
+            const fallback =
+              responseText.trim() ||
+              `Failed to parse response (HTTP ${response.status})`;
+            setFinishReason("error");
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, content: `Error: ${fallback}` }
+                  : m
+              )
+            );
             showError(
               "Parse Error",
               "Failed to parse response or response exceeds maximum depth"
@@ -621,8 +642,6 @@ export default function TestPage() {
             return;
           }
 
-          setRawResponse(JSON.stringify(data, null, 2));
-
           const latencyMs = Date.now() - startTime;
           const typedData = data as {
             choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
@@ -630,7 +649,7 @@ export default function TestPage() {
             usage_from_consumer?: { prompt_tokens?: number; completion_tokens?: number };
             usage_from_provider?: { prompt_tokens?: number; completion_tokens?: number };
             detail?: string;
-            error?: { message?: string };
+            error?: { message?: string; type?: string };
           };
           const effectiveUsage =
             typedData.usage_from_consumer ??
@@ -654,6 +673,7 @@ export default function TestPage() {
               typedData.detail ||
               typedData.error?.message ||
               `HTTP ${response.status}`;
+            setFinishReason(typedData.error?.type ?? "error");
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantMsgId
@@ -680,6 +700,7 @@ export default function TestPage() {
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
+        setFinishReason("error");
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
