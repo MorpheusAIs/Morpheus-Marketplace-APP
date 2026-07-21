@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import hljs from "highlight.js/lib/core";
@@ -59,7 +59,11 @@ type FinishReason = "stop" | "length" | "content_filter" | "error" | string;
 function finishReasonChipClass(reason: FinishReason): string {
   if (reason === "stop") return "bg-primary/15 text-primary border-primary/20";
   if (reason === "length") return "bg-amber-500/15 text-amber-400 border-amber-500/20";
-  if (reason === "content_filter" || reason === "error")
+  if (
+    reason === "content_filter" ||
+    reason === "error" ||
+    reason.endsWith("_error")
+  )
     return "bg-destructive/15 text-destructive border-destructive/20";
   return "bg-muted text-muted-foreground border-border";
 }
@@ -94,9 +98,19 @@ function MetricCell({
   );
 }
 
-function RawResponsePanel({ raw }: { raw: string }) {
-  const [open, setOpen] = useState(false);
+function RawResponsePanel({
+  raw,
+  forceOpen = false,
+}: {
+  raw: string;
+  forceOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(forceOpen || Boolean(raw));
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (forceOpen || raw) setOpen(true);
+  }, [forceOpen, raw]);
 
   const handleCopy = async () => {
     try {
@@ -229,6 +243,42 @@ export function ResponsePanel({
   pythonSnippet,
   nodeSnippet,
 }: ResponsePanelProps) {
+  const apiError = useMemo(() => {
+    if (!rawResponse) return null;
+    try {
+      const parsed = JSON.parse(rawResponse) as {
+        detail?: unknown;
+        error?: string | { message?: string; type?: string; code?: string };
+      };
+      if (typeof parsed.error === "string") {
+        return { message: parsed.error, type: undefined as string | undefined };
+      }
+      if (parsed.error && typeof parsed.error === "object") {
+        return {
+          message: parsed.error.message ?? JSON.stringify(parsed.error),
+          type: parsed.error.type ?? parsed.error.code,
+        };
+      }
+      if (parsed.detail !== undefined) {
+        return {
+          message:
+            typeof parsed.detail === "string"
+              ? parsed.detail
+              : JSON.stringify(parsed.detail),
+          type: undefined as string | undefined,
+        };
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }, [rawResponse]);
+
+  const isErrorState =
+    Boolean(apiError) ||
+    finishReason === "error" ||
+    (typeof finishReason === "string" && finishReason.endsWith("_error"));
+
   return (
     <aside className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
@@ -285,7 +335,7 @@ export function ResponsePanel({
 
             {/* Status line */}
             <div>
-              {isLoading && !content ? (
+              {isLoading && !content && !rawResponse ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="inline-flex gap-0.5">
                     {[0, 0.15, 0.3].map((d, i) => (
@@ -297,6 +347,36 @@ export function ResponsePanel({
                     ))}
                   </span>
                   Waiting for response…
+                </div>
+              ) : isErrorState ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>request failed</span>
+                    {(apiError?.type || finishReason) && (
+                      <>
+                        <span className="text-muted-foreground/40">·</span>
+                        <span>error:</span>
+                        <span
+                          className={cn(
+                            "px-1.5 py-0.5 rounded border text-[11px] font-mono",
+                            finishReasonChipClass("error")
+                          )}
+                        >
+                          {apiError?.type || finishReason}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {apiError?.message && (
+                    <div className="rounded border border-destructive/30 bg-destructive/10 p-3">
+                      <p className="text-xs font-semibold tracking-widest uppercase text-destructive mb-1.5">
+                        API Error
+                      </p>
+                      <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                        {apiError.message}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : finishReason ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -319,8 +399,11 @@ export function ResponsePanel({
               )}
             </div>
 
-            {/* Raw response */}
-            <RawResponsePanel raw={rawResponse} />
+            {/* Raw response — auto-open when we have a payload (esp. errors) */}
+            <RawResponsePanel
+              raw={rawResponse}
+              forceOpen={Boolean(rawResponse)}
+            />
           </div>
         </TabsContent>
 
