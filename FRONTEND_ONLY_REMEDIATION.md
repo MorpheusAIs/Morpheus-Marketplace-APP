@@ -76,9 +76,14 @@ This route is **entirely self-contained in Next.js** (in-memory Map; never calls
 - **F-04 fail closed:** if `COINBASE_PAYMENT_LINK_WEBHOOK_SECRET` is unset, return 500 instead of accepting unsigned webhooks (`coinbase-notification/route.ts:101-114`).
 - **F-05 authenticated polling:** require the Cognito Bearer token on the GET, verify it against Cognito JWKS server-side (e.g. `jose`), and key notifications by the verified `sub` — ignore the query param. The client hook (`use-coinbase-notifications.tsx`) already has the token; it just needs to send it. No backend involvement.
 
-### P2 — Payment-link GET proxy auth (F-06) — kills FE-3's frontend half
+### P2 — Payment-link GET proxy auth (F-06) — necessary but NOT sufficient (urgency upgraded 2026-07-28)
 
-Require the Bearer token on `GET /api/coinbase/payment-link` (mirror the POST at lines 86-92) and return 401 when absent. When a token *is* present, the exact same headers are forwarded to the backend as today — **the load sent to the backend is unchanged**. (The backend's B-03 ownership-scoping gap remains and needs its own fix, but the frontend stops being an anonymous privileged oracle.)
+Require the Bearer token on `GET /api/coinbase/payment-link` (mirror the POST at lines 86-92) and return 401 when absent. When a token *is* present, the exact same headers are forwarded to the backend as today — **the load sent to the backend is unchanged**.
+
+**Upgrade driver:** an external researcher dynamically confirmed B-03/FE-3 in production and showed payment-link IDs are sequential MongoDB ObjectIds on a shared Coinbase Business account — any *authenticated* user can enumerate all users' payment records (see `RESEARCHER_REPORT_TRIAGE.md`). F-06 only stops **anonymous** probing; it does nothing against an authenticated enumerator. Two consequences for this plan:
+
+1. The complete fix is the backend's B-03 ownership check — escalate it there (recommended severity Medium → High). It cannot be solved frontend-only.
+2. As frontend-only defense-in-depth that does not change the load sent to the backend, the Next.js proxy can **strip `metadata` from the proxied response** (the polling UI uses only `id`/`url`/`status`/`amount`/`currency`/`expires_at`). This removes Cognito `sub` and custom-metadata leakage *through the frontend channel only* — direct API callers remain unaffected until B-03 lands.
 
 ### P2 — Dependencies (F-03) — High
 
