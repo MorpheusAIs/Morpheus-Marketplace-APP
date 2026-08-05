@@ -43,7 +43,7 @@ interface CognitoAuthContextType {
   refreshApiKeys: () => Promise<void>;
   refreshUserAttributes: () => Promise<void>;
   getValidToken: () => Promise<string | null>;
-  socialLogin: (provider: 'Google' | 'GitHub' | 'X') => void;
+  socialLogin: (provider: 'Google' | 'GitHub' | 'X') => Promise<void>;
 }
 
 const CognitoAuthContext = createContext<CognitoAuthContextType | undefined>(undefined);
@@ -597,11 +597,11 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     return token;
   };
 
-  const socialLogin = (provider: 'Google' | 'GitHub' | 'X') => {
+  const socialLogin = async (provider: 'Google' | 'GitHub' | 'X') => {
     if (typeof window === 'undefined') return;
-    
+
     const redirectUri = `${window.location.origin}/auth/callback`;
-    CognitoDirectAuth.initiateSocialLogin(provider, redirectUri);
+    await CognitoDirectAuth.initiateSocialLogin(provider, redirectUri);
   };
 
   const forgotPassword = async (email: string) => {
