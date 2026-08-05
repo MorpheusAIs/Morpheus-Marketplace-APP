@@ -474,85 +474,136 @@ export class CognitoDirectAuth {
     }
   }
 
+  /** sessionStorage keys for the OAuth authorization-code flow */
+  static readonly OAUTH_STATE_KEY = 'oauth_state';
+  static readonly OAUTH_PKCE_VERIFIER_KEY = 'oauth_pkce_verifier';
+
   /**
-   * Exchange authorization code for tokens (OAuth flow)
+   * Exchange authorization code for tokens (OAuth flow + PKCE).
+   * Requires `oauth_pkce_verifier` in sessionStorage from initiateSocialLogin.
    */
   static async exchangeCodeForTokens(code: string, redirectUri: string): Promise<CognitoTokens> {
+    if (typeof window === 'undefined') {
+      throw new Error('Token exchange requires a browser context');
+    }
+
+    const codeVerifier = sessionStorage.getItem(this.OAUTH_PKCE_VERIFIER_KEY);
+    if (!codeVerifier) {
+      throw new Error('Missing PKCE verifier. Restart sign-in from the app.');
+    }
+
     const tokenEndpoint = `https://${cognitoConfig.domain}/oauth2/token`;
-    
+
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: cognitoConfig.userPoolClientId,
       code: code,
       redirect_uri: redirectUri,
+      code_verifier: codeVerifier,
     });
 
-    const response = await fetch(tokenEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
+    try {
+      const response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Token exchange failed: ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Token exchange failed: ${errorText}`);
+      }
+
+      // Safely parse response to prevent deep recursion attacks
+      const responseText = await response.text();
+      const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
+      if (!data) {
+        throw new Error('Failed to parse response or response exceeds maximum depth');
+      }
+
+      return {
+        accessToken: data.access_token,
+        idToken: data.id_token,
+        refreshToken: data.refresh_token,
+      };
+    } finally {
+      sessionStorage.removeItem(this.OAUTH_PKCE_VERIFIER_KEY);
     }
+  }
 
-    // Safely parse response to prevent deep recursion attacks
-    const responseText = await response.text();
-    const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
-    if (!data) {
-      throw new Error('Failed to parse response or response exceeds maximum depth');
-    }
-
-    return {
-      accessToken: data.access_token,
-      idToken: data.id_token,
-      refreshToken: data.refresh_token,
-    };
+  /** Clear OAuth CSRF / PKCE markers (call on failed callback). */
+  static clearOAuthFlowStorage(): void {
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem(this.OAUTH_STATE_KEY);
+    sessionStorage.removeItem(this.OAUTH_PKCE_VERIFIER_KEY);
   }
 
   /**
    * Generate state parameter for OAuth flow (CSRF protection)
    */
   static generateState(): string {
-    if (typeof window === 'undefined') {
-      // Server-side: generate random string
-      return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    } else {
-      // Client-side: use Web Crypto API
-      const array = new Uint8Array(32);
-      crypto.getRandomValues(array);
-      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-    }
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 
   /**
-   * Initiate social login redirect
+   * PKCE code_verifier (43–128 chars) + S256 code_challenge for public Cognito clients.
    */
-  static initiateSocialLogin(provider: 'Google' | 'GitHub' | 'X', redirectUri: string): void {
+  static async generatePkcePair(): Promise<{ verifier: string; challenge: string }> {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    // base64url without padding — 43 chars from 32 bytes
+    const verifier = btoa(String.fromCharCode(...array))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    const digest = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(verifier)
+    );
+    const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    return { verifier, challenge };
+  }
+
+  /**
+   * Initiate social login redirect with state + PKCE (S256).
+   */
+  static async initiateSocialLogin(
+    provider: 'Google' | 'GitHub' | 'X',
+    redirectUri: string
+  ): Promise<void> {
     if (typeof window === 'undefined') return;
 
     const state = this.generateState();
-    sessionStorage.setItem('oauth_state', state);
+    const { verifier, challenge } = await this.generatePkcePair();
+    sessionStorage.setItem(this.OAUTH_STATE_KEY, state);
+    sessionStorage.setItem(this.OAUTH_PKCE_VERIFIER_KEY, verifier);
 
     // Map provider names to Cognito identity provider names
     const providerMap: Record<string, string> = {
-      'Google': 'Google',
-      'GitHub': 'GitHub',
-      'X': 'Twitter', // Cognito uses 'Twitter' for X/Twitter
+      Google: 'Google',
+      GitHub: 'GitHub',
+      X: 'Twitter', // Cognito uses 'Twitter' for X/Twitter
     };
 
     const cognitoProviderName = providerMap[provider] || provider;
-    
+
     const authUrl = new URL(`https://${cognitoConfig.domain}/oauth2/authorize`);
     authUrl.searchParams.set('client_id', cognitoConfig.userPoolClientId);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', 'aws.cognito.signin.user.admin openid email profile');
     authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('code_challenge', challenge);
+    authUrl.searchParams.set('code_challenge_method', 'S256');
     authUrl.searchParams.set('identity_provider', cognitoProviderName);
 
     window.location.href = authUrl.toString();

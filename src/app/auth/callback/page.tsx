@@ -28,20 +28,24 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Validate state parameter (CSRF protection)
-        if (typeof window !== 'undefined') {
-          const storedState = sessionStorage.getItem('oauth_state');
-          if (state && storedState && state !== storedState) {
-            throw new Error('Invalid state parameter. Possible CSRF attack.');
-          }
-          sessionStorage.removeItem('oauth_state');
+        // Unconditional state check (CSRF): missing/unstored/mismatched all fail.
+        // Do not exchange the code if this browser did not start the OAuth flow.
+        if (typeof window === 'undefined') {
+          throw new Error('OAuth callback requires a browser context');
         }
+        const storedState = sessionStorage.getItem(CognitoDirectAuth.OAUTH_STATE_KEY);
+        if (!state || !storedState || state !== storedState) {
+          CognitoDirectAuth.clearOAuthFlowStorage();
+          throw new Error('Invalid or missing state parameter. Possible CSRF attack.');
+        }
+        sessionStorage.removeItem(CognitoDirectAuth.OAUTH_STATE_KEY);
 
         if (!code) {
+          CognitoDirectAuth.clearOAuthFlowStorage();
           throw new Error('No authorization code received');
         }
 
-        // Exchange code for tokens
+        // Exchange code for tokens (requires PKCE verifier from initiateSocialLogin)
         const redirectUri = `${window.location.origin}/auth/callback`;
         const tokens = await CognitoDirectAuth.exchangeCodeForTokens(code, redirectUri);
 
@@ -55,6 +59,7 @@ function AuthCallbackContent() {
         router.push('/api-keys');
       } catch (err) {
         console.error('OAuth callback error:', err);
+        CognitoDirectAuth.clearOAuthFlowStorage();
         setError(err instanceof Error ? err.message : 'Authentication failed');
         setIsProcessing(false);
         setTimeout(() => {
