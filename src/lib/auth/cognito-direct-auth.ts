@@ -14,6 +14,11 @@ import {
 import { cognitoConfig } from './cognito-config';
 import { CognitoTokens } from '@/lib/types/cognito';
 import { safeJsonParseOrNull } from '@/lib/utils/safe-json';
+import {
+  BLOCKED_EMAIL_DOMAIN_MESSAGE,
+  isBlockedEmailDomain,
+  normalizeSignupErrorMessage,
+} from './blocked-email-domains';
 
 // Lazy initialization of Cognito client to avoid build-time errors
 let cognitoClient: CognitoIdentityProviderClient | null = null;
@@ -85,9 +90,14 @@ export class CognitoDirectAuth {
   }
 
   /**
-   * Sign up with email and password
+   * Sign up with email and password.
+   * Client-side domain check for UX; Cognito PreSignUp Lambda enforces the blocklist.
    */
   static async signUp(email: string, password: string): Promise<void> {
+    if (isBlockedEmailDomain(email)) {
+      throw new Error(BLOCKED_EMAIL_DOMAIN_MESSAGE);
+    }
+
     const command = new SignUpCommand({
       ClientId: cognitoConfig.userPoolClientId,
       Username: email,
@@ -100,7 +110,18 @@ export class CognitoDirectAuth {
       ],
     });
 
-    await getCognitoClient().send(command);
+    try {
+      await getCognitoClient().send(command);
+    } catch (err) {
+      const raw =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' && err && 'message' in err
+            ? String((err as { message?: unknown }).message)
+            : 'Failed to create account';
+      const cleaned = normalizeSignupErrorMessage(raw);
+      throw new Error(cleaned);
+    }
   }
 
   /**

@@ -1,0 +1,15 @@
+---
+description: Marketplace-APP Amplify branching — feat→dev→main only; agent merges to dev, waits on main
+alwaysApply: true
+---
+
+# Morpheus-Marketplace-APP — Amplify two-branch flow
+
+This repo is **strategy C** in `~/.cursor/rules/git-and-github-workflow.mdc`.
+
+- Long-lived branches: **`dev`** and **`main` only** (no `test`).
+- Both deploy via **AWS Amplify**.
+- Path: **`feat|fix|…` → `dev` → `main`**.
+- Agent may open and **merge PRs into `dev`** when ready.
+- Agent may open **`dev` → `main`**, then **WAIT** — never merge to `main` without explicit user approval.
+- Branch topic work from `origin/dev`; never push directly to `dev` / `main`.
