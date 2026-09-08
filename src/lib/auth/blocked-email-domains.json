@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated": "2026-08-05",
-  "description": "UX mirror of Morpheus-Infra/environments/00-foundation/blocked_email_domains.json. Cognito PreSignUp Lambda is the enforcement source of truth \u2014 keep this file in sync when updating domains.",
+  "updated": "2026-09-08",
+  "description": "UX mirror of Morpheus-Infra/environments/00-foundation/blocked_email_domains.json. Cognito PreSignUp Lambda is the enforcement source of truth — keep this file in sync when updating domains. Each entry also covers its subdomains, so \"mailosaur.net\" blocks \"yi4owfot.mailosaur.net\".",
   "message": "This email domain is not permitted for new accounts. Please sign up with a different email address.",
   "domains": [
     "10minutemail.com",
@@ -14,6 +14,8 @@
     "discardmail.com",
     "dollicons.com",
     "emailondeck.com",
+    "emalupe.com",
+    "exelica.com",
     "ey-hungry.top",
     "fakeinbox.com",
     "getnada.com",
@@ -29,6 +31,7 @@
     "maildrop.cc",
     "mailinator.com",
     "mailnesia.com",
+    "mailosaur.net",
     "mailsa.biz.id",
     "mfoos.com",
     "mohmal.com",
