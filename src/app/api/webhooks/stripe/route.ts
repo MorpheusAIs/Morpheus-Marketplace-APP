@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27.acacia' as any,
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+function getStripeClient(): Stripe | null {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  return secretKey
+    ? new Stripe(secretKey, { apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion })
+    : null;
+}
 
 async function creditUserAccount(userId: string, amount: string, transactionId: string) {
   const adminSecret = process.env.ADMIN_API_SECRET;
@@ -14,6 +15,8 @@ async function creditUserAccount(userId: string, amount: string, transactionId: 
   if (!adminSecret || !apiBaseUrl) {
     throw new Error('Missing configuration: ADMIN_API_SECRET or NEXT_PUBLIC_API_BASE_URL');
   }
+
+  console.log('[Stripe Webhook] Crediting account', { userId, amount });
 
   const response = await fetch(`${apiBaseUrl}/api/v1/billing/credits/adjust`, {
     method: 'POST',
@@ -29,21 +32,29 @@ async function creditUserAccount(userId: string, amount: string, transactionId: 
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Failed to credit account: ${response.status} ${errorText}`);
-    throw new Error(`Backend API returned ${response.status}`);
+    const status = response.status;
+    console.error('[Stripe Webhook] Backend credit failed', { status, userId });
+    throw new Error(`Backend API returned ${status}`);
   }
 
   return response.json();
 }
 
 export async function POST(request: NextRequest) {
+  const stripe = getStripeClient();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!stripe || !webhookSecret) {
+    console.error('[Stripe Webhook] Stripe configuration is missing');
+    return NextResponse.json({ error: 'Payment service unavailable' }, { status: 503 });
+  }
+
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
-  if (!signature || !webhookSecret) {
+  if (!signature) {
+    console.warn('[Stripe Webhook] Missing signature or webhook secret');
     return NextResponse.json(
-      { error: 'Missing signature or webhook secret' },
+      { error: 'Bad request' },
       { status: 400 }
     );
   }
@@ -53,7 +64,7 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+    console.error('[Stripe Webhook] Signature verification failed');
     return NextResponse.json(
       { error: 'Invalid signature' },
       { status: 400 }
@@ -67,18 +78,19 @@ export async function POST(request: NextRequest) {
       const amount = session.metadata?.amount;
 
       if (userId && amount) {
-        console.log(`Processing Stripe payment for user ${userId}: $${amount}`);
+        console.log('[Stripe Webhook] Processing payment', { userId });
         await creditUserAccount(userId, amount, session.id);
       } else {
-        console.error('Missing userId or amount in session metadata');
+        console.error('[Stripe Webhook] Missing userId or amount in metadata');
       }
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    // F-14: Generic error with bounded server-side logging
+    console.error('[Stripe Webhook] Processing error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'Processing failed' },
       { status: 500 }
     );
   }

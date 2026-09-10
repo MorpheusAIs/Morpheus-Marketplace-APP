@@ -16,9 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, ArrowRight, RefreshCw } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
-import { 
+import {
   CognitoIdentityProviderClient,
-  ResendConfirmationCodeCommand 
+  ResendConfirmationCodeCommand
 } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoConfig } from "@/lib/auth/cognito-config";
 import { useNotification } from "@/lib/NotificationContext";
@@ -38,36 +38,44 @@ function getCognitoClient(): CognitoIdentityProviderClient {
 function ConfirmRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { confirmSignUp, verifyAge, isAuthenticated, isLoading: authLoading } = useCognitoAuth();
+  const {
+    confirmSignUp,
+    verifyAge,
+    isAuthenticated,
+    isLoading: authLoading,
+    getPendingSignupEmail,
+    getPendingSignupPassword,
+  } = useCognitoAuth();
   const { success, error: showError } = useNotification();
-  
+
   const [email, setEmail] = useState("");
   const [confirmationCode, setConfirmationCode] = useState("");
-  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
 
-  // Get email from query params or sessionStorage
+  // Get email from query params or context/sessionStorage
   useEffect(() => {
     const emailFromQuery = searchParams.get("email");
-    const emailFromStorage = typeof window !== 'undefined' 
-      ? sessionStorage.getItem('pending_signup_email') 
-      : null;
-    const passwordFromStorage = typeof window !== 'undefined'
-      ? sessionStorage.getItem('pending_signup_password')
-      : null;
-    
+
     if (emailFromQuery) {
       setEmail(emailFromQuery);
-    } else if (emailFromStorage) {
-      setEmail(emailFromStorage);
+    } else {
+      // Try to get from context first (module memory)
+      const emailFromContext = getPendingSignupEmail();
+      if (emailFromContext) {
+        setEmail(emailFromContext);
+      } else {
+        // Fallback to sessionStorage for backward compatibility
+        const emailFromStorage = typeof window !== 'undefined'
+          ? sessionStorage.getItem('pending_signup_email')
+          : null;
+        if (emailFromStorage) {
+          setEmail(emailFromStorage);
+        }
+      }
     }
-    
-    if (passwordFromStorage) {
-      setPassword(passwordFromStorage);
-    }
-  }, [searchParams]);
+  }, [searchParams, getPendingSignupEmail]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -92,18 +100,17 @@ function ConfirmRegistrationContent() {
 
     setIsSubmitting(true);
     try {
-      // Get password from sessionStorage if not already set
-      const passwordToUse = password || (typeof window !== 'undefined' 
-        ? sessionStorage.getItem('pending_signup_password') || ''
-        : '');
-      
-      if (!passwordToUse) {
-        setError("Password not found. Please sign up again.");
+      // Check if password is available in context (module memory)
+      const passwordFromContext = getPendingSignupPassword();
+
+      if (!passwordFromContext) {
+        setError("Signup session expired. Please sign up again.");
         router.push("/signup");
         return;
       }
 
-      await confirmSignUp(email, confirmationCode, passwordToUse);
+      // confirmSignUp now handles getting the password from context internally
+      await confirmSignUp(email, confirmationCode);
 
       // If the user checked the age consent box during signup, verify it
       // via the API now that they are authenticated, so they don't hit the gate.
@@ -230,7 +237,7 @@ function ConfirmRegistrationContent() {
             </form>
           </CardContent>
           <CardFooter className="text-center justify-center text-sm text-muted-foreground">
-            Didn't receive the code?{" "}
+            Didn&apos;t receive the code?{" "}
             <Link href="/signup" className="text-primary hover:underline ml-1">
               Sign up again
             </Link>
@@ -255,4 +262,3 @@ export default function ConfirmRegistrationPage() {
     </Suspense>
   );
 }
-

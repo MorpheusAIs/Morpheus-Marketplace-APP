@@ -114,11 +114,7 @@ export async function POST(request: NextRequest) {
       failure_redirect_url: `${origin}/billing?payment=cancelled`,
     };
 
-    console.log('[Payment Link] Creating payment link:', {
-      origin,
-      amount,
-      currency,
-    });
+    console.log('[Payment Link] Creating payment link');
 
     const response = await fetch(
       `${config.apiBaseUrl}/api/v1/billing/coinbase/payment-links`,
@@ -135,21 +131,17 @@ export async function POST(request: NextRequest) {
     try {
       linkData = JSON.parse(responseText);
     } catch {
-      console.error('[Payment Link] Backend returned non-JSON:', responseText.substring(0, 200));
+      console.error('[Payment Link] Backend returned non-JSON');
       return NextResponse.json(
-        { error: 'Payment service returned invalid response' },
+        { error: 'Service error' },
         { status: 502 }
       );
     }
 
     if (!response.ok) {
-      console.error('[Payment Link] Backend API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: linkData,
-      });
+      console.error('[Payment Link] Backend API error', { status: response.status });
       return NextResponse.json(
-        { error: 'Failed to create payment link', details: linkData },
+        { error: 'Request failed' },
         { status: response.status }
       );
     }
@@ -167,9 +159,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Payment Link] Error creating payment link:', error);
+    console.error('[Payment Link] Error creating payment link:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal error' },
       { status: 500 }
     );
   }
@@ -180,28 +172,41 @@ export async function POST(request: NextRequest) {
  *
  * Fetches the status of a payment link via the backend admin API.
  * Used by the frontend to poll for payment completion.
+ *
+ * F-06: Requires bearer token authentication and strips metadata from response.
  */
 export async function GET(request: NextRequest) {
   try {
+    // F-06: Require bearer token for GET requests
+    const bearerToken = extractBearerToken(request);
+    if (!bearerToken) {
+      console.warn('[Payment Link] GET attempted without bearer token');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const paymentLinkId = searchParams.get('id');
 
     if (!paymentLinkId) {
       return NextResponse.json(
-        { error: 'Missing id parameter' },
+        { error: 'Bad request' },
         { status: 400 }
       );
     }
 
     const config = getBackendConfig();
     if (!config) {
+      console.error('[Payment Link] Backend config not available');
       return NextResponse.json(
-        { error: 'Payment service not configured' },
+        { error: 'Service unavailable' },
         { status: 500 }
       );
     }
 
-    const bearerToken = extractBearerToken(request);
+    console.log('[Payment Link] Fetching status', { paymentLinkId });
 
     const response = await fetch(
       `${config.apiBaseUrl}/api/v1/billing/coinbase/payment-links/${paymentLinkId}`,
@@ -212,14 +217,28 @@ export async function GET(request: NextRequest) {
     );
 
     if (!response.ok) {
+      // F-14: Generic client errors, bounded server diagnostics
+      console.error('[Payment Link] Backend GET failed', {
+        status: response.status,
+        paymentLinkId,
+      });
+
+      if (response.status >= 400 && response.status < 500) {
+        return NextResponse.json(
+          { error: 'Request failed' },
+          { status: response.status }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Failed to fetch payment link status' },
-        { status: response.status }
+        { error: 'Service error' },
+        { status: 502 }
       );
     }
 
     const linkData: BackendPaymentLinkResponse = await response.json();
 
+    // F-06: Strip metadata from response
     return NextResponse.json({
       success: true,
       payment_link: {
@@ -229,13 +248,14 @@ export async function GET(request: NextRequest) {
         amount: linkData.amount,
         currency: linkData.currency,
         expires_at: linkData.expiresAt,
-        metadata: linkData.metadata,
+        // metadata intentionally omitted
       },
     });
   } catch (error) {
-    console.error('[Payment Link] Error fetching payment link status:', error);
+    // F-14: Generic error with bounded server-side logging
+    console.error('[Payment Link] GET error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal error' },
       { status: 500 }
     );
   }

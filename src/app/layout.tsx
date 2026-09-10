@@ -10,7 +10,7 @@ import { UmamiInteractionTracker } from '@/components/umami-interaction-tracker'
 import { Toaster } from 'sonner';
 import { BuildVersion } from '@/components/BuildVersion';
 import { CoinbaseNotificationListener } from '@/components/CoinbaseNotificationListener';
-import { getRegionInfo } from '@/lib/utils/region';
+import { getRegionInfo, safeJSONStringify } from '@/lib/utils/region';
 import "./globals.css";
 
 const interTight = Inter_Tight({
@@ -54,7 +54,9 @@ export default async function RootLayout({
   // Region-aware consent state is exposed on `window.MorpheusConsent` for the
   // Umami session-replay script. GA / GTM tags were removed in this branch.
   const { consentMode, country, region } = await getRegionInfo();
-  const consentBootstrap = `window.MorpheusConsent=${JSON.stringify({
+
+  // Use safe JSON serialization to prevent XSS via geo header injection
+  const consentBootstrap = `window.MorpheusConsent=${safeJSONStringify({
     mode: consentMode,
     country,
     region,
@@ -73,15 +75,8 @@ export default async function RootLayout({
           data-website-id="9ee22931-b645-4df8-853c-5eba51bfa9e4"
           strategy="afterInteractive"
         />
-        <Script
-          id="umami-session-replay"
-          src="https://umami-production-5f98.up.railway.app/recorder.js"
-          data-website-id="9ee22931-b645-4df8-853c-5eba51bfa9e4"
-          data-sample-rate="0.15"
-          data-mask-level="moderate"
-          data-max-duration="300000"
-          strategy="afterInteractive"
-        />
+        {/* Session replay removed: route-aware exclusion is not reliably supported in Next.js layouts.
+            Umami analytics script remains active for standard pageview and event tracking. */}
       </head>
       <body className={interTight.className}>
         <QueryProvider>

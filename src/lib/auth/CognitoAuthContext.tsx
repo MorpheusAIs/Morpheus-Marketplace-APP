@@ -36,7 +36,7 @@ interface CognitoAuthContextType {
   verifyAge: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ requiresConfirmation: true; email: string }>;
-  confirmSignUp: (email: string, confirmationCode: string, password: string) => Promise<void>;
+  confirmSignUp: (email: string, confirmationCode: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
   logout: () => void;
@@ -44,9 +44,16 @@ interface CognitoAuthContextType {
   refreshUserAttributes: () => Promise<void>;
   getValidToken: () => Promise<string | null>;
   socialLogin: (provider: 'Google' | 'GitHub' | 'X') => Promise<void>;
+  getPendingSignupEmail: () => string | null;
+  getPendingSignupPassword: () => string | null;
 }
 
 const CognitoAuthContext = createContext<CognitoAuthContextType | undefined>(undefined);
+
+// Module-level in-memory storage for pending signup credentials
+// Never stored in web storage (localStorage/sessionStorage)
+let pendingSignupEmail: string | null = null;
+let pendingSignupPassword: string | null = null;
 
 export function CognitoAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CognitoUser | null>(null);
@@ -57,11 +64,19 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   const [isLoading, setIsLoading] = useState(true);
   // null = not yet checked, true/false = result from /auth/me
   const [ageVerified, setAgeVerified] = useState<boolean | null>(null);
-  
+
   const router = useRouter();
 
   // Access the global notification system
   const { success, error, warning, info } = useNotification();
+
+  // Clear pending signup credentials on unmount
+  useEffect(() => {
+    return () => {
+      pendingSignupEmail = null;
+      pendingSignupPassword = null;
+    };
+  }, []);
 
   // Check for stored tokens and initialize auth state
   useEffect(() => {
@@ -140,21 +155,21 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
 
   const initializeAuth = async () => {
     setIsLoading(true);
-    
+
     try {
       // Try to get a valid access token (will refresh if needed)
       const validAccessToken = await CognitoDirectAuth.getValidAccessToken();
-      
+
       if (validAccessToken) {
         const tokens = CognitoDirectAuth.getStoredTokens();
         if (tokens) {
           setAccessToken(validAccessToken);
           setIdToken(tokens.idToken);
-          
+
           // Parse user info from ID token
           const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
           setUser(userInfo);
-          
+
           // Fetch API keys and age-verification status in parallel
           await Promise.all([
             fetchApiKeys(validAccessToken),
@@ -243,11 +258,11 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       // Check if we already have a valid API key selected
       const storedApiKey = sessionStorage.getItem('verified_api_key');
       const storedTimestamp = sessionStorage.getItem('verified_api_key_timestamp');
-      
+
       if (storedApiKey && storedTimestamp) {
         const keyAge = Date.now() - parseInt(storedTimestamp);
         const twentyFourHours = 24 * 60 * 60 * 1000;
-        
+
         // If we have a valid stored key, don't auto-select
         if (keyAge < twentyFourHours) {
           return;
@@ -269,12 +284,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         if (!decryptedData) {
           throw new Error('Failed to parse response or response exceeds maximum depth');
         }
-        
+
         // Check if the response contains an error (even with 200 OK status)
         if (decryptedData.error || decryptedData.error_code) {
           console.warn('⚠️ Default API key auto-decryption failed:', decryptedData.error_code || decryptedData.error);
           console.log('User will need to manually select and verify their API key in the Admin page');
-          
+
           // Show user-friendly notification using the global notification system
           warning(
             'API Key Verification Required',
@@ -285,19 +300,19 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
               duration: 10000,
             }
           );
-          
+
           // Don't store anything - let the user manually select/verify
           // This prevents the redirect loop where chat/test pages keep sending them back to admin
           return;
         }
-        
+
         if (decryptedData && decryptedData.full_key) {
           // Store the decrypted key immediately for seamless Test access
           sessionStorage.setItem('verified_api_key', decryptedData.full_key);
           sessionStorage.setItem('verified_api_key_prefix', decryptedData.key_prefix);
           sessionStorage.setItem('verified_api_key_timestamp', Date.now().toString());
           localStorage.setItem('selected_api_key_prefix', decryptedData.key_prefix);
-          
+
           // Set the default key metadata
           setDefaultApiKey({
             id: decryptedData.id,
@@ -307,15 +322,15 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
             is_active: true,
             is_default: decryptedData.is_default
           });
-          
+
           console.log('🔐 Auto-selected and decrypted default API key:', decryptedData.key_prefix);
-          
+
           // Show success notification using the global notification system
           success(
             'API Key Ready',
             `Your default API key (${decryptedData.key_prefix}...) has been automatically verified. You can now use Test!`
           );
-          
+
           return;
         }
       }
@@ -323,14 +338,14 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       // If we reach here, decryption failed or no default key exists
       // Fetch the default key metadata (without full key) just to show in UI
       const defaultKeyResponse = await apiGet<ApiKey>(API_URLS.defaultKey(), token);
-      
+
       if (defaultKeyResponse.data) {
         const defaultKey = defaultKeyResponse.data;
         setDefaultApiKey(defaultKey);
-        
+
         console.log(`ℹ️ Default API key found but not auto-decrypted: ${defaultKey.key_prefix}... (${defaultKey.name})`);
         console.log('User can manually verify it by clicking "Select" in the Admin page');
-        
+
         // Show informational notification using the global notification system
         info(
           'API Key Available',
@@ -341,14 +356,14 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
             duration: 8000,
           }
         );
-        
+
         // IMPORTANT: Do NOT store the prefix in localStorage here
         // This prevents the redirect loop where chat/test pages detect an unverified key
         // and keep redirecting back to admin
       } else {
         // No API keys found - this is a first-time user
         console.log('No API keys found - user needs to create their first API key');
-        
+
         // Show welcome notification for first-time users using the global notification system
         info(
           'Welcome!',
@@ -362,7 +377,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       }
     } catch (err) {
       console.error('Error auto-selecting first API key:', err);
-      
+
       // Show error notification using the global notification system
       error(
         'API Key Setup Error',
@@ -379,38 +394,38 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      
+
       // Clear any existing tokens before signing in (important after password reset)
       // This prevents using stale refresh tokens that may have been invalidated
       CognitoDirectAuth.clearTokens();
-      
+
       // Sign in with Cognito
       const tokens = await CognitoDirectAuth.signIn(email, password);
-      
+
       // Store tokens
       CognitoDirectAuth.storeTokens(tokens, email);
-      
+
       // Set tokens in state
       setAccessToken(tokens.accessToken);
       setIdToken(tokens.idToken);
-      
+
       // Parse user info
       const userInfo = CognitoDirectAuth.parseIdToken(tokens.idToken);
       setUser(userInfo);
-      
+
       // Fetch API keys and age-verification status in parallel
       await Promise.all([
         fetchApiKeys(tokens.accessToken),
         fetchUserProfile(tokens.accessToken),
       ]);
-      
+
     } catch (err) {
       // Check error type - AWS SDK errors have a 'name' property
-      const errorName = err && typeof err === 'object' && 'name' in err 
-        ? (err as { name?: string }).name 
+      const errorName = err && typeof err === 'object' && 'name' in err
+        ? (err as { name?: string }).name
         : '';
       const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
-      
+
       // Don't show generic error notifications for specific error types
       // These will be handled in the UI with custom messages
       if (errorName === 'NotAuthorizedException') {
@@ -422,7 +437,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
         console.log('User not found:', errorMessage);
       } else {
         // Show error notification for other unexpected errors
-        console.error('Error signing in:', err);
+        console.error('Error signing in:', errorName || 'UnknownError');
         error('Sign In Failed', errorMessage);
       }
       throw err;
@@ -434,16 +449,19 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   const signUp = async (email: string, password: string): Promise<{ requiresConfirmation: true; email: string }> => {
     try {
       setIsLoading(true);
-      
+
       // Sign up with Cognito
       await CognitoDirectAuth.signUp(email, password);
-      
-      // Store email and password temporarily for confirmation
+
+      // Store email and password in module memory (never web storage)
+      pendingSignupEmail = email;
+      pendingSignupPassword = password;
+
+      // Also store email in sessionStorage for UX (so it can be read across navigation)
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('pending_signup_email', email);
-        sessionStorage.setItem('pending_signup_password', password);
       }
-      
+
       // Return email for confirmation page
       return { requiresConfirmation: true as const, email };
     } catch (err) {
@@ -456,25 +474,38 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const confirmSignUp = async (email: string, confirmationCode: string, password: string) => {
+  const confirmSignUp = async (email: string, confirmationCode: string) => {
     try {
       setIsLoading(true);
-      
+
+      // Get password from module memory
+      const password = pendingSignupPassword;
+      if (!password) {
+        throw new Error('Signup session expired. Please sign up again.');
+      }
+
       // Confirm signup with Cognito
       await CognitoDirectAuth.confirmSignUp(email, confirmationCode);
-      
-      // Clear pending signup data
+
+      // Clear pending signup data from all locations
+      pendingSignupEmail = null;
+      pendingSignupPassword = null;
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('pending_signup_email');
-        sessionStorage.removeItem('pending_signup_password');
       }
-      
+
       // Automatically sign in after confirmation
       await signIn(email, password);
-      
+
       success('Account Confirmed', 'Your account has been confirmed and you are now signed in!');
     } catch (err) {
-      console.error('Error confirming signup:', err);
+      // Do not retain the password after any failed confirmation attempt.
+      pendingSignupEmail = null;
+      pendingSignupPassword = null;
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('pending_signup_email');
+      }
+      console.error('Error confirming signup:', err instanceof Error ? err.message : 'Unknown error');
       const errorMessage = err instanceof Error ? err.message : 'Failed to confirm account';
       error('Confirmation Failed', errorMessage);
       throw err;
@@ -501,11 +532,18 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     setDefaultApiKey(null);
     setAgeVerified(null);
 
+    // Clear pending signup credentials
+    pendingSignupEmail = null;
+    pendingSignupPassword = null;
+
     // Clear API key storage
     sessionStorage.removeItem('verified_api_key');
     sessionStorage.removeItem('verified_api_key_prefix');
     sessionStorage.removeItem('verified_api_key_timestamp');
     localStorage.removeItem('selected_api_key_prefix');
+
+    // Clear pending signup email from sessionStorage
+    sessionStorage.removeItem('pending_signup_email');
 
     // Clear Cognito tokens
     CognitoDirectAuth.clearTokens();
@@ -546,7 +584,7 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       const { GetUserCommand } = await import('@aws-sdk/client-cognito-identity-provider');
       const { CognitoIdentityProviderClient } = await import('@aws-sdk/client-cognito-identity-provider');
       const { cognitoConfig } = await import('@/lib/auth/cognito-config');
-      
+
       // Create Cognito client
       const cognitoClient = new CognitoIdentityProviderClient({
         region: cognitoConfig.region,
@@ -556,14 +594,14 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
       const getUserCommand = new GetUserCommand({
         AccessToken: validToken,
       });
-      
+
       const userResponse = await cognitoClient.send(getUserCommand);
-      
+
       // Extract user attributes
       const attributes = userResponse.UserAttributes || [];
       const emailAttribute = attributes.find(attr => attr.Name === 'email');
       const emailVerifiedAttribute = attributes.find(attr => attr.Name === 'email_verified');
-      
+
       // Update user object with fresh attributes
       if (user) {
         const updatedUser: CognitoUser = {
@@ -622,12 +660,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
   const confirmForgotPassword = async (email: string, confirmationCode: string, newPassword: string) => {
     try {
       setIsLoading(true);
-      
+
       // Clear any existing tokens before confirming password reset
       // Old tokens become invalid after password reset, so we should clear them
       CognitoDirectAuth.clearTokens();
       logout(); // Also clear auth state
-      
+
       await CognitoDirectAuth.confirmForgotPassword(email, confirmationCode, newPassword);
       success('Password Reset', 'Your password has been reset successfully. You can now sign in with your new password.');
     } catch (err) {
@@ -638,6 +676,14 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getPendingSignupEmail = () => {
+    return pendingSignupEmail;
+  };
+
+  const getPendingSignupPassword = () => {
+    return pendingSignupPassword;
   };
 
   const value = {
@@ -660,6 +706,8 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     refreshUserAttributes,
     getValidToken,
     socialLogin,
+    getPendingSignupEmail,
+    getPendingSignupPassword,
   };
 
   return (
