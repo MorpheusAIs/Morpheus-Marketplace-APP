@@ -14,31 +14,41 @@ import {
 import { useBillingBalance, useUpdateOverageSettings } from '@/lib/hooks/use-billing';
 import { toast } from 'sonner';
 
+/** Development/debug mode flag for verbose logging */
+const IS_DEBUG_MODE = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_API === 'true';
 export function OveragesToggle() {
   const { data: balance, isLoading, error } = useBillingBalance();
   const updateSettings = useUpdateOverageSettings();
 
   const handleToggle = async (checked: boolean) => {
     try {
+      if (IS_DEBUG_MODE) {
       console.log('[OveragesToggle] Attempting to update allow_overage to:', checked);
+      }
+      if (IS_DEBUG_MODE) {
       console.log('[OveragesToggle] Current balance/settings:', balance);
-      
+      }
+
       const result = await updateSettings.mutateAsync({ allow_overage: checked });
-      
+
+      if (IS_DEBUG_MODE) {
       console.log('[OveragesToggle] Update successful:', result);
-      
+      }
+
       toast.success(
-        result.message || (checked 
+        result.message || (checked
           ? 'Overages enabled - Credit Balance will be used when Daily Allowance is exhausted'
           : 'Overages disabled - Only Daily Staking Allowance will be used')
       );
     } catch (error) {
       console.error('[OveragesToggle] Failed to update allow_overage:', error);
+      if (IS_DEBUG_MODE) {
       console.error('[OveragesToggle] Error details:', {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
-      
+      }
+
       toast.error(
         `Failed to update setting: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -90,8 +100,8 @@ export function OveragesToggle() {
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-xs">
                 <p>
-                  When enabled, if your Daily Staking Allowance is exhausted, 
-                  charges will automatically be deducted from your Credit Balance 
+                  When enabled, if your Daily Staking Allowance is exhausted,
+                  charges will automatically be deducted from your Credit Balance
                   to prevent service interruption.
                 </p>
               </TooltipContent>
@@ -109,7 +119,7 @@ export function OveragesToggle() {
               {isEnabled ? 'Enabled' : 'Disabled'}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {isEnabled 
+              {isEnabled
                 ? 'Credit Balance will be used as fallback'
                 : 'Only Daily Staking Allowance will be used'
               }

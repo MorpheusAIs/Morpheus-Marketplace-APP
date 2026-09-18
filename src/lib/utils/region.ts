@@ -33,6 +33,17 @@ const US_OPT_OUT_STATES = new Set<string>([
   'DE', 'NJ', 'IN', 'IA', 'NH', 'KY', 'MD', 'MN',
 ]);
 
+// Strict alphanumeric validation for geo header values to prevent injection
+function sanitizeGeoValue(raw: string | null): string | null {
+  if (!raw) return null;
+  // Only allow uppercase letters and numbers (country codes are 2-letter, regions are 2-3 chars)
+  const cleaned = raw.trim().toUpperCase();
+  if (!/^[A-Z0-9]{1,10}$/.test(cleaned)) {
+    return null; // Reject suspicious values
+  }
+  return cleaned;
+}
+
 function readGeoHeaders(h: Headers): { country: string | null; region: string | null } {
   // AWS CloudFront / Amplify Hosting
   let country = h.get('cloudfront-viewer-country');
@@ -45,9 +56,19 @@ function readGeoHeaders(h: Headers): { country: string | null; region: string | 
   if (!region) region = h.get('cf-region-code');
 
   return {
-    country: country ? country.toUpperCase() : null,
-    region: region ? region.toUpperCase() : null,
+    country: sanitizeGeoValue(country),
+    region: sanitizeGeoValue(region),
   };
+}
+
+// Safe JSON serialization that escapes dangerous characters for inline script injection
+export function safeJSONStringify(obj: unknown): string {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 export async function getRegionInfo(): Promise<RegionInfo> {

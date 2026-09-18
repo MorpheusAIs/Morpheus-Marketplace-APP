@@ -335,7 +335,6 @@ export default function TestPage() {
         setFilteredModels(fallbackModels);
       }
     } catch (error) {
-      console.error("Error fetching models:", error);
       const fallbackModels = [{ id: "default", ModelType: "LLM" }];
       setModels(fallbackModels);
       setFilteredModels(fallbackModels);
@@ -746,13 +745,6 @@ export default function TestPage() {
           ? backendModelMatch[1]
           : null;
 
-        console.error("[Model Error] Backend inconsistency detected:", {
-          requestedModel: selectedModel,
-          backendAttemptedModel: backendModelName,
-          errorMessage,
-          fullError: data,
-          note: "This model was returned from /v1/models but rejected by /v1/chat/completions",
-        });
 
         const errMsg =
           backendModelName && backendModelName !== selectedModel

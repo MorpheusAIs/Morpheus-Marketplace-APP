@@ -26,7 +26,7 @@ interface NotificationResponse {
 }
 
 export function useCoinbaseNotifications() {
-  const { user } = useCognitoAuth();
+  const { user, getValidToken } = useCognitoAuth();
   const queryClient = useQueryClient();
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownNotificationRef = useRef<Set<string>>(new Set());
@@ -35,9 +35,21 @@ export function useCoinbaseNotifications() {
   const pollForNotifications = useCallback(async () => {
     if (!user?.sub) return;
 
+    // Get a valid token before making the request
+    const token = await getValidToken();
+    if (!token) {
+      // No valid token available, skip this polling cycle
+      return;
+    }
+
     try {
       const response = await fetch(
-        `/api/webhooks/coinbase-notification?userId=${encodeURIComponent(user.sub)}`
+        `/api/webhooks/coinbase-notification`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
       );
 
       if (!response.ok) {
@@ -138,7 +150,7 @@ export function useCoinbaseNotifications() {
     } catch (error) {
       console.error('[Coinbase Notifications] Error polling for notifications:', error);
     }
-  }, [user?.sub, queryClient]);
+  }, [user?.sub, getValidToken, queryClient]);
 
   useEffect(() => {
     if (!user?.sub) {

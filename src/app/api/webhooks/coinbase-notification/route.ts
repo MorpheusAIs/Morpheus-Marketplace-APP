@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { verifyCognitoToken, extractBearerToken } from '@/lib/auth/cognito-jwt-verify';
 
 // In-memory store for pending notifications
 // In production, this should be Redis or a database
@@ -53,14 +54,19 @@ function verifyPaymentLinkWebhook(
     const signature = params['v1'];
 
     if (!timestamp || !signature) {
-      console.error('[Payment Link Webhook] Missing timestamp or signature in header');
+      console.error('[Coinbase Webhook] Missing timestamp or signature in header');
       return false;
     }
 
-    // Replay protection
-    const eventTime = parseInt(timestamp, 10) * 1000;
-    if (Date.now() - eventTime > REPLAY_WINDOW_MS) {
-      console.error('[Payment Link Webhook] Event too old, possible replay attack');
+    // Replay protection: reject stale and implausibly future-dated events.
+    const eventTimestamp = Number(timestamp);
+    if (!Number.isInteger(eventTimestamp) || eventTimestamp <= 0) {
+      console.error('[Coinbase Webhook] Invalid timestamp');
+      return false;
+    }
+    const eventTime = eventTimestamp * 1000;
+    if (Math.abs(Date.now() - eventTime) > REPLAY_WINDOW_MS) {
+      console.error('[Coinbase Webhook] Event outside replay window');
       return false;
     }
 
@@ -75,7 +81,7 @@ function verifyPaymentLinkWebhook(
       Buffer.from(expectedSignature)
     );
   } catch (error) {
-    console.error('[Payment Link Webhook] Signature verification error:', error);
+    console.error('[Coinbase Webhook] Signature verification error:', error);
     return false;
   }
 }
@@ -87,25 +93,37 @@ function verifyPaymentLinkWebhook(
  * Stores notifications temporarily for frontend polling to display toasts.
  */
 export async function POST(request: NextRequest) {
+  // F-04: Fail-closed - check secret before parsing body
+  const webhookSecret = process.env.COINBASE_PAYMENT_LINK_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[Coinbase Webhook] COINBASE_PAYMENT_LINK_WEBHOOK_SECRET not configured');
+    return NextResponse.json(
+      { error: 'Service unavailable' },
+      { status: 500 }
+    );
+  }
+
   try {
     const signatureHeader = request.headers.get('x-hook0-signature');
+    if (!signatureHeader) {
+      console.warn('[Coinbase Webhook] Missing signature header');
+      return NextResponse.json(
+        { error: 'Bad request' },
+        { status: 400 }
+      );
+    }
 
     // Read the raw body
     const rawBody = await request.text();
 
     // Verify webhook signature
-    const webhookSecret = process.env.COINBASE_PAYMENT_LINK_WEBHOOK_SECRET;
-    if (webhookSecret && signatureHeader) {
-      const isValid = verifyPaymentLinkWebhook(rawBody, signatureHeader, webhookSecret);
-      if (!isValid) {
-        console.error('[Payment Link Webhook] Invalid signature');
-        return NextResponse.json(
-          { error: 'Invalid signature' },
-          { status: 401 }
-        );
-      }
-    } else if (!webhookSecret) {
-      console.warn('[Payment Link Webhook] No webhook secret configured - accepting unverified webhook');
+    const isValid = verifyPaymentLinkWebhook(rawBody, signatureHeader, webhookSecret);
+    if (!isValid) {
+      console.error('[Coinbase Webhook] Invalid signature');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     // Parse the webhook payload
@@ -115,7 +133,7 @@ export async function POST(request: NextRequest) {
     const eventType: string = body.event_type || body.type;
     const eventData = body.data || body.event?.data;
 
-    console.log('[Payment Link Webhook] Received event:', {
+    console.log('[Coinbase Webhook] Event received', {
       type: eventType,
       paymentLinkId: eventData?.id,
     });
@@ -129,14 +147,14 @@ export async function POST(request: NextRequest) {
 
     const status = eventStatusMap[eventType];
     if (!status) {
-      console.log('[Payment Link Webhook] Ignoring event type:', eventType);
+      console.log('[Coinbase Webhook] Ignoring event type:', eventType);
       return NextResponse.json({ received: true });
     }
 
     // Extract user ID from metadata
     const userId = eventData?.metadata?.user_id || eventData?.metadata?.userId;
     if (!userId || userId === 'anonymous') {
-      console.error('[Payment Link Webhook] Missing or invalid user_id in metadata');
+      console.error('[Coinbase Webhook] Missing or invalid user_id in metadata');
       return NextResponse.json({ received: true }); // Return success to prevent retries
     }
 
@@ -159,54 +177,73 @@ export async function POST(request: NextRequest) {
     userNotifications.push(notification);
     pendingNotifications.set(userId, userNotifications);
 
-    console.log('[Payment Link Webhook] Notification stored for user:', {
+    console.log('[Coinbase Webhook] Notification stored', {
       userId,
       paymentLinkId: notification.paymentLinkId,
-      amount: notification.amount,
-      currency: notification.currency,
       status: notification.status,
     });
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('[Payment Link Webhook] Error processing webhook:', error);
+    console.error('[Coinbase Webhook] Processing error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal error' },
       { status: 500 }
     );
   }
 }
-
 /**
- * GET /api/webhooks/coinbase-notification?userId=xxx
+ * GET /api/webhooks/coinbase-notification
  *
  * Poll for pending notifications for a user.
- * Returns all pending notifications and clears them.
+ * Requires Bearer token authentication with Cognito JWKS verification.
+ * Returns all pending notifications for the authenticated user and clears them.
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    // F-05: Extract and verify Bearer token using Cognito JWKS
+    const authHeader = request.headers.get('authorization');
+    const token = extractBearerToken(authHeader);
 
-    if (!userId) {
+    if (!token) {
+      console.error('[Coinbase Webhook GET] Missing authorization header');
       return NextResponse.json(
-        { error: 'Missing userId parameter' },
-        { status: 400 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    // Get and clear notifications for this user
+    // Verify token and extract user ID from 'sub' claim
+    let userId: string;
+    try {
+      const payload = await verifyCognitoToken(token);
+      if (!payload.sub) {
+        throw new Error('Token missing sub claim');
+      }
+      userId = payload.sub;
+      console.log('[Coinbase Webhook GET] Authenticated request for user (sub from token)');
+    } catch (error) {
+      console.error('[Coinbase Webhook GET] Token verification failed');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get and clear notifications for this authenticated user
     const notifications = pendingNotifications.get(userId) || [];
     pendingNotifications.delete(userId);
+
+    console.log(`[Coinbase Webhook GET] Returned ${notifications.length} notifications for authenticated user`);
 
     return NextResponse.json({
       notifications,
       count: notifications.length,
     });
   } catch (error) {
-    console.error('[Payment Link Webhook] Error fetching notifications:', error);
+    console.error('[Coinbase Webhook GET] Error:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Service error' },
       { status: 500 }
     );
   }
