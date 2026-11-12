@@ -28,6 +28,9 @@ This directory contains detailed markdown documentation for all screens and shar
 ### Testing Screen (`docs/screens/`)
 - **`api-test.md`** - API testing interface with cURL request generation
 
+### Video Screen (`docs/screens/`)
+- **`video.md`** - Video generation: prompt form, clip list with polling, playback and download
+
 ### Account Management Screens (`docs/screens/`)
 - **`account-settings.md`** - Main account settings screen with authentication and automation settings
 - **`change-email-modal.md`** - Modal for changing email address
