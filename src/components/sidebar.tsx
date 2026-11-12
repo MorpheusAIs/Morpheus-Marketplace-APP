@@ -19,6 +19,7 @@ import {
 import {
   Key,
   Play,
+  Clapperboard,
   Box,
   BarChart3,
   CreditCard,
@@ -73,6 +74,14 @@ export function Sidebar() {
       disabled: !hasDefaultApiKey,
       disabledReason:
         'A Default API key must be set and verified before using the "Playground". Go to API Keys to set your Default API Key.',
+    },
+    {
+      label: "Video",
+      icon: Clapperboard,
+      href: "/video",
+      disabled: !hasDefaultApiKey,
+      disabledReason:
+        'A Default API key must be set and verified before using "Video". Go to API Keys to set your Default API Key.',
     },
     {
       label: "Models",

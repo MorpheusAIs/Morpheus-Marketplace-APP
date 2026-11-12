@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://umami-production-5f98.up.railway.app https://accounts.google.com https://apis.google.com",
               "style-src 'self' 'unsafe-inline' https://accounts.google.com",
               "img-src 'self' data: https: blob:",
+              "media-src 'self' https:",
               "font-src 'self' data:",
               "connect-src 'self' https://umami-production-5f98.up.railway.app https://*.execute-api.us-east-1.amazonaws.com https://cognito-idp.us-east-1.amazonaws.com https://accounts.google.com wss:",
               "frame-src 'self' https://accounts.google.com",
