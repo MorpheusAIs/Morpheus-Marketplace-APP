@@ -1,11 +1,12 @@
 # Video Screen
 
 ## Overview
-A screen for generating short video clips from a text prompt through the gateway's `/api/v1/videos` API. Users pick a video model, write a prompt, choose the clip's length and format, and generate it. Clips render in the background; the screen lists them, refreshes the running ones, and plays or downloads the finished ones.
+A screen for generating short video clips from a text prompt through the gateway's `/api/v1/videos` API. Users pick a video model, write a prompt, choose the clip's length and format, and generate it. Clips render in the background; the screen lists them, refreshes the running ones, and plays or downloads the finished ones. An API card shows the calls the screen makes and code that reproduces the form, as the Playground does for chat.
 
 - **Route**: `/video` (`src/app/video/page.tsx`)
 - **Sidebar**: "Video" in the Build group, right after "Playground". Disabled, with a tooltip, until a Default API key is set.
 - **API client**: `src/lib/api/videos.ts`; types in `src/lib/types/videos.ts`.
+- **API card**: `src/components/video/api-panel.tsx` (`VideoApiPanel`, `useVideoApiHistory`).
 
 ## Component Structure
 
@@ -22,7 +23,11 @@ Shown when sessionStorage is missing `verified_api_key` or `verified_api_key_pre
 - **Subtitle**: `p`, `className: "text-muted-foreground"`
 
 ### Body
-- **Container**: `div`, `className: "grid gap-6 lg:grid-cols-3"`. One column on mobile, the form on the left and the clips on the right from `lg`.
+- **Container**: `div`, `className: "grid gap-6 lg:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)]"`, in the Playground's order: form, then videos, then API.
+  - Mobile: one column.
+  - `lg`: the form on the left; Your Videos on the right with the API card under it, in a `div` with `flex min-w-0 flex-col gap-6 lg:col-span-2 xl:contents`.
+  - `xl` and wider: three columns, form | videos | API. The wrapper turns into `display: contents`, so both cards become grid columns, and the videos column is the widest.
+  - Every card and the wrapper have `min-w-0`, so long code and URLs scroll inside their boxes instead of widening the page.
 
 #### Form Card (left, `lg:col-span-1`)
 - **Model**: `Select` with the VIDEO rows of `GET /models`, sorted by id; the first is selected. A model without a `video` object is marked "limits unavailable". With no VIDEO models: "No video models are available right now." When `/models` fails, its error shows with a Retry button.
@@ -35,7 +40,7 @@ Shown when sessionStorage is missing `verified_api_key` or `verified_api_key_pre
 
 When `/models` has no `video` object for a model, or leaves a field out, the form uses these defaults: 4–12 s (default 5), 480p and 720p, 16:9, 9:16 and 1:1, no sound, no first frame. The API's 400 stays the final word.
 
-#### Your Videos Card (right, `lg:col-span-2`)
+#### Your Videos Card (right; the middle column from `xl`)
 A Refresh button in the header re-reads the first page and merges it into the list. A list error (the first page failed, or polling hit a rejected key) shows as a destructive `Alert` above the items, and Refresh is its retry.
 
 One bordered item per clip:
@@ -48,6 +53,52 @@ One bordered item per clip:
 
 "Load more" appears while `has_more` is true.
 
+#### API Card (under Your Videos; the right column from `xl`)
+A `Card` titled "API" with two `Tabs`, Requests and Code. Both tabs stay mounted (`forceMount`), so open rows and the snippet language survive a switch.
+
+**Requests** lists the calls the screen made, newest first by the time each was sent (answers can arrive out of order):
+- `GET /models`;
+- `POST /videos`;
+- `GET /videos` (the first page, Load more, Refresh);
+- `GET /videos/{id}` (polls);
+- `GET /videos/{id}/content?variant=video&redirect=false` (Play and Download).
+
+The list lives in page state only. It holds at most 100 entries, drops the oldest first, and is gone on reload. A Clear button empties it. Nothing is written to localStorage or sessionStorage, sent to analytics or logged to the console.
+
+Polls run every 5 s per running clip, so a poll is listed only when it failed (no answer, a non-2xx answer or an unreadable body), or when the clip's `status` or `error` differs from the last answer seen for that clip (from the create, a list page or an earlier poll). After a failed poll, the next answer for that clip is listed too. A progress-only change is not listed. Polls carry an "auto" badge. A cancelled request is not listed.
+
+Each entry is a row button (`aria-expanded`):
+- **Collapsed**:
+  - first line: the method and the path relative to `/api/v1`, with its query;
+  - second line: the local time (HH:MM:SS), how long the call took in ms, and "auto" for a poll;
+  - on the right, the status badge: 2xx in the primary tone, 4xx amber, 5xx destructive, and "no response" (destructive) for a network or CORS failure.
+- **Expanded**:
+  - the full URL;
+  - the request headers;
+  - the request body as pretty JSON, if any;
+  - the response status and body: pretty JSON when it parses, the raw text otherwise, and "No response (network error or blocked by CORS)" when none came back.
+  - The request and response bodies each have a Copy button that copies what is shown.
+
+The newest `POST /videos` entry opens by itself; every other entry starts collapsed. There are no cost, token or other metric cells: video has no streaming or token usage, and the time shown is how long the call took to answer, not the render time.
+
+**Redaction.** `src/lib/api/videos.ts` masks every entry before the page sees it, so the history never holds the secrets:
+- `Authorization` shows as `Bearer sk-…` plus the key's last 4 characters.
+- `image_b64` shows as its `data:<type>;base64,` prefix, then `…` and its size, for example `(245 KB omitted)`.
+- In `/content` answers the clip's `url` shows as `https://<host>/… (signed link hidden)`: the link is a bearer URL, and anyone who has it can download the clip. If that answer is not JSON, every link in its text is hidden the same way.
+- Copy copies the masked text.
+- The row button carries a fixed `data-analytics-label`, so the click tracker never reads its path or ids.
+
+**Code** shows cURL, Python and Node.js snippets in the Playground's `CodeSnippetTab` (language switcher and Copy), built live from the form:
+- the fields: model, prompt, `duration_seconds`, `resolution`, `aspect_ratio`, `generate_audio` when the model has sound, and `image_b64` when it takes a first frame and one is picked;
+- the whole flow: create with `POST /videos`, poll `GET /videos/{id}` until `completed` or `failed`, then download `GET /videos/{id}/content` (a 307 to the clip) to `clip.mp4`.
+
+Per language:
+- **cURL**: create with `-d` and a JSON body; one poll with a `VIDEO_ID` placeholder; `curl -fL ... -o clip.mp4` for the download, where `-f` stops on an error status (such as 409 while the clip is not ready) instead of saving the error as `clip.mp4`.
+- **Python**: plain `requests`, not the OpenAI SDK, whose `videos` methods are marked deprecated with a Sora API shutdown warning. A `POST /videos` with a JSON body, then `GET /videos/{id}` in a `time.sleep(5)` loop, then `GET /videos/{id}/content?variant=video`, which `requests` follows through the redirect (dropping `Authorization` at the video host), written to `clip.mp4` with `open(..., "wb")`.
+- **Node.js**: plain `fetch` (Node 18+, an ES module). Create, a poll loop, then a `fetch` that follows the redirect and writes the file with `fs`.
+
+The snippets use the API base from `API_URLS` and, as on the Playground, the user's real key. A picked first frame shows as the placeholder `data:<its type>;base64,<your image>` with a comment, never its data. With no model selected, the tab says "Configure a request to generate code snippets."
+
 ## Flow
 1. **Load**: `GET /models` (public) for the model list, and `GET /videos?limit=20&order=desc` with the API key for the first page of clips.
 2. **Generate**: `POST /videos` with `{ model, prompt, duration_seconds, resolution, aspect_ratio, generate_audio?, image_b64? }`. On 200 the queued clip is put at the top of the list, the form keeps its values, and a toast says the video is queued and usually takes a few minutes. The request is never retried automatically: the gateway's CORS does not allow `Idempotency-Key`, so a second POST would be a second clip. The gateway queues and holds the clip before it answers, so when the answer is lost or unreadable (a network failure, an unreadable 200, or a 5xx without an error body) the screen re-reads the first page of `/videos` to show the clip, and the message asks the user to check Your videos before trying again.
@@ -58,7 +109,7 @@ One bordered item per clip:
    - The link is requested as soon as the pointer or focus reaches Play or Download, and kept until its `expires_at`. The click then usually finds it ready and acts inside the user's gesture: Safari blocks a new tab, and autoplay with sound, that come after an `await`. Each item runs one request at a time, shared by the hover and the click.
    - When Play is clicked on one item and then on another, only the last click opens its player, even if the first link arrives later.
 
-Every `/videos` call uses a raw `fetch` with `Authorization: Bearer <API key>`, not `apiRequest`, so a 401 from a stale key does not log the user out. The key and the clip's link are never logged or stored; the link lives only in the playing item's state. Play and Download are buttons, and the download anchor is never added to the document, so the analytics click tracker never sees the link.
+Every `/videos` call uses a raw `fetch` with `Authorization: Bearer <API key>`, not `apiRequest`, so a 401 from a stale key does not log the user out. The key and the clip's link are never logged or stored; the link lives only in the playing item's state, and the API card keeps only masked copies of both. Play and Download are buttons, and the download anchor is never added to the document, so the analytics click tracker never sees the link.
 
 ## Errors
 Shown inline above the Generate button and as a toast.

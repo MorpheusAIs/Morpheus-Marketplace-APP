@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { formatRelativeTime } from "@/components/api-keys/key-stats";
+import { useVideoApiHistory, VideoApiPanel } from "@/components/video/api-panel";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import {
@@ -398,6 +399,8 @@ export default function VideoPage() {
   const router = useRouter();
   const { success, error: showError } = useNotification();
   const { apiKeys, defaultApiKey } = useCognitoAuth();
+  // Subscribes before the effects below make their first calls
+  const apiHistory = useVideoApiHistory();
 
   /* API key state */
   const [apiKey, setApiKey] = useState("");
@@ -561,7 +564,7 @@ export default function VideoPage() {
       if (polling || running.length === 0) return;
       polling = true;
       const results = await Promise.allSettled(
-        running.map((v) => getVideo(apiKey, v.id, controller.signal))
+        running.map((v) => getVideo(apiKey, v.id, controller.signal, { poll: true }))
       );
       polling = false;
       if (controller.signal.aborted) return;
@@ -620,6 +623,18 @@ export default function VideoPage() {
   // A first frame still being read would be left out of the request
   const canGenerate =
     !submitting && !readingImage && !!selectedModel && prompt.trim() !== "" && !promptTooLong;
+  // The POST /videos body for the form as it stands: Generate sends it, the API card's code shows it
+  const createBody: CreateVideoRequest | null = selectedModel
+    ? {
+        model: selectedModel.id,
+        prompt: prompt.trim(),
+        duration_seconds: seconds,
+        resolution,
+        aspect_ratio: aspectRatio,
+        ...(choices.audio ? { generate_audio: generateAudio } : {}),
+        ...(choices.image && image ? { image_b64: image.dataUrl } : {}),
+      }
+    : null;
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -647,20 +662,11 @@ export default function VideoPage() {
 
   // No automatic retry: without an Idempotency-Key a second POST is a second clip
   const handleGenerate = async () => {
-    if (!canGenerate || !selectedModel) return;
+    if (!canGenerate || !createBody) return;
     setSubmitting(true);
     setSubmitError(null);
-    const body: CreateVideoRequest = {
-      model: selectedModel.id,
-      prompt: prompt.trim(),
-      duration_seconds: seconds,
-      resolution,
-      aspect_ratio: aspectRatio,
-      ...(choices.audio ? { generate_audio: generateAudio } : {}),
-      ...(choices.image && image ? { image_b64: image.dataUrl } : {}),
-    };
     try {
-      const video = await createVideo(apiKey, body);
+      const video = await createVideo(apiKey, createBody);
       setVideos((prev) => [video, ...prev.filter((v) => v.id !== video.id)]);
       success("Video Queued", "It usually takes a few minutes.");
     } catch (err) {
@@ -727,9 +733,10 @@ export default function VideoPage() {
           <p className="text-muted-foreground">Generate short clips from a text prompt</p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        {/* Form, videos, API: three columns from xl; below xl the API card sits under the videos */}
+        <div className="grid gap-6 lg:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)]">
           {/* Left column - form */}
-          <Card className="h-fit lg:col-span-1">
+          <Card className="h-fit min-w-0 lg:col-span-1">
             <CardHeader>
               <CardTitle>New video</CardTitle>
               <CardDescription>Describe the clip, choose its format and generate it.</CardDescription>
@@ -954,76 +961,88 @@ export default function VideoPage() {
             </CardContent>
           </Card>
 
-          {/* Right column - clips */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
-              <div className="space-y-1.5">
-                <CardTitle>Your videos</CardTitle>
-                <CardDescription>
-                  Ready clips can be played or downloaded until their link expires.
-                </CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0"
-                onClick={() => setListAttempt((n) => n + 1)}
-                disabled={loadingVideos}
-                data-analytics-action="refresh-videos"
-                data-analytics-label="Refresh videos"
-              >
-                <RefreshCw className={cn(loadingVideos && "animate-spin")} />
-                Refresh
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {videosError && (
-                <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{videosError}</AlertDescription>
-                </Alert>
-              )}
-              {loadingVideos && videos.length === 0 ? (
-                [...Array(3)].map((_, i) => <Skeleton key={i} className="h-28" />)
-              ) : videos.length === 0 ? (
-                !videosError && (
-                  <p className="text-sm text-muted-foreground">No videos yet. Generated clips show up here.</p>
-                )
-              ) : (
-                videos.map((video) => (
-                  <VideoCard
-                    key={video.id}
-                    video={video}
-                    apiKey={apiKey}
-                    playing={playingId === video.id}
-                    onPlayRequest={() => {
-                      playRequestRef.current = video.id;
-                    }}
-                    onPlay={() => {
-                      // A slower link for an earlier click must not replace a later one
-                      if (playRequestRef.current !== video.id) return false;
-                      setPlayingId(video.id);
-                      return true;
-                    }}
-                    onStop={() => setPlayingId((id) => (id === video.id ? null : id))}
-                  />
-                ))
-              )}
-              {hasMore && (
+          {/* Right side - one column below xl; from xl its cards are grid columns of their own */}
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2 xl:contents">
+            {/* Clips */}
+            <Card className="min-w-0">
+              <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                <div className="space-y-1.5">
+                  <CardTitle>Your videos</CardTitle>
+                  <CardDescription>
+                    Ready clips can be played or downloaded until their link expires.
+                  </CardDescription>
+                </div>
                 <Button
                   variant="outline"
-                  className="w-full"
-                  onClick={handleLoadMore}
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => setListAttempt((n) => n + 1)}
                   disabled={loadingVideos}
-                  data-analytics-action="load-more-videos"
-                  data-analytics-label="Load more videos"
+                  data-analytics-action="refresh-videos"
+                  data-analytics-label="Refresh videos"
                 >
-                  {loadingVideos && <Loader2 className="animate-spin" />}
-                  Load more
+                  <RefreshCw className={cn(loadingVideos && "animate-spin")} />
+                  Refresh
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {videosError && (
+                  <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{videosError}</AlertDescription>
+                  </Alert>
+                )}
+                {loadingVideos && videos.length === 0 ? (
+                  [...Array(3)].map((_, i) => <Skeleton key={i} className="h-28" />)
+                ) : videos.length === 0 ? (
+                  !videosError && (
+                    <p className="text-sm text-muted-foreground">No videos yet. Generated clips show up here.</p>
+                  )
+                ) : (
+                  videos.map((video) => (
+                    <VideoCard
+                      key={video.id}
+                      video={video}
+                      apiKey={apiKey}
+                      playing={playingId === video.id}
+                      onPlayRequest={() => {
+                        playRequestRef.current = video.id;
+                      }}
+                      onPlay={() => {
+                        // A slower link for an earlier click must not replace a later one
+                        if (playRequestRef.current !== video.id) return false;
+                        setPlayingId(video.id);
+                        return true;
+                      }}
+                      onStop={() => setPlayingId((id) => (id === video.id ? null : id))}
+                    />
+                  ))
+                )}
+                {hasMore && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleLoadMore}
+                    disabled={loadingVideos}
+                    data-analytics-action="load-more-videos"
+                    data-analytics-label="Load more videos"
+                  >
+                    {loadingVideos && <Loader2 className="animate-spin" />}
+                    Load more
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* API: request history and code */}
+            <VideoApiPanel
+              className="h-fit"
+              entries={apiHistory.entries}
+              onClear={apiHistory.clear}
+              apiKey={apiKey}
+              body={createBody}
+            />
+          </div>
         </div>
       </div>
     </AuthenticatedLayout>
