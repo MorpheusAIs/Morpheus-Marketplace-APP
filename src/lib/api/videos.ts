@@ -6,6 +6,8 @@
  * Cognito retry and logout path. Every failure is thrown as a VideoApiError.
  *
  * Never log the API key or the clip's link from /content: it is a bearer URL.
+ * subscribeVideoApi hands each exchange to the Video page's API card with
+ * both of them, and a first frame's data, already masked.
  */
 
 import { API_URLS } from './config';
@@ -60,6 +62,89 @@ interface ApiModelRow {
   video?: VideoLimits | null;
 }
 
+/**
+ * One request this client made and its answer, for the Video page's API card.
+ * The key, the clip's signed link and a first frame's data are masked.
+ */
+export interface VideoApiExchange {
+  /** When the request was sent (ms since the epoch) */
+  sentAt: number;
+  method: 'GET' | 'POST';
+  url: string;
+  /** Authorization shows as `Bearer sk-…` and the key's last 4 characters */
+  requestHeaders: Record<string, string>;
+  /** The JSON body sent; image_b64 shows as its data: prefix and size */
+  requestBody: CreateVideoRequest | null;
+  /** null when no answer came back: a network failure or a response blocked by CORS */
+  response: { status: number; body: string } | null;
+  durationMs: number;
+  /** An automatic poll of a running clip */
+  poll: boolean;
+}
+
+type VideoApiListener = (exchange: VideoApiExchange) => void;
+
+const listeners = new Set<VideoApiListener>();
+
+/**
+ * Calls listener once for every request that got an answer or failed; a
+ * cancelled request is left out. Returns the unsubscribe function.
+ */
+export function subscribeVideoApi(listener: VideoApiListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** The Authorization header cut to the key's last 4 characters */
+function maskHeaders(headers: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      name.toLowerCase() === 'authorization' ? `Bearer sk-…${value.slice(-4)}` : value,
+    ])
+  );
+}
+
+function formatSize(bytes: number): string {
+  return bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** The body with a first frame's data replaced by its data: prefix and size */
+function maskImage(body: CreateVideoRequest): CreateVideoRequest {
+  if (!body.image_b64) return body;
+  const prefix = /^data:[^;,]*;base64,/.exec(body.image_b64)?.[0] ?? '';
+  const omitted = formatSize(body.image_b64.length - prefix.length);
+  return { ...body, image_b64: `${prefix}… (${omitted} omitted)` };
+}
+
+/** A signed link cut to its host: anyone who has the link can download the clip */
+function hideLink(link: string): string {
+  try {
+    const url = new URL(link);
+    return `${url.protocol}//${url.host}/… (signed link hidden)`;
+  } catch {
+    return '(signed link hidden)';
+  }
+}
+
+/** A /content answer with its link hidden; links in a body that is not JSON are hidden too */
+function maskLinkBody(text: string): string {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return text.replace(/https?:\/\/[^\s"'<>]+/g, hideLink);
+  }
+  if (data && typeof data === 'object' && 'url' in data && typeof data.url === 'string') {
+    return JSON.stringify({ ...data, url: hideLink(data.url) });
+  }
+  return text;
+}
+
 /** A fetch that rejected: cancelled by the caller, or the request never got an answer */
 function transportError(signal: AbortSignal | undefined): VideoApiError {
   if (signal?.aborted) {
@@ -69,10 +154,9 @@ function transportError(signal: AbortSignal | undefined): VideoApiError {
 }
 
 /** The {error: {...}} body of a failed response as a VideoApiError; only a JSON body is read */
-async function errorFromResponse(response: Response): Promise<VideoApiError> {
+function errorFromResponse(response: Response, text: string): VideoApiError {
   let body: ApiErrorBody | null = null;
   if ((response.headers.get('content-type') || '').includes('json')) {
-    const text = await response.text().catch(() => '');
     body = text ? safeJsonParseOrNull<ApiErrorBody>(text, { maxDepth: 100 }) : null;
   }
   const error = body?.error;
@@ -88,17 +172,69 @@ async function errorFromResponse(response: Response): Promise<VideoApiError> {
   });
 }
 
-async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
+interface VideoRequest {
+  method?: 'GET' | 'POST';
+  headers: Record<string, string>;
+  /** Sent as JSON */
+  body?: CreateVideoRequest;
+  signal?: AbortSignal;
+}
+
+interface ExchangeOptions {
+  /** An automatic poll of a running clip */
+  poll?: boolean;
+  /** The answer carries the clip's signed link */
+  hasLink?: boolean;
+}
+
+async function requestJson<T>(
+  url: string,
+  { method = 'GET', headers, body, signal }: VideoRequest,
+  { poll = false, hasLink = false }: ExchangeOptions = {}
+): Promise<T> {
+  const sentAt = Date.now();
+  const started = performance.now();
+  const record = (answer: VideoApiExchange['response']) => {
+    if (signal?.aborted || listeners.size === 0) return;
+    const exchange: VideoApiExchange = {
+      sentAt,
+      method,
+      url,
+      requestHeaders: maskHeaders(headers),
+      requestBody: body ? maskImage(body) : null,
+      response: answer && {
+        status: answer.status,
+        body: hasLink ? maskLinkBody(answer.body) : answer.body,
+      },
+      durationMs: Math.round(performance.now() - started),
+      poll,
+    };
+    for (const listener of listeners) {
+      try {
+        listener(exchange);
+      } catch {
+        // The API card must not break the call
+      }
+    }
+  };
+
   let response: Response;
   let text: string;
   try {
-    response = await fetch(url, init);
-    if (!response.ok) throw await errorFromResponse(response);
-    text = await response.text();
-  } catch (err) {
-    if (err instanceof VideoApiError) throw err;
-    throw transportError(init.signal ?? undefined);
+    response = await fetch(url, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
+    });
+    // A failed response whose body cannot be read is still a definite answer
+    text = response.ok ? await response.text() : await response.text().catch(() => '');
+  } catch {
+    record(null);
+    throw transportError(signal);
   }
+  record({ status: response.status, body: text });
+  if (!response.ok) throw errorFromResponse(response, text);
   const data = safeJsonParseOrNull<T>(text, { maxDepth: 100 });
   if (!data) {
     throw new VideoApiError({
@@ -127,13 +263,21 @@ export async function createVideo(apiKey: string, body: CreateVideoRequest): Pro
   return requestJson<Video>(API_URLS.videos(), {
     method: 'POST',
     headers: { ...authHeaders(apiKey), 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body,
   });
 }
 
-/** One video job. A failed job is a 200 with status failed, not an error. */
-export async function getVideo(apiKey: string, id: string, signal?: AbortSignal): Promise<Video> {
-  return requestJson<Video>(API_URLS.video(id), { headers: authHeaders(apiKey), signal });
+/**
+ * One video job. A failed job is a 200 with status failed, not an error.
+ * poll marks an automatic refresh, which the API card keeps only when the clip changed.
+ */
+export async function getVideo(
+  apiKey: string,
+  id: string,
+  signal?: AbortSignal,
+  { poll = false }: { poll?: boolean } = {}
+): Promise<Video> {
+  return requestJson<Video>(API_URLS.video(id), { headers: authHeaders(apiKey), signal }, { poll });
 }
 
 /** The caller's video jobs, newest first */
@@ -179,10 +323,11 @@ export async function getVideoLink(
   id: string,
   signal?: AbortSignal
 ): Promise<VideoContentLink> {
-  const link = await requestJson<VideoContentLink>(API_URLS.videoContent(id), {
-    headers: authHeaders(apiKey),
-    signal,
-  });
+  const link = await requestJson<VideoContentLink>(
+    API_URLS.videoContent(id),
+    { headers: authHeaders(apiKey), signal },
+    { hasLink: true }
+  );
   let https = false;
   try {
     https = typeof link.url === 'string' && new URL(link.url).protocol === 'https:';
