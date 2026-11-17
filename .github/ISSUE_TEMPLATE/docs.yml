@@ -1,0 +1,27 @@
+name: Docs
+description: Wrong or missing help text in the app, or in this repository's docs
+type: Task
+labels:
+  - documentation
+  - needs-triage
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The address of the page in the app, or the path in this repository
+      placeholder: https://app.mor.org/api-keys
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong or missing
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+    validations:
+      required: false

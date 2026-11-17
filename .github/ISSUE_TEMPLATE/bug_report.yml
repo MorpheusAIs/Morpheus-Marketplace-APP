@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in the web app (app.mor.org) or this codebase is broken
+type: Bug
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - chat
+        - video
+        - billing
+        - api-keys
+        - account and sign-in
+        - usage analytics
+        - docs
+        - not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - app.mor.org (production)
+        - app.dev.mor.org
+        - Local
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The address of the page where it happens
+      placeholder: https://app.mor.org/chat
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and operating system
+      placeholder: Chrome 142 on macOS 15
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots or console output
+      description: Remove API keys, tokens, and personal data before attaching
+    validations:
+      required: false
