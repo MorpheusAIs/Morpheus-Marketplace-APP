@@ -32,7 +32,9 @@ export const API_CONFIG = {
       CREATE_BID: '/session/bidsession'
     },
     // Model endpoints
-    MODELS: '/models'
+    MODELS: '/models',
+    // Video generation endpoints
+    VIDEOS: '/videos'
   }
 };
 
@@ -84,6 +86,12 @@ export const API_URLS = {
   
   // Model URLs
   models: () => buildApiUrl(API_CONFIG.ENDPOINTS.MODELS),
+
+  // Video URLs
+  videos: () => buildApiUrl(API_CONFIG.ENDPOINTS.VIDEOS),
+  video: (videoId: string) => buildApiUrl(`${API_CONFIG.ENDPOINTS.VIDEOS}/${encodeURIComponent(videoId)}`),
+  videoContent: (videoId: string) =>
+    buildApiUrl(`${API_CONFIG.ENDPOINTS.VIDEOS}/${encodeURIComponent(videoId)}/content?variant=video&redirect=false`),
 };
 
 // Documentation URLs (environment-aware)

@@ -30,17 +30,6 @@ export default function UsageAnalyticsPage() {
   // Calculate date range for API call
   const dateRange = useMemo(() => {
     const range = getDateRangeForTimeRange(timeRange, customRange);
-    
-    // Debug logging to verify different time ranges produce different queries
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[UsageAnalytics] Date range calculated:', {
-        timeRange,
-        startISO: range.start.toISOString(),
-        endISO: range.end.toISOString(),
-        durationDays: Math.round((range.end.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24)),
-      });
-    }
-    
     return range;
   }, [timeRange, customRange]);
 
@@ -53,26 +42,6 @@ export default function UsageAnalyticsPage() {
     from: dateRange.start.toISOString(),
     to: dateRange.end.toISOString(),
   });
-
-  // Debug logging
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[UsageAnalytics] Query State:', {
-        timeRange,
-        isLoading,
-        hasError: !!error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        hasData: !!usageData,
-        itemCount: usageData?.items?.length,
-        total: usageData?.total,
-        dateRange: {
-          start: dateRange.start.toISOString(),
-          end: dateRange.end.toISOString(),
-          durationDays: Math.round((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)),
-        }
-      });
-    }
-  }, [isLoading, error, usageData, dateRange, timeRange]);
 
   // Aggregate data by date for charts
   const dailyData = useMemo(() => {
@@ -203,7 +172,7 @@ export default function UsageAnalyticsPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <BillingOverview 
+            <BillingOverview
               usageData={usageData}
               isLoading={isLoading}
               error={error instanceof Error ? error : error ? new Error(String(error)) : null}
@@ -217,7 +186,7 @@ export default function UsageAnalyticsPage() {
           </TabsContent> */}
 
           <TabsContent value="transactions" className="space-y-6">
-            <TransactionHistoryTable 
+            <TransactionHistoryTable
               dateRange={dateRange}
               timeRangeLabel={timeRange === '24h' ? '24 Hours' : timeRange === '7d' ? '7 Days' : timeRange === '30d' ? '30 Days' : 'Custom'}
             />

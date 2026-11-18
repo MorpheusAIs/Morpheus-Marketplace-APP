@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is missing');
+function getStripeClient(): Stripe | null {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  return secretKey
+    ? new Stripe(secretKey, { apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion })
+    : null;
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-01-27.acacia' as any,
-});
-
 export async function POST(request: NextRequest) {
+  const stripe = getStripeClient();
+  if (!stripe) {
+    console.error('[Stripe Checkout] STRIPE_SECRET_KEY is missing');
+    return NextResponse.json({ error: 'Payment service unavailable' }, { status: 503 });
+  }
+
   try {
     const { amount, userId, email } = await request.json();
 
     if (!amount || !userId) {
       return NextResponse.json(
-        { error: 'Missing required fields: amount and userId are required' },
+        { error: 'Bad request' },
         { status: 400 }
       );
     }
@@ -24,7 +29,7 @@ export async function POST(request: NextRequest) {
     const amountFloat = parseFloat(amount);
     if (isNaN(amountFloat) || amountFloat < 0.50) { // Stripe minimum is usually $0.50
       return NextResponse.json(
-        { error: 'Invalid amount. Minimum amount is $0.50' },
+        { error: 'Invalid amount' },
         { status: 400 }
       );
     }
@@ -32,6 +37,8 @@ export async function POST(request: NextRequest) {
     // Get the base URL for redirects
     // Use NEXT_PUBLIC_APP_URL if set, otherwise fallback to request origin
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+
+    console.log('[Stripe Checkout] Creating session', { amount: amountFloat, userId });
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -64,9 +71,10 @@ export async function POST(request: NextRequest) {
       url: session.url,
     });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    // F-14: Generic client errors with bounded server diagnostics
+    console.error('[Stripe Checkout] Error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: 'Payment service error' },
       { status: 500 }
     );
   }

@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { PaymentAmountDialog } from './PaymentAmountDialog';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
 
+/** Development/debug mode flag for verbose logging */
+const IS_DEBUG_MODE = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_API === 'true';
 interface FundingSectionProps {
   currentBalance: string;
   isLoading?: boolean;
@@ -41,7 +43,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     if (payment === 'success') {
       setFlowState('stripe_success');
       window.history.replaceState({}, '', window.location.pathname);
-      
+
       // FIXED: Actually trigger balance refresh from backend
       // This gives the webhook time to process (2-5 seconds typical)
       // Then refreshes the balance to show new credits
@@ -123,11 +125,13 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
           errorData = { raw: responseText };
         }
 
+        if (IS_DEBUG_MODE) {
         console.error('Payment link creation failed:', {
           status: response.status,
           statusText: response.statusText,
           errorData,
         });
+        }
 
         if (response.status === 404) {
           setError('Coinbase Business payment endpoint is unavailable. Please contact support.');
@@ -152,7 +156,9 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
         window.open(hostedUrl, '_blank', 'noopener,noreferrer');
       } else {
         setError('No payment URL received from Coinbase');
+        if (IS_DEBUG_MODE) {
         console.error('Missing payment URL in Coinbase response:', data);
+        }
       }
     } catch (err) {
       console.error('Error opening Coinbase checkout:', err);

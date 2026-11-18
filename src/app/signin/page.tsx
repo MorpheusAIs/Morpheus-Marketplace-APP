@@ -51,23 +51,15 @@ export default function SignInPage() {
       await signIn(email, password);
       router.push("/api-keys");
     } catch (err) {
-      // Log full error for debugging
-      console.error('SignIn error:', {
-        error: err,
-        name: err && typeof err === 'object' && 'name' in err ? (err as { name?: string }).name : undefined,
-        message: err instanceof Error ? err.message : String(err),
-        code: err && typeof err === 'object' && '$metadata' in err ? (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode : undefined,
-      });
-      
       // Check if this is a UserNotFoundException from Cognito
       // AWS SDK errors have a 'name' property
-      const errorName = err && typeof err === 'object' && 'name' in err 
-        ? (err as { name?: string }).name 
+      const errorName = err && typeof err === 'object' && 'name' in err
+        ? (err as { name?: string }).name
         : '';
-      
+
       // Also check error message for user enumeration prevention
       const errorMessage = err instanceof Error ? err.message : String(err);
-      
+
       if (errorName === 'UserNotFoundException') {
         setError("User doesn't exist");
       } else if (errorMessage.includes("User does not exist") || errorMessage.includes("UserNotFoundException")) {

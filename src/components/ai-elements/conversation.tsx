@@ -109,13 +109,15 @@ export type ConversationScrollButtonProps = ComponentProps<typeof Button>;
 
 export const ConversationScrollButton = ({ className, ...props }: ConversationScrollButtonProps) => {
   const context = useContext(StickToBottomContext);
-  if (!context) return null;
-
-  const { isAtBottom, scrollToBottom } = context;
+  const scrollToBottom = context?.scrollToBottom;
 
   const handleScrollToBottom = useCallback(() => {
-    scrollToBottom();
+    scrollToBottom?.();
   }, [scrollToBottom]);
+
+  if (!context) return null;
+
+  const { isAtBottom } = context;
 
   if (isAtBottom) return null;
 

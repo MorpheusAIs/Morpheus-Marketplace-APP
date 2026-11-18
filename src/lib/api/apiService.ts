@@ -3,6 +3,9 @@
 import { safeJsonParse, safeJsonParseOrNull, validateJsonDepth } from '../utils/safe-json';
 import { authEvents } from '../auth/auth-events';
 
+/** Development/debug mode flag for verbose logging */
+const IS_DEBUG_MODE = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_API === 'true';
+
 /** URL patterns that should NOT trigger session invalidation on 401 (auth endpoints). */
 const AUTH_ENDPOINT_PATTERNS = ['/auth/', '/signin', '/signup', '/login', '/token', '/oauth2/'];
 
@@ -50,7 +53,7 @@ function createTimeoutPromise(ms: number, controller: AbortController): Promise<
       controller.abort();
       reject(new Error(`Request timeout after ${ms}ms`));
     }, ms);
-    
+
     // Clean up timeout if the controller is aborted externally
     controller.signal.addEventListener('abort', () => clearTimeout(timeoutId));
   });
@@ -100,12 +103,12 @@ export interface ApiRequestConfig {
 
 /**
  * Performs an API request with timeout and optional retry logic.
- * 
+ *
  * Features:
  * - Configurable timeout (prevents hanging requests)
  * - Automatic retry with exponential backoff for network/server errors
  * - Detailed logging for debugging
- * 
+ *
  * @param url - The URL to request
  * @param options - Standard fetch options
  * @param config - Resilience configuration (timeout, retries)
@@ -127,7 +130,7 @@ export async function apiRequest<T = any>(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const controller = new AbortController();
-    
+
     // Merge abort signal with any existing signal from options
     const originalSignal = options.signal;
     if (originalSignal) {
@@ -138,20 +141,24 @@ export async function apiRequest<T = any>(
       }
     }
 
-    // Log the request (only on first attempt to reduce noise)
+    // Log the request (only on first attempt to reduce noise; only in debug mode for sensitive data)
     if (attempt === 0) {
-      console.group(`API Request: ${method} ${url}`);
-      console.log('Request Headers:', headers);
-      if (body) {
-        try {
-          console.log('Request Body:', typeof body === 'string' ? safeJsonParseOrNull(body) : body);
-        } catch {
-          console.log('Request Body: [non-JSON data]');
+      if (IS_DEBUG_MODE) {
+        console.group(`API Request: ${method} ${url}`);
+        console.log('Request Headers:', headers);
+        if (body) {
+          try {
+            console.log('Request Body:', typeof body === 'string' ? safeJsonParseOrNull(body) : body);
+          } catch {
+            console.log('Request Body: [non-JSON data]');
+          }
         }
+        console.log('Timeout:', timeout, 'ms');
       }
-      console.log('Timeout:', timeout, 'ms');
     } else {
-      console.log(`🔄 Retry attempt ${attempt}/${maxRetries} for ${method} ${url}`);
+      if (IS_DEBUG_MODE) {
+        console.log(`🔄 Retry attempt ${attempt}/${maxRetries} for ${method} ${url}`);
+      }
     }
 
     try {
@@ -186,7 +193,9 @@ export async function apiRequest<T = any>(
             });
           } catch (e) {
             console.error('Error parsing JSON response:', e);
-            console.log('Raw response text:', responseText.substring(0, 500));
+            if (IS_DEBUG_MODE) {
+              console.log('Raw response text:', responseText.substring(0, 500));
+            }
             parseError = e instanceof Error ? e.message : 'Unknown parse error';
           }
         }
@@ -195,10 +204,12 @@ export async function apiRequest<T = any>(
         parseError = e instanceof Error ? e.message : 'Unknown response error';
       }
 
-      // Log the response
-      console.log('Response Status:', response.status);
-      console.log('Response Headers:', responseHeaders);
-      console.log('Response Body:', responseData || responseText?.substring(0, 200) || '(empty response)');
+      // Log the response (safe metadata always; sensitive data only in debug mode)
+      if (IS_DEBUG_MODE) {
+        console.log('Response Status:', response.status);
+        console.log('Response Headers:', responseHeaders);
+        console.log('Response Body:', responseData || responseText?.substring(0, 200) || '(empty response)');
+      }
 
       // Extract error message - handle various backend error formats
       let errorMessage: string | null = null;
@@ -289,8 +300,10 @@ export async function apiRequest<T = any>(
                   retryError = `Error ${retryResp.status}`;
                 }
               }
-              console.log('✅ Token refreshed — request retried successfully');
-              console.groupEnd();
+              if (IS_DEBUG_MODE) {
+                console.log('✅ Token refreshed — request retried successfully');
+                console.groupEnd();
+              }
               return {
                 data: retryResp.ok ? retryData : null,
                 error: retryError,
@@ -312,7 +325,9 @@ export async function apiRequest<T = any>(
         // Refresh failed or retry still returned 401 — the session is truly invalid
         console.warn('⚠️ Token refresh failed or retry still 401 — logging out');
         authEvents.emitUnauthorized();
-        console.groupEnd();
+        if (IS_DEBUG_MODE) {
+          console.groupEnd();
+        }
         return result;
       }
 
@@ -320,20 +335,26 @@ export async function apiRequest<T = any>(
       if (!response.ok && isRetryableError(null, response.status) && attempt < maxRetries) {
         lastStatus = response.status;
         const delay = baseRetryDelay * Math.pow(RESILIENCE_CONFIG.RETRY_BACKOFF_MULTIPLIER, attempt);
-        console.log(`⚠️ Server error ${response.status}, retrying in ${delay}ms...`);
+        if (IS_DEBUG_MODE) {
+          console.log(`⚠️ Server error ${response.status}, retrying in ${delay}ms...`);
+        }
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
 
-      console.groupEnd();
+      if (IS_DEBUG_MODE) {
+        console.groupEnd();
+      }
       return result;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       // Check if this was a user-initiated abort (not timeout)
       if (originalSignal?.aborted) {
-        console.log('Request aborted by user');
-        console.groupEnd();
+        if (IS_DEBUG_MODE) {
+          console.log('Request aborted by user');
+          console.groupEnd();
+        }
         return {
           data: null,
           error: 'Request cancelled',
@@ -356,13 +377,17 @@ export async function apiRequest<T = any>(
       // Check if we should retry
       if (isRetryableError(error) && attempt < maxRetries) {
         const delay = baseRetryDelay * Math.pow(RESILIENCE_CONFIG.RETRY_BACKOFF_MULTIPLIER, attempt);
-        console.log(`⚠️ Retryable error (${lastError.message}), retrying in ${delay}ms...`);
+        if (IS_DEBUG_MODE) {
+          console.log(`⚠️ Retryable error (${lastError.message}), retrying in ${delay}ms...`);
+        }
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
 
       // No more retries, return error
-      console.groupEnd();
+      if (IS_DEBUG_MODE) {
+        console.groupEnd();
+      }
       return {
         data: null,
         error: lastError.message,
@@ -382,7 +407,9 @@ export async function apiRequest<T = any>(
   }
 
   // Should not reach here, but just in case
-  console.groupEnd();
+  if (IS_DEBUG_MODE) {
+    console.groupEnd();
+  }
   return {
     data: null,
     error: lastError?.message || 'Unknown error after retries',

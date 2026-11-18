@@ -16,7 +16,7 @@ hljs.registerLanguage("python", python);
 hljs.registerLanguage("javascript", javascript);
 hljs.registerLanguage("json", json);
 
-function HighlightedCode({ code, language }: { code: string; language: string }) {
+export function HighlightedCode({ code, language }: { code: string; language: string }) {
   const html = useMemo(() => {
     if (!code) return "";
     try {
@@ -164,7 +164,7 @@ function RawResponsePanel({
   );
 }
 
-function CodeSnippetTab({
+export function CodeSnippetTab({
   curl,
   python,
   node,

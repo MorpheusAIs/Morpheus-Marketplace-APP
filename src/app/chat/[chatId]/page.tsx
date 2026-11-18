@@ -109,7 +109,7 @@ export default function ChatPage() {
   const router = useRouter();
   const params = useParams();
   const chatId = params?.chatId as string | undefined;
-  
+
   const { getConversationById } = useConversationHistory();
   const {
     currentConversationId,
@@ -122,14 +122,14 @@ export default function ChatPage() {
     subscribeToStream,
     abortStreamForConversation
   } = useStreamManager();
-  
+
   // API Key state (retrieved from sessionStorage)
   const [fullApiKey, setFullApiKey] = useState<string>('');
   const [apiKeyPrefix, setApiKeyPrefix] = useState<string>('');
-  
+
   // Delete confirmation dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   // Chat state
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(true);
@@ -143,7 +143,7 @@ export default function ChatPage() {
     return true;
   });
   const [streamingStatus, setStreamingStatus] = useState<'ready' | 'submitted' | 'streaming' | 'error'>('ready');
-  
+
   // Model state
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_models, setModels] = useState<Model[]>([]);
@@ -156,21 +156,21 @@ export default function ChatPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_filterOptions, setFilterOptions] = useState<Array<{value: string, label: string}>>([]);
   const [allowedTypes] = useState<string[]>(getAllowedModelTypes());
-  
+
   // Chat history state
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationTitle, setConversationTitle] = useState<string>('New Chat');
-  
+
   // Chat settings modal state
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  
+
   // Streaming state
   const [streamingContent, setStreamingContent] = useState<string>('');
   const currentConversationIdRef = useRef<string | null>(null);
   const isLoadingConversationRef = useRef<boolean>(false);
   const currentStreamIdRef = useRef<string | null>(null);
-  
+
   // Token usage state
   const [tokenUsage, setTokenUsage] = useState<LanguageModelUsage>({
     inputTokens: 0,
@@ -265,7 +265,6 @@ export default function ChatPage() {
           );
         },
         onError: (error) => {
-          console.error('[ChatPage] Stream error:', error);
           setStreamingContent('');
           setStreamingStatus('error');
           setIsLoading(false);
@@ -297,7 +296,7 @@ export default function ChatPage() {
       try {
         // First check if conversation is already preloaded
         const preloadedConversation = getConversationById(chatId);
-        
+
         let conversation;
         if (preloadedConversation && preloadedConversation.messages && preloadedConversation.messages.length > 0) {
           // Use preloaded conversation
@@ -313,7 +312,7 @@ export default function ChatPage() {
           // Deduplicate messages when loading
           const seenMessages = new Set<string>();
           const deduplicatedMessages: Message[] = [];
-          
+
           (conversation.messages || []).forEach((msg: ConversationMessage) => {
             const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
             if (!seenMessages.has(messageKey)) {
@@ -336,7 +335,6 @@ export default function ChatPage() {
           router.push('/chat');
         }
       } catch (err) {
-        console.error('Error loading conversation from URL:', err);
         // On error, redirect to /chat
         router.push('/chat');
       } finally {
@@ -353,10 +351,10 @@ export default function ChatPage() {
     const handleHistoryUpdate = async (e: Event) => {
       // Only update title if the updated conversation matches the current chatId from URL
       if (!chatId) return;
-      
+
       const customEvent = e as CustomEvent;
       const updatedConversation = customEvent.detail?.conversation;
-      
+
       // If the event includes conversation details and it matches current chatId, update title
       if (updatedConversation && updatedConversation.id === chatId) {
         setConversationTitle(updatedConversation.title);
@@ -368,7 +366,6 @@ export default function ChatPage() {
             setConversationTitle(conversation.title);
           }
         } catch (err) {
-          console.error('Error loading conversation for title update:', err);
         }
       }
     };
@@ -429,7 +426,6 @@ export default function ChatPage() {
             }
           }
         } catch (error) {
-          console.warn('Could not get context window from tokenlens, using default:', error);
         }
       }
     };
@@ -450,7 +446,7 @@ export default function ChatPage() {
     // Deduplicate messages before calculating tokens to avoid double counting
     const seenMessages = new Set<string>();
     const deduplicatedMessages: Message[] = [];
-    
+
     for (const msg of messages) {
       const messageKey = msg.id || `${msg.role}-${msg.content.substring(0, 50)}`;
       if (!seenMessages.has(messageKey)) {
@@ -474,7 +470,7 @@ export default function ChatPage() {
     // Only add streaming content if it's not already in messages (to avoid double counting)
     const lastMessage = deduplicatedMessages[deduplicatedMessages.length - 1];
     const isStreamingInMessages = lastMessage && lastMessage.role === 'assistant' && lastMessage.content === streamingContent;
-    
+
     if (streamingContent && !isStreamingInMessages) {
       outputTokens += estimateTokens(streamingContent);
     }
@@ -496,11 +492,11 @@ export default function ChatPage() {
           'accept': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`API returned status ${response.status}`);
       }
-      
+
       // Safely parse response to prevent deep recursion attacks
       const responseText = await response.text();
       const data = safeJsonParseOrNull(responseText, { maxDepth: 100 });
@@ -508,13 +504,13 @@ export default function ChatPage() {
         throw new Error('Failed to parse response or response exceeds maximum depth');
       }
       const modelsArray = data.data || data;
-      
+
       if (Array.isArray(modelsArray)) {
         // Log all models for debugging
         if (process.env.NODE_ENV === 'development') {
           console.log('[Models Fetched]', modelsArray.map((m: ApiModelResponse) => m.id));
         }
-        
+
         const llmModels = modelsArray
           .filter((model: ApiModelResponse) => (model.modelType || model.ModelType) === 'LLM')
           .map((model: ApiModelResponse) => ({
@@ -523,11 +519,11 @@ export default function ChatPage() {
             created: model.created,
             ModelType: 'LLM'
           }));
-        
+
         const sortedModels = llmModels.sort((a: Model, b: Model) => a.id.localeCompare(b.id));
         setModels(sortedModels);
         setFilteredModels(sortedModels);
-        
+
         if (sortedModels.length > 0) {
           const defaultModelId = selectDefaultModel(sortedModels);
           if (defaultModelId) {
@@ -540,7 +536,6 @@ export default function ChatPage() {
         setFilteredModels(fallbackModels);
       }
     } catch (error) {
-      console.error('Error fetching models:', error);
       const fallbackModels = [{ id: 'default', ModelType: 'LLM' }];
       setModels(fallbackModels);
       setFilteredModels(fallbackModels);
@@ -554,10 +549,10 @@ export default function ChatPage() {
   const _applyModelTypeFilter = (modelsToFilter: Model[], filterType: string) => {
     const filtered = filterModelsByType(modelsToFilter, filterType, allowedTypes);
     setFilteredModels(filtered);
-    
+
     const options = getFilterOptions(modelsToFilter, allowedTypes);
     setFilterOptions(options);
-    
+
     if (filtered.length > 0) {
       const defaultModelId = selectDefaultModel(filtered);
       if (defaultModelId) {
@@ -587,7 +582,6 @@ export default function ChatPage() {
             duration: 8000
           }
         );
-        console.error('Error deleting conversation:', err);
       }
     }
   };
@@ -690,7 +684,6 @@ export default function ChatPage() {
           unsubscribe();
         },
         onError: (err) => {
-          console.error('[ChatPage] Stream error:', err);
           setStreamingContent('');
           setStreamingStatus('error');
           setIsLoading(false);
@@ -716,7 +709,6 @@ export default function ChatPage() {
         },
       });
     } catch (err) {
-      console.error('[ChatPage] Error starting stream:', err);
       setStreamingStatus('error');
       setIsLoading(false);
 
@@ -747,7 +739,7 @@ export default function ChatPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
+              <Button
                 onClick={() => router.push('/api-keys')}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 data-analytics-action="go-to-api-keys"
@@ -823,7 +815,7 @@ export default function ChatPage() {
                 const hasNoContent = !message.content && !streamingContent;
                 const isProcessing = streamingStatus === 'submitted' || streamingStatus === 'streaming';
                 const isWaitingForStream = isLastMessage && isAssistantMessage && hasNoContent && isProcessing;
-                
+
                 return (
                   <Message key={message.id || index} from={message.role}>
                     <MessageContent className="relative">
@@ -887,7 +879,7 @@ export default function ChatPage() {
                   </ContextContentBody>
                 </ContextContent>
               </Context>
-              <PromptInputSubmit 
+              <PromptInputSubmit
                 status={streamingStatus}
                 className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
                 disabled={isLoading}
@@ -915,7 +907,7 @@ export default function ChatPage() {
                             uniqueModelsMap.set(model.id, model);
                           }
                         });
-                        
+
                         const uniqueModels = Array.from(uniqueModelsMap.values())
                           .sort((a, b) => a.id.localeCompare(b.id));
 
