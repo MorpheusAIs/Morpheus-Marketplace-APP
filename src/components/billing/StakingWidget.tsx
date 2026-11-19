@@ -11,6 +11,7 @@ import { useSignMessage, useDisconnect } from 'wagmi';
 import { useGenerateWalletNonce, useLinkWallet, useUnlinkWallet } from '@/lib/hooks/use-billing';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface StakingWidgetProps {
   walletStatus?: WalletStatusResponse;
@@ -45,6 +46,7 @@ export function StakingWidget({
   const linkWallet = useLinkWallet();
   const unlinkWallet = useUnlinkWallet();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   // Track previous connection state to detect disconnections and connections
   const prevIsConnectedRef = useRef<boolean>(isConnected);
@@ -333,7 +335,7 @@ export function StakingWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
-            <CardTitle>Staking Status</CardTitle>
+            <CardTitle>{t('billing.stakingTitle')}</CardTitle>
           </div>
           {hasWallet && (
             <Button
@@ -348,18 +350,18 @@ export function StakingWidget({
         </div>
         <CardDescription className="space-y-1">
           <span>
-            Earn API daily credits by staking MOR tokens in the{' '}
+            {t('billing.stakingBody')}{' '}
             <a
               href="https://dashboard.mor.org/builders/morpheus-marketplace-api?subnet_id=0x415471125cc4d03b89818acb8426981fa28a3eee03a9097176297a9a6ae87c8d&network=Base"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline"
             >
-              Morpheus Marketplace API Builders Subnet
+              {t('billing.stakingLink')}
             </a>
           </span>
           <span className="block">
-            Already staking? Link your wallet to assign your daily API credits to your account.
+            {t('billing.stakingLinked')}
           </span>
         </CardDescription>
       </CardHeader>
@@ -375,20 +377,20 @@ export function StakingWidget({
                 {/* Landscape layout for stats */}
                 <div className="grid grid-cols-3 gap-4 rounded border border-border bg-muted/30 p-4">
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Linked Wallets</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('billing.wallets')}</div>
                     <div className="flex items-center justify-center gap-1 text-sm font-medium text-foreground">
                       <CheckCircle2 className="h-3 w-3 text-primary" />
                       {walletCount}
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Total Staked</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('billing.stakedTotal')}</div>
                     <div className="text-sm font-medium text-foreground">
                       {parseFloat(totalStaked).toFixed(2)} MOR
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Daily Allowance</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t('billing.allowance')}</div>
                     <div className="text-sm font-medium text-primary">
                       ${dailyAllowance ? parseFloat(dailyAllowance).toFixed(2) : '0.00'}
                     </div>
@@ -397,7 +399,7 @@ export function StakingWidget({
 
                 {walletStatus?.wallets && walletStatus.wallets.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">Linked Wallets:</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('billing.walletsLabel')}</p>
                     <div className="flex flex-col md:flex-row md:overflow-x-auto gap-2 pb-2">
                       {walletStatus.wallets.map((wallet) => (
                         <div
@@ -430,7 +432,7 @@ export function StakingWidget({
                             onClick={() => handleUnlinkWallet(wallet.wallet_address)}
                             disabled={unlinkWallet.isPending}
                           >
-                            <span className="sr-only">Unlink</span>
+                            <span className="sr-only">{t('billing.walletUnlink')}</span>
                             &times;
                           </Button>
                         </div>
@@ -478,11 +480,11 @@ export function StakingWidget({
                       size="lg"
                     >
                       <Wallet className="mr-2 h-4 w-4" />
-                      Connect Wallet
+                      {t('billing.walletConnect')}
                     </Button>
                     <Alert className="bg-primary/[0.06] border-primary/15 md:w-1/2 [&>svg~*]:pl-0">
                       <AlertDescription className="text-xs text-foreground/80">
-                        Daily Credit Allowance from staking refreshes daily at midnight UTC
+                        {t('billing.stakingRefresh')}
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -498,7 +500,7 @@ export function StakingWidget({
                     </Button>
                     <Alert className="bg-primary/[0.06] border-primary/15 md:w-1/2 [&>svg~*]:pl-0">
                       <AlertDescription className="text-xs text-foreground/80">
-                        Daily Credit Allowance from staking refreshes daily at midnight UTC
+                        {t('billing.stakingRefresh')}
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -567,7 +569,7 @@ export function StakingWidget({
                         className="w-full md:w-1/4 bg-primary hover:bg-primary text-black"
                       >
                         <Wallet className="mr-2 h-4 w-4" />
-                        Connect Wallet
+                        {t('billing.walletConnect')}
                       </Button>
                       <p className="text-xs text-muted-foreground text-center">
                         Stake your tokens to receive a daily allowance instead of paying per usage.
@@ -578,7 +580,7 @@ export function StakingWidget({
               </div>
             )}
             <p className="text-xs text-muted-foreground pt-2 border-t border-border mt-4">
-              Stake MOR tokens to receive an ongoing daily allowance of daily API credits
+              {t('billing.stakingFootnote')}
             </p>
           </>
         )}

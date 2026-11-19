@@ -5,6 +5,7 @@ import { CognitoAuthProvider } from '@/lib/auth/CognitoAuthContext';
 import { ConversationProvider } from '@/lib/ConversationContext';
 import { StreamManagerProvider } from '@/lib/StreamManagerContext';
 import { NotificationProvider } from '@/lib/NotificationContext';
+import { I18nProvider } from '@/lib/i18n';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { UmamiInteractionTracker } from '@/components/umami-interaction-tracker';
 import { Toaster } from 'sonner';
@@ -79,6 +80,7 @@ export default async function RootLayout({
             Umami analytics script remains active for standard pageview and event tracking. */}
       </head>
       <body className={interTight.className}>
+        <I18nProvider>
         <QueryProvider>
           <NotificationProvider>
             <UmamiInteractionTracker />
@@ -101,6 +103,7 @@ export default async function RootLayout({
             </CognitoAuthProvider>
           </NotificationProvider>
         </QueryProvider>
+        </I18nProvider>
       </body>
     </html>
   );

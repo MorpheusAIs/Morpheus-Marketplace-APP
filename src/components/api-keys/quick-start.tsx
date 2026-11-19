@@ -8,6 +8,7 @@ import python from "highlight.js/lib/languages/python";
 import typescript from "highlight.js/lib/languages/typescript";
 import "highlight.js/styles/github-dark.css";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 hljs.registerLanguage("bash", bash);
 hljs.registerLanguage("python", python);
@@ -60,6 +61,7 @@ console.log(response.choices[0].message.content);`;
 }
 
 export function QuickStart({ baseUrl }: QuickStartProps) {
+  const { t } = useTranslation();
   const [lang, setLang] = useState<Lang>("curl");
   const [copied, setCopied] = useState(false);
   const snippet = useMemo(() => snippetFor(lang, baseUrl), [lang, baseUrl]);
@@ -87,7 +89,7 @@ export function QuickStart({ baseUrl }: QuickStartProps) {
     <div className="rounded border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2 mb-3">
         <span className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-          Quick start · {lang === "curl" ? "cURL" : lang === "python" ? "Python" : "TypeScript"}
+          {t("keys.quickStart")} · {lang === "curl" ? "cURL" : lang === "python" ? "Python" : "TypeScript"}
         </span>
         <div className="flex items-center gap-1">
           {(["curl", "python", "typescript"] as const).map((l) => (
@@ -111,7 +113,7 @@ export function QuickStart({ baseUrl }: QuickStartProps) {
         <button
           type="button"
           onClick={handleCopy}
-          aria-label="Copy snippet"
+          aria-label={t("keys.copySnippet")}
           className="absolute top-2 right-2 inline-flex items-center justify-center h-7 w-7 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/10 transition-colors"
         >
           {copied ? (

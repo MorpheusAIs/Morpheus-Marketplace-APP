@@ -3,6 +3,7 @@
 import React, { useRef, useEffect } from "react";
 import { RefreshCw, Copy, GitBranch, Check, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export type MessageRole = "system" | "user" | "assistant";
 
@@ -61,6 +62,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const cfg = ROLE_CONFIG[message.role];
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { t } = useTranslation();
 
   // Auto-resize textarea
   useEffect(() => {
@@ -93,7 +95,13 @@ export function MessageBubble({
             cfg.labelClass
           )}
         >
-          {cfg.label}
+          {t(
+            message.role === "system"
+              ? "pg.roleSystem"
+              : message.role === "user"
+              ? "pg.roleUser"
+              : "pg.roleAssistant",
+          )}
         </span>
 
         {/* Model id on assistant */}
@@ -108,7 +116,7 @@ export function MessageBubble({
           <button
             onClick={onRemove}
             className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-            aria-label="Remove message"
+            aria-label={t("pg.removeMessage")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -129,10 +137,10 @@ export function MessageBubble({
           onChange={(e) => onContentChange(e.target.value)}
           placeholder={
             message.role === "system"
-              ? "System prompt…"
+              ? t("pg.systemPlaceholder")
               : message.role === "user"
-              ? "User message…"
-              : "Assistant response…"
+              ? t("pg.userPlaceholder")
+              : t("pg.assistantPlaceholder")
           }
           rows={2}
           className={cn(
@@ -159,7 +167,7 @@ export function MessageBubble({
           {onRegenerate && (
             <ActionButton
               icon={<RefreshCw className="h-3 w-3" />}
-              label="Regenerate"
+              label={t("pg.regenerate")}
               onClick={onRegenerate}
             />
           )}
@@ -172,14 +180,18 @@ export function MessageBubble({
                   <Copy className="h-3 w-3" />
                 )
               }
-              label={isCopied ? "Copied" : "Copy"}
+              label={
+                isCopied
+                  ? t("pg.copied")
+                  : t("pg.copy")
+              }
               onClick={onCopy}
             />
           )}
           {onBranch && (
             <ActionButton
               icon={<GitBranch className="h-3 w-3" />}
-              label="Branch"
+              label={t("pg.branch")}
               onClick={onBranch}
             />
           )}

@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import type { TimeRange } from '@/types/billing';
 
 interface TimeRangeFilterProps {
@@ -20,14 +21,15 @@ interface TimeRangeFilterProps {
   onCustomRangeChange?: (start: string, end: string) => void;
 }
 
-const TIME_RANGES: { value: TimeRange; label: string }[] = [
-  { value: '24h', label: '24 Hours' },
-  { value: '7d', label: '7 Days' },
-  { value: '30d', label: '30 Days' },
-  { value: 'custom', label: 'Custom' },
+const TIME_RANGE_KEYS: { value: TimeRange; key: string }[] = [
+  { value: '24h', key: 'usage.range24h' },
+  { value: '7d', key: 'usage.range7d' },
+  { value: '30d', key: 'usage.range30d' },
+  { value: 'custom', key: 'usage.rangeCustom' },
 ];
 
 export function TimeRangeFilter({ value, onChange, onCustomRangeChange }: TimeRangeFilterProps) {
+  const { t } = useTranslation();
   const [showCustom, setShowCustom] = useState(false);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -54,7 +56,7 @@ export function TimeRangeFilter({ value, onChange, onCustomRangeChange }: TimeRa
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {TIME_RANGES.map((range) => (
+        {TIME_RANGE_KEYS.map((range) => (
           <Button
             key={range.value}
             variant={value === range.value ? 'default' : 'outline'}
@@ -65,7 +67,7 @@ export function TimeRangeFilter({ value, onChange, onCustomRangeChange }: TimeRa
             )}
           >
             {range.value === 'custom' && <CalendarIcon className="mr-2 h-4 w-4" />}
-            {range.label}
+            {t(range.key)}
           </Button>
         ))}
       </div>

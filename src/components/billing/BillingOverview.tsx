@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import React, { useMemo, useState } from 'react';
 import {
   PieChart,
@@ -154,7 +155,10 @@ function aggregateSpendByModel(items: UsageEntryResponse[]): SpendData[] {
     .sort((a, b) => b.value - a.value);
 }
 
-function aggregateTokenTypes(items: UsageEntryResponse[]): SpendData[] {
+function aggregateTokenTypes(
+  items: UsageEntryResponse[],
+  translateTokenLabels?: (name: string) => string,
+): SpendData[] {
   const totals = items.reduce(
     (acc, entry) => {
       acc.input += entry.tokens_input ?? 0;
@@ -165,8 +169,20 @@ function aggregateTokenTypes(items: UsageEntryResponse[]): SpendData[] {
   );
 
   return [
-    { name: 'Input Tokens', value: totals.input, color: '#3b82f6' },
-    { name: 'Output Tokens', value: totals.output, color: '#8b5cf6' },
+    {
+      name: translateTokenLabels
+        ? translateTokenLabels('usage.tokenInput')
+        : 'Input Tokens',
+      value: totals.input,
+      color: '#3b82f6',
+    },
+    {
+      name: translateTokenLabels
+        ? translateTokenLabels('usage.tokenOutput')
+        : 'Output Tokens',
+      value: totals.output,
+      color: '#8b5cf6',
+    },
   ];
 }
 
@@ -178,6 +194,7 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ usageData, isLoading = false, error, timeRangeLabel = '7 Days' }: BillingOverviewProps) {
+  const { t } = useTranslation();
   const [selectedKeyId, setSelectedKeyId] = useState('all');
   const { apiKeys } = useCognitoAuth();
 
@@ -207,7 +224,11 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
 
   const spendByModel = useMemo(() => aggregateSpendByModel(filteredItems), [filteredItems]);
 
-  const tokenTypeData = useMemo(() => aggregateTokenTypes(filteredItems), [filteredItems]);
+  const tokenTypeData = useMemo(
+    () => aggregateTokenTypes(filteredItems, (k) => t(k)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filteredItems, t],
+  );
 
   const tokensByKey = useMemo(() => {
     if (!usageData?.items || !apiKeys) return [];
@@ -337,7 +358,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
             <div className="flex items-center justify-between">
               <div>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Total Usage ({timeRangeLabel})
+                  {t('usage.panelTotalUsage', { range: timeRangeLabel })}
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
                   {isLoading ? (
@@ -346,7 +367,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                     formatLargeNumber(totalTokens)
                   )}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">Total tokens processed</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('usage.panelTotalUsageSub')}</p>
               </div>
               <Database className="h-6 w-6 text-primary" />
             </div>
@@ -354,7 +375,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent>
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Distribution by Key
+                {t('usage.panelDistKey')}
               </p>
               {tokensByKey.length > 0 ? (
                 <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1">
@@ -393,7 +414,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
             <div className="flex items-center justify-between">
               <div>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Estimated Cost ({timeRangeLabel})
+                  {t('usage.panelEstCost', { range: timeRangeLabel })}
                 </CardDescription>
                 <CardTitle className="text-4xl font-bold mt-2">
                   {isLoading ? (
@@ -405,7 +426,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 <div className="flex items-center gap-4 mt-2 text-sm">
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-primary" />
-                    <span className="text-muted-foreground">Staking:</span>
+                    <span className="text-muted-foreground">{t('usage.stakingLabel')}</span>
                     {isLoading ? (
                       <Skeleton className="h-4 w-16 rounded" />
                     ) : (
@@ -414,7 +435,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-orange-500" />
-                    <span className="text-muted-foreground">Credits:</span>
+                    <span className="text-muted-foreground">{t('usage.creditsLabel')}</span>
                     {isLoading ? (
                       <Skeleton className="h-4 w-16 rounded" />
                     ) : (
@@ -429,7 +450,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
           <CardContent>
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Distribution by Key
+                {t('usage.panelDistKey')}
               </p>
               {spendByKey.length > 0 ? (
                 <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1">
@@ -465,7 +486,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         {/* Spend by API Key */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Spend by API Key</CardTitle>
+            <CardTitle className="text-lg">{t('usage.panelSpendKey')}</CardTitle>
           </CardHeader>
           <CardContent>
             {hasData && spendByKey.length > 0 ? (
@@ -522,7 +543,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         {/* Spend by Model Type */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Spend by Model Type</CardTitle>
+            <CardTitle className="text-lg">{t('usage.panelSpendModel')}</CardTitle>
           </CardHeader>
           <CardContent>
             {hasData && spendByModel.length > 0 ? (
@@ -579,7 +600,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         {/* Spend by Token Type */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Spend by Token Type</CardTitle>
+            <CardTitle className="text-lg">{t('usage.panelSpendToken')}</CardTitle>
           </CardHeader>
           <CardContent>
             {hasData && tokenTypeData.some((d) => d.value > 0) ? (
@@ -639,7 +660,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         <Filter className="h-4 w-4 text-primary" />
         <div className="flex items-center gap-2 flex-1 max-w-xs">
           <Label htmlFor="key-filter" className="text-sm font-medium whitespace-nowrap">
-            Filter by Key:
+            {t('usage.filterKey')}
           </Label>
           <Select value={selectedKeyId} onValueChange={setSelectedKeyId}>
             <SelectTrigger id="key-filter" className="h-9">
@@ -667,20 +688,20 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         <Card>
           <CardHeader className="pb-3">
             <CardDescription className="text-xs font-medium uppercase tracking-wide">
-              Spend (Daily)
+              {t('usage.panelSpendDaily')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Avg</span>
+              <span className="text-muted-foreground">{t('usage.statAvg')}</span>
               {isLoading ? <Skeleton className="h-4 w-16 rounded" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Min</span>
+              <span className="text-muted-foreground">{t('usage.statMin')}</span>
               {isLoading ? <Skeleton className="h-4 w-16 rounded" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Max</span>
+              <span className="text-muted-foreground">{t('usage.statMax')}</span>
               {isLoading ? <Skeleton className="h-4 w-16 rounded" /> : <span className="font-medium">{formatCurrency(dailyStats.cost.max)}</span>}
             </div>
           </CardContent>
@@ -689,20 +710,20 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         <Card>
           <CardHeader className="pb-3">
             <CardDescription className="text-xs font-medium uppercase tracking-wide">
-              Input Tokens (Daily)
+              {t('usage.panelInputDaily')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Avg</span>
+              <span className="text-muted-foreground">{t('usage.statAvg')}</span>
               {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Min</span>
+              <span className="text-muted-foreground">{t('usage.statMin')}</span>
               {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Max</span>
+              <span className="text-muted-foreground">{t('usage.statMax')}</span>
               {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.inputs.max)}</span>}
             </div>
           </CardContent>
@@ -711,20 +732,20 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
         <Card>
           <CardHeader className="pb-3">
             <CardDescription className="text-xs font-medium uppercase tracking-wide">
-              Output Tokens (Daily)
+              {t('usage.panelOutputDaily')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Avg</span>
+              <span className="text-muted-foreground">{t('usage.statAvg')}</span>
               {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.avg)}</span>}
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Min</span>
+              <span className="text-muted-foreground">{t('usage.statMin')}</span>
               {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.min)}</span>}
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Max</span>
+              <span className="text-muted-foreground">{t('usage.statMax')}</span>
               {isLoading ? <Skeleton className="h-4 w-14 rounded" /> : <span className="font-medium">{formatLargeNumber(dailyStats.outputs.max)}</span>}
             </div>
           </CardContent>
@@ -734,7 +755,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
       {/* Daily Spend Breakdown Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Daily Spend Breakdown</CardTitle>
+          <CardTitle>{t('usage.chartDailySpend')}</CardTitle>
           <CardDescription>Staking credits vs. paid balance over time</CardDescription>
         </CardHeader>
         <CardContent>
@@ -761,7 +782,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 <Line
                   type="monotone"
                   dataKey="staking"
-                  name="Staked Spend"
+                  name={t("usage.legendStakedSpend")}
                   stroke="#5CE3B0"
                   strokeWidth={2}
                   dot={false}
@@ -769,7 +790,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
                 <Line
                   type="monotone"
                   dataKey="credit"
-                  name="Credit Spend"
+                  name={t("usage.legendCreditSpend")}
                   stroke="#f59e0b"
                   strokeWidth={2}
                   dot={false}
@@ -791,7 +812,7 @@ export function BillingOverview({ usageData, isLoading = false, error, timeRange
       {/* Daily Token Volume Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Daily Token Volume</CardTitle>
+          <CardTitle>{t('usage.chartTokenVolume')}</CardTitle>
           <CardDescription>Input and output tokens consumed daily</CardDescription>
         </CardHeader>
         <CardContent>

@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { useTranslation } from "react-i18next";
+import { LanguageToggle } from "@/components/language-toggle";
 
 export default function SignInPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { signIn, isAuthenticated, isLoading } = useCognitoAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -81,6 +84,9 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex justify-end p-4">
+        <LanguageToggle />
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <div className="flex items-center gap-3 mb-8">
           <img
@@ -88,20 +94,20 @@ export default function SignInPage() {
             alt="Morpheus Logo"
             className="h-8 w-auto"
           />
-          <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
+          <span className="text-2xl font-semibold text-foreground">{t("app.name")}</span>
         </div>
         <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-3xl font-bold text-foreground">Sign in</CardTitle>
+            <CardTitle className="text-3xl font-bold text-foreground">{t("signin.title")}</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Sign in with your Morpheus account.
+              {t("signin.subtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-6 mt-6" onSubmit={handleSubmit}>
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <FieldLabel htmlFor="email">{t("signin.email")}</FieldLabel>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -118,12 +124,12 @@ export default function SignInPage() {
                 </Field>
                 <Field>
                   <div className="flex items-center">
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
+                    <FieldLabel htmlFor="password">{t("signin.password")}</FieldLabel>
                     <Link
                       href="/forgot-password"
                       className="ml-auto text-sm text-primary hover:underline underline-offset-2"
                     >
-                      Forgot your password?
+                      {t("signin.forgot")}
                     </Link>
                   </div>
                   <div className="relative">
@@ -153,9 +159,9 @@ export default function SignInPage() {
                     <p className="text-sm text-red-500">{error}</p>
                     {error === "User doesn't exist" && (
                       <p className="text-sm text-muted-foreground">
-                        Don&apos;t have an account?{" "}
+                        {t("signin.noAccount")}{" "}
                         <Link href="/signup" className="text-primary hover:underline font-medium">
-                          Sign up here
+                          {t("signin.signupHere")}
                         </Link>
                       </p>
                     )}
@@ -167,7 +173,7 @@ export default function SignInPage() {
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     disabled={isSubmitting}
                   >
-                    <span>Sign in</span>
+                    <span>{t("signin.submit")}</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Field>
@@ -222,22 +228,22 @@ export default function SignInPage() {
                 </Field> */}
                 <FieldDescription className="text-center space-y-2">
                   <span className="block">
-                    Don&apos;t have an account?{" "}
+                    {t("signin.noAccount")}{" "}
                     <Link href="/signup" className="text-primary hover:underline">
-                      Sign up
+                      {t("signin.signupLink")}
                     </Link>
                   </span>
                   <span className="block flex flex-wrap gap-x-2 justify-center">
                     <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-xs">
-                      Privacy Policy
+                      {t("footer.privacy")}
                     </Link>
                     <span className="text-muted-foreground">·</span>
                     <Link href="/terms" className="text-muted-foreground hover:text-foreground text-xs">
-                      Terms of Service
+                      {t("footer.terms")}
                     </Link>
                     <span className="text-muted-foreground">·</span>
                     <Link href="/cookies" className="text-muted-foreground hover:text-foreground text-xs">
-                      Cookie Policy
+                      {t("footer.cookies")}
                     </Link>
                   </span>
                 </FieldDescription>
