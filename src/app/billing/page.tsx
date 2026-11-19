@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DollarSign, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -21,6 +23,7 @@ import { setSuccessPageToastId, wasPaymentAlreadyConfirmed, clearPaymentConfirme
 const COINBASE_CONFIRMATION_MSG = 'Your USDC payment on Base is being confirmed. This typically takes under a minute.';
 
 export default function BillingPage() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -120,9 +123,9 @@ export default function BillingPage() {
       <div className="container mx-auto space-y-6 p-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Billing</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t("billing.title")}</h1>
           <p className="text-muted-foreground">
-            Manage your account balance, funding sources, and staking rewards
+            {t("billing.subtitle")}
           </p>
         </div>
 
@@ -131,9 +134,9 @@ export default function BillingPage() {
           <div className="flex items-center gap-2 rounded border border-red-500/20 bg-red-500/10 p-4">
             <AlertCircle className="h-5 w-5 text-red-500" />
             <div>
-              <p className="text-sm font-medium text-foreground">Failed to load billing data</p>
+              <p className="text-sm font-medium text-foreground">{t("billing.errorLoad")}</p>
               <p className="text-xs text-muted-foreground">
-                {balanceError.message || 'Please try refreshing the page'}
+                {balanceError.message || t('usage.errorRetry')}
               </p>
             </div>
           </div>
@@ -149,20 +152,20 @@ export default function BillingPage() {
         ) : balance ? (
           <div className="grid gap-4 md:grid-cols-2">
             <StatCard
-              title="Available Credit"
+              title={t("billing.creditAvailable")}
               value={`$${parseFloat(balance.paid?.available || '0').toFixed(2)}`}
               icon={DollarSign}
-              description="Pre-paid credits available for inference"
+              description={t("billing.creditSub")}
             />
             <StatCard
-              title="Daily API credit remaining"
+              title={t("billing.dailyRemaining")}
               value={`$${parseFloat(balance.staking?.available || '0').toFixed(2)}`}
               icon={Clock}
               description={(() => {
                 const dailyAmount = parseFloat(balance.staking?.daily_amount || '0');
                 const available = parseFloat(balance.staking?.available || '0');
                 const used = Math.max(0, dailyAmount - available);
-                return `${used.toFixed(2)} of ${dailyAmount.toFixed(2)} used today`;
+                return t('billing.dailySub', { used: used.toFixed(2), total: dailyAmount.toFixed(2) });
               })()}
             />
           </div>

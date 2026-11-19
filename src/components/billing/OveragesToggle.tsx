@@ -13,12 +13,14 @@ import {
 } from '@/components/ui/tooltip';
 import { useBillingBalance, useUpdateOverageSettings } from '@/lib/hooks/use-billing';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 /** Development/debug mode flag for verbose logging */
 const IS_DEBUG_MODE = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_API === 'true';
 export function OveragesToggle() {
   const { data: balance, isLoading, error } = useBillingBalance();
   const updateSettings = useUpdateOverageSettings();
+  const { t } = useTranslation();
 
   const handleToggle = async (checked: boolean) => {
     try {
@@ -92,7 +94,7 @@ export function OveragesToggle() {
     <Card className="border-border">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          Allow Overages
+          {t('billing.overagesTitle')}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -109,19 +111,19 @@ export function OveragesToggle() {
           </TooltipProvider>
         </CardTitle>
         <CardDescription className="text-xs">
-          Use Credit Balance when Daily Allowance runs out
+          {t('billing.overagesSub')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="allow-overages" className="text-sm font-medium">
-              {isEnabled ? 'Enabled' : 'Disabled'}
+              {isEnabled ? 'Enabled' : t('billing.overagesDisabled')}
             </Label>
             <p className="text-xs text-muted-foreground">
               {isEnabled
                 ? 'Credit Balance will be used as fallback'
-                : 'Only Daily Staking Allowance will be used'
+                : t('billing.overagesDisabledSub')
               }
             </p>
           </div>

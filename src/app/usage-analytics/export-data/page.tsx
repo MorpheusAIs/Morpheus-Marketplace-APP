@@ -19,8 +19,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useBillingUsageAll } from '@/lib/hooks/use-billing';
 import { generateUsageCSV, downloadCSV, formatLocaleDateTime } from '@/lib/utils/billing-utils';
 import type { UsageEntryResponse } from '@/types/billing';
+import { useTranslation } from 'react-i18next';
 
 export default function ExportDataPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,9 +96,9 @@ export default function ExportDataPage() {
             Back
           </Button>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground">Export Usage Data</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('usage.export', { defaultValue: 'Export Usage Data' })}</h1>
             <p className="text-muted-foreground">
-              View and export your complete API usage history
+              {t('usage.exportSubtitle', { defaultValue: 'View and export your complete API usage history' })}
             </p>
           </div>
         </div>
@@ -106,11 +108,11 @@ export default function ExportDataPage() {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle>Usage Data Export</CardTitle>
+                <CardTitle>{t('usage.exportCardTitle', { defaultValue: 'Usage Data Export' })}</CardTitle>
                 <CardDescription>
                   {isLoading
-                    ? 'Loading data...'
-                    : `${filteredData.length} records available (last 90 days)`}
+                    ? t('usage.exportLoading', { defaultValue: 'Loading data...' })
+                    : t('usage.exportRecords', { defaultValue: '{{count}} records available (last 90 days)', count: filteredData.length })}
                 </CardDescription>
               </div>
               <Button
@@ -119,7 +121,7 @@ export default function ExportDataPage() {
                 className="bg-primary hover:bg-primary text-black"
               >
                 <Download className="mr-2 h-4 w-4" />
-                Download CSV
+                {t('usage.exportDownloadCsv', { defaultValue: 'Download CSV' })}
               </Button>
             </div>
           </CardHeader>
@@ -129,7 +131,7 @@ export default function ExportDataPage() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by model, endpoint, or request ID..."
+                  placeholder={t('usage.exportSearchPlaceholder', { defaultValue: 'Search by model, endpoint, or request ID...' })}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -144,7 +146,7 @@ export default function ExportDataPage() {
             {error ? (
               <div className="flex flex-col items-center justify-center p-8 rounded border border-red-500/20 bg-red-500/5 text-red-500">
                 <AlertCircle className="h-8 w-8 mb-2" />
-                <p className="font-medium">Failed to load usage data</p>
+                <p className="font-medium">{t('usage.errorLoad')}</p>
                 <p className="text-sm mt-1 opacity-80">{error.message}</p>
                 <Button 
                   variant="outline" 
@@ -152,7 +154,7 @@ export default function ExportDataPage() {
                   className="mt-4 border-red-500/20 hover:bg-red-500/10 text-red-500"
                   onClick={() => window.location.reload()}
                 >
-                  Retry
+                  {t('usage.errorRetry', { defaultValue: 'Retry' })}
                 </Button>
               </div>
             ) : isLoading ? (
@@ -164,11 +166,11 @@ export default function ExportDataPage() {
             ) : filteredData.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded border border-dashed border-border p-12">
                 <CalendarIcon className="h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-4 text-lg font-medium text-foreground">No data found</p>
+                <p className="mt-4 text-lg font-medium text-foreground">{t('usage.exportNoData', { defaultValue: 'No data found' })}</p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {searchQuery
-                    ? 'No usage records match your search criteria.'
-                    : 'No API usage found in the last 90 days.'}
+                    ? t('usage.exportNoMatch', { defaultValue: 'No usage records match your search criteria.' })
+                    : t('usage.exportNoData90', { defaultValue: 'No API usage found in the last 90 days.' })}
                 </p>
               </div>
             ) : (
@@ -177,15 +179,15 @@ export default function ExportDataPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Model</TableHead>
-                        <TableHead>Endpoint</TableHead>
-                        <TableHead className="text-right">Input Tokens</TableHead>
-                        <TableHead className="text-right">Output Tokens</TableHead>
-                        <TableHead className="text-right">Total Tokens</TableHead>
-                        <TableHead className="text-right">Staking</TableHead>
-                        <TableHead className="text-right">Paid</TableHead>
-                        <TableHead className="text-right">Total Cost</TableHead>
+                        <TableHead>{t('usage.exportDate', { defaultValue: 'Date' })}</TableHead>
+                        <TableHead>{t('usage.exportModel', { defaultValue: 'Model' })}</TableHead>
+                        <TableHead>{t('usage.exportEndpoint', { defaultValue: 'Endpoint' })}</TableHead>
+                        <TableHead className="text-right">{t('usage.tokenInput')}</TableHead>
+                        <TableHead className="text-right">{t('usage.tokenOutput')}</TableHead>
+                        <TableHead className="text-right">{t('usage.exportTotalTokens', { defaultValue: 'Total Tokens' })}</TableHead>
+                        <TableHead className="text-right">{t('usage.exportStaking', { defaultValue: 'Staking' })}</TableHead>
+                        <TableHead className="text-right">{t('usage.exportPaid', { defaultValue: 'Paid' })}</TableHead>
+                        <TableHead className="text-right">{t('usage.totalCost')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -247,7 +249,7 @@ export default function ExportDataPage() {
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                       >
-                        Previous
+                        {t('usage.exportPrev', { defaultValue: 'Previous' })}
                       </Button>
                       <div className="flex items-center gap-1">
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -284,7 +286,7 @@ export default function ExportDataPage() {
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
                       >
-                        Next
+                        {t('usage.exportNext', { defaultValue: 'Next' })}
                       </Button>
                     </div>
                   </div>
@@ -298,30 +300,30 @@ export default function ExportDataPage() {
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Export Information</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('usage.exportInfoTitle', { defaultValue: 'Export Information' })}</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
                   <span>
-                    The table shows the last 90 days of API usage data by default.
+                    {t('usage.exportInfoDefault', { defaultValue: 'The table shows the last 90 days of API usage data by default.' })}
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
                   <span>
-                    Use the search box to filter by model name or endpoint
+                    {t('usage.exportInfoSearch', { defaultValue: 'Use the search box to filter by model name or endpoint' })}
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
                   <span>
-                    Click &ldquo;Download CSV&rdquo; to export all filtered records to a spreadsheet.
+                    {t('usage.exportInfoCsv', { defaultValue: 'Click "Download CSV" to export all filtered records to a spreadsheet.' })}
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
                   <span>
-                    Costs are split between staking credits (green) and paid balance (blue).
+                    {t('usage.exportInfoSplit', { defaultValue: 'Costs are split between staking credits (green) and paid balance (blue).' })}
                   </span>
                 </li>
               </ul>

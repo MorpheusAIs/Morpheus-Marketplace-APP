@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Table,
@@ -48,12 +49,12 @@ import {
 import type { LedgerEntryResponse, LedgerEntryTypeEnum, LedgerStatusEnum } from '@/types/billing';
 
 const ENTRY_TYPES: { value: LedgerEntryTypeEnum | 'all'; label: string }[] = [
-  { value: 'all', label: 'All Types' },
-  { value: 'purchase', label: 'Purchase' },
-  { value: 'usage_hold', label: 'Usage Hold' },
-  { value: 'usage_charge', label: 'Usage Charge' },
-  { value: 'refund', label: 'Refund' },
-  { value: 'adjustment', label: 'Adjustment' },
+  { value: 'all', label: 'txn.typeAll' },
+  { value: 'purchase', label: 'txn.typePurchase' },
+  { value: 'usage_hold', label: 'txn.typeUsageHold' },
+  { value: 'usage_charge', label: 'txn.typeUsageCharge' },
+  { value: 'refund', label: 'txn.typeRefund' },
+  { value: 'adjustment', label: 'txn.typeAdjustment' },
 ];
 
 const STATUS_TYPES: { value: LedgerStatusEnum | 'all'; label: string }[] = [
@@ -100,6 +101,7 @@ interface TransactionHistoryTableProps {
 }
 
 export function TransactionHistoryTable({ dateRange, timeRangeLabel }: TransactionHistoryTableProps) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const pageSize = 10; // MOR-350: Fixed page size of 10 aggregated records
   const [selectedType, setSelectedType] = useState<LedgerEntryTypeEnum | 'all'>('all');
@@ -317,12 +319,12 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
       <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <CardTitle>Transaction History</CardTitle>
+            <CardTitle>{t('txn.title')}</CardTitle>
             <CardDescription>
-              Daily aggregated transactions by API Key and Model (times shown in GMT).
+              {t('txn.subtitle')}
               {timeRangeLabel && (
                 <span className="block mt-1 text-xs">
-                  Time Range: {timeRangeLabel}
+                  {t('txn.timeRange', { range: timeRangeLabel })}
                   {dateRange && (
                     <span className="text-muted-foreground ml-2">
                       ({formatGMTDate(dateRange.start)} to {formatGMTDate(dateRange.end)})
@@ -332,7 +334,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
               )}
               {data?.items && (
                 <span className="block mt-1 text-xs">
-                  Showing {aggregatedData.length} aggregated rows from {data.items.length} transactions
+                  {t('txn.rows', { aggregated: aggregatedData.length, total: data.items.length })}
                 </span>
               )}
             </CardDescription>
@@ -345,7 +347,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
               disabled={paginatedData.length === 0 || isLoading}
             >
               <Download className="mr-2 h-4 w-4" />
-              {data?.items ? `Export CSV (${data.items.length} rows)` : 'Export CSV'}
+              {data?.items ? t('txn.exportCsv', { count: data.items.length }) : t('txn.exportCsv', { count: 0 })}
             </Button>
           </div>
         </div>
@@ -408,7 +410,7 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Filter by Type" />
+                      <SelectValue placeholder={t('txn.filterAllTypes')} />
                     </SelectTrigger>
                     <SelectContent>
                       {ENTRY_TYPES.map((type) => (
@@ -416,10 +418,10 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
                           key={type.value}
                           value={type.value}
                           data-analytics-action="select-transaction-type-filter"
-                          data-analytics-label={`Transaction type filter: ${type.label}`}
+                          data-analytics-label={`Transaction type filter: ${t(type.label)}`}
                           data-analytics-destination={`transaction-type-filter:${type.value}`}
                         >
-                          {type.label}
+                          {t(type.label)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -428,8 +430,8 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
               </div>
               
               <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded">
-                <strong>Note:</strong> Only <code className="bg-muted px-1 py-0.5 rounded">usage_charge</code> transactions have API Keys and Models.
-                Other transaction types (purchases, refunds, adjustments) will show "N/A" for these columns.
+                <strong>{t('txn.notePrefix')}</strong> {t('txn.noteBody')}
+
               </div>
             </div>
 
@@ -455,13 +457,13 @@ export function TransactionHistoryTable({ dateRange, timeRangeLabel }: Transacti
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date (GMT)</TableHead>
-                <TableHead>API Key</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Txn Count</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Tokens</TableHead>
+                <TableHead>{t('txn.colDate')}</TableHead>
+                <TableHead>{t('txn.colApiKey')}</TableHead>
+                <TableHead>{t('txn.colModel')}</TableHead>
+                <TableHead>{t('txn.colType')}</TableHead>
+                <TableHead>{t('txn.colTxnCount')}</TableHead>
+                <TableHead>{t('txn.colAmount')}</TableHead>
+                <TableHead>{t('txn.colTokens')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
