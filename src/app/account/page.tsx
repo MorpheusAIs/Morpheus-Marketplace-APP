@@ -71,7 +71,7 @@ export default function AccountSettingsPage() {
                 {accountIdCopied ? (
                   <>
                     <Check className="mr-2 h-4 w-4" />
-                    {t("account.copied", { defaultValue: "Copied" })}
+                    {t("account.copied")}
                   </>
                 ) : (
                   <>
@@ -105,7 +105,7 @@ export default function AccountSettingsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 py-4 border-b border-border">
               <div className="flex-1 min-w-0">
                 <Label htmlFor="password" className="text-foreground block mb-1 md:mb-0">
-                  {t("account.password", { defaultValue: "Password" })}
+                  {t("account.password")}
                 </Label>
                 <span className="text-muted-foreground text-sm md:text-base">••••••••••</span>
               </div>

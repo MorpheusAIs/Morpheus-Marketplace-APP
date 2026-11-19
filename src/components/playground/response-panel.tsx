@@ -137,7 +137,7 @@ function RawResponsePanel({
           ) : (
             <ChevronRight className="h-3.5 w-3.5" />
           )}
-                  {t("pg.rawResponse", { defaultValue: "Raw Response" })}
+                  {t("pg.rawResponse")}
                 </button>
         {open && raw && (
           <button
@@ -149,7 +149,7 @@ function RawResponsePanel({
             ) : (
               <Copy className="h-3 w-3" />
             )}
-            {copied ? t("pg.copied", { defaultValue: "Copied" }) : t("pg.copy", { defaultValue: "Copy" })}
+            {copied ? t("pg.copied") : t("pg.copy")}
           </button>
         )}
       </div>
@@ -159,7 +159,7 @@ function RawResponsePanel({
             <HighlightedCode code={raw} language="json" />
           ) : (
             <p className="text-xs text-muted-foreground">
-              {t("pg.noResponseYet", { defaultValue: "No response yet." })}
+              {t("pg.noResponseYet")}
             </p>
           )}
         </div>
@@ -219,7 +219,7 @@ export function CodeSnippetTab({
           ) : (
             <Copy className="h-3 w-3" />
           )}
-          {copied ? t("pg.copied", { defaultValue: "Copied" }) : t("pg.copy", { defaultValue: "Copy" })}
+          {copied ? t("pg.copied") : t("pg.copy")}
         </button>
       </div>
       <div className="flex-1 min-h-0 bg-card border border-border rounded p-3 overflow-auto">
@@ -230,9 +230,7 @@ export function CodeSnippetTab({
           />
         ) : (
           <p className="text-xs text-muted-foreground">
-            {t("pg.configureRequest", {
-              defaultValue: "Configure a request to generate code snippets.",
-            })}
+            {t("pg.configureRequest")}
           </p>
         )}
       </div>
@@ -292,7 +290,7 @@ export function ResponsePanel({
       {/* Header */}
       <div className="flex items-center px-4 py-3 border-b border-border shrink-0">
         <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
-          {t("pg.response", { defaultValue: "Response" })}
+          {t("pg.response")}
         </span>
       </div>
 
@@ -304,13 +302,13 @@ export function ResponsePanel({
               value="response"
               className="h-6 px-3 text-xs rounded data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
-              {t("pg.tabResponse", { defaultValue: "Response" })}
+              {t("pg.tabResponse")}
             </TabsTrigger>
             <TabsTrigger
               value="code"
               className="h-6 px-3 text-xs rounded data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
-              {t("pg.tabCode", { defaultValue: "Code" })}
+              {t("pg.tabCode")}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -325,14 +323,14 @@ export function ResponsePanel({
             {/* Metrics grid */}
             <div className="grid grid-cols-2 gap-2">
               <MetricCell
-                label={t("pg.latency", { defaultValue: "Latency" })}
+                label={t("pg.latency")}
                 value={metrics.latencyMs !== null ? metrics.latencyMs : null}
                 unit="ms"
               />
-              <MetricCell label={t("pg.tokensIn", { defaultValue: "Tokens In" })} value={metrics.tokensIn} />
-              <MetricCell label={t("pg.tokensOut", { defaultValue: "Tokens Out" })} value={metrics.tokensOut} />
+              <MetricCell label={t("pg.tokensIn")} value={metrics.tokensIn} />
+              <MetricCell label={t("pg.tokensOut")} value={metrics.tokensOut} />
               <MetricCell
-                label={t("pg.cost", { defaultValue: "Cost" })}
+                label={t("pg.cost")}
                 value={
                   metrics.costUsd !== null
                     ? `$${metrics.costUsd.toFixed(6)}`
@@ -354,16 +352,16 @@ export function ResponsePanel({
                       />
                     ))}
                   </span>
-                  {t("pg.waiting", { defaultValue: "Waiting for response…" })}
+                  {t("pg.waiting")}
                 </div>
               ) : isErrorState ? (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{t("pg.requestFailed", { defaultValue: "request failed" })}</span>
+                    <span>{t("pg.requestFailed")}</span>
                     {(apiError?.type || finishReason) && (
                       <>
                         <span className="text-muted-foreground/40">·</span>
-                        <span>{t("pg.errorLabel", { defaultValue: "error:" })}</span>
+                        <span>{t("pg.errorLabel")}</span>
                         <span
                           className={cn(
                             "px-1.5 py-0.5 rounded border text-[11px] font-mono",
@@ -378,7 +376,7 @@ export function ResponsePanel({
                   {apiError?.message && (
                     <div className="rounded border border-destructive/30 bg-destructive/10 p-3">
                       <p className="text-xs font-semibold tracking-widest uppercase text-destructive mb-1.5">
-                        {t("pg.apiError", { defaultValue: "API Error" })}
+                        {t("pg.apiError")}
                       </p>
                       <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
                         {apiError.message}
@@ -388,7 +386,7 @@ export function ResponsePanel({
                 </div>
               ) : finishReason ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{t("pg.streamComplete", { defaultValue: "stream complete" })}</span>
+                  <span>{t("pg.streamComplete")}</span>
                   <span className="text-muted-foreground/40">·</span>
                   <span>finish_reason:</span>
                   <span
@@ -402,9 +400,7 @@ export function ResponsePanel({
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  {t("pg.empty", {
-                    defaultValue: "Run a request to see the response here.",
-                  })}
+                  {t("pg.empty")}
                 </p>
               )}
             </div>

@@ -71,13 +71,10 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
       <AlertDialogContent className="bg-card text-card-foreground rounded p-6">
         <AlertDialogHeader className="space-y-4 mb-6">
           <AlertDialogTitle className="text-2xl font-bold text-red-500">
-            {t("account.deleteConfirmTitle", { defaultValue: "Delete Account" })}
+            {t("account.deleteConfirmTitle")}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">
-            {t("account.deleteConfirmBody", {
-              defaultValue:
-                "Are you sure you want to permanently delete your account? This action can not be undone.",
-            })}
+            {t("account.deleteConfirmBody")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="mt-6 mb-8 space-y-2">
@@ -101,7 +98,7 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
         <AlertDialogFooter className="flex justify-end gap-3 mt-6">
           <AlertDialogCancel asChild>
             <Button variant="ghost" className="text-muted-foreground hover:bg-muted">
-              {t("account.cancel", { defaultValue: "Cancel" })}
+              {t("account.cancel")}
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
@@ -112,8 +109,8 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
               disabled={!isConfirmed || isDeleting}
             >
               {isDeleting
-                ? t("account.deleting", { defaultValue: "Deleting..." })
-                : t("account.deleteButton", { defaultValue: "Delete Account" })}
+                ? t("account.deleting")
+                : t("account.deleteButton")}
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -173,18 +173,16 @@ function ConfirmRegistrationContent() {
         <Card className="w-full max-w-md p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">
-              {t("confirm.title", { defaultValue: "Confirm Your Account" })}
+              {t("confirm.title")}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              {t("confirm.subtitle", {
-                defaultValue: "Enter the confirmation code sent to your email",
-              })}
+              {t("confirm.subtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">{t("confirm.email", { defaultValue: "Email" })}</Label>
+                <Label htmlFor="email">{t("confirm.email")}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -201,7 +199,7 @@ function ConfirmRegistrationContent() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmation-code">
-                  {t("confirm.code", { defaultValue: "Confirmation Code" })}
+                  {t("confirm.code")}
                 </Label>
                 <Input
                   id="confirmation-code"
@@ -218,9 +216,7 @@ function ConfirmRegistrationContent() {
                   maxLength={6}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t("confirm.codeHint", {
-                    defaultValue: "Check your email for the 6-digit confirmation code",
-                  })}
+                  {t("confirm.codeHint")}
                 </p>
               </div>
               {error && (
@@ -232,7 +228,7 @@ function ConfirmRegistrationContent() {
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center space-x-2"
                   disabled={isSubmitting || isResending}
                 >
-                  <span>{t("confirm.submit", { defaultValue: "Confirm Account" })}</span>
+                  <span>{t("confirm.submit")}</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
@@ -245,17 +241,17 @@ function ConfirmRegistrationContent() {
                   <RefreshCw className={`h-4 w-4 ${isResending ? 'animate-spin' : ''}`} />
                   <span>
                     {isResending
-                      ? t("confirm.resending", { defaultValue: "Resending..." })
-                      : t("confirm.resend", { defaultValue: "Resend Code" })}
+                      ? t("confirm.resending")
+                      : t("confirm.resend")}
                   </span>
                 </Button>
               </div>
             </form>
           </CardContent>
           <CardFooter className="text-center justify-center text-sm text-muted-foreground">
-            {t("confirm.noCode", { defaultValue: "Didn't receive the code?" })}{" "}
+            {t("confirm.noCode")}{" "}
             <Link href="/signup" className="text-primary hover:underline ml-1">
-              {t("confirm.signUpAgain", { defaultValue: "Sign up again" })}
+              {t("confirm.signUpAgain")}
             </Link>
           </CardFooter>
         </Card>
@@ -272,7 +268,7 @@ export default function ConfirmRegistrationPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">
-            {t("confirm.loading", { defaultValue: "Loading..." })}
+            {t("confirm.loading")}
           </p>
         </div>
       </div>

@@ -178,21 +178,13 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             {step === "enter-email"
-              ? t("account.changeEmailTitle", { defaultValue: "Change Email" })
-              : t("account.changeEmailVerifyTitle", {
-                  defaultValue: "Verify New Email",
-                })}
+              ? t("account.changeEmailTitle")
+              : t("account.changeEmailVerifyTitle")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {step === "enter-email"
-              ? t("account.changeEmailDesc", {
-                  defaultValue:
-                    "Enter your new email address. You will need to verify it with a code.",
-                })
-              : t("account.changeEmailVerifyDesc", {
-                  defaultValue: "Enter the 6-digit code sent to {{email}}",
-                  email: newEmail,
-                })}
+              ? t("account.changeEmailDesc")
+              : t("account.changeEmailVerifyDesc", { email: newEmail })}
           </DialogDescription>
         </DialogHeader>
         
@@ -200,7 +192,7 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="new-email" className="text-right col-span-4 sm:col-span-1">
-                {t("account.changeEmailNew", { defaultValue: "New Email" })}
+                {t("account.changeEmailNew")}
               </Label>
               <div className="col-span-4 sm:col-span-3">
                 <Input
@@ -227,7 +219,7 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="verification-code" className="text-right col-span-4 sm:col-span-1">
-                {t("account.changeEmailCode", { defaultValue: "Code" })}
+                {t("account.changeEmailCode")}
               </Label>
               <div className="col-span-4 sm:col-span-3">
                 <Input
@@ -251,9 +243,7 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
                 />
                 {errorMessage && <p className="text-sm text-red-500 mt-1">{errorMessage}</p>}
                 <p className="text-xs text-muted-foreground mt-2">
-                  {t("account.changeEmailCheckInbox", {
-                    defaultValue: "Check your new email inbox for the verification code",
-                  })}
+                  {t("account.changeEmailCheckInbox")}
                 </p>
               </div>
             </div>
@@ -263,8 +253,8 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
             {step === "verify-code"
-              ? t("account.back", { defaultValue: "Back" })
-              : t("account.cancel", { defaultValue: "Cancel" })}
+              ? t("account.back")
+              : t("account.cancel")}
           </Button>
           <Button
             type="submit"
@@ -273,10 +263,10 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
             disabled={isLoading}
           >
             {isLoading
-              ? t("account.processing", { defaultValue: "Processing..." })
+              ? t("account.processing")
               : step === "enter-email"
-                ? t("account.changeEmailSendCode", { defaultValue: "Send Code" })
-                : t("account.changeEmailVerify", { defaultValue: "Verify" })}
+                ? t("account.changeEmailSendCode")
+                : t("account.changeEmailVerify")}
           </Button>
         </DialogFooter>
       </DialogContent>

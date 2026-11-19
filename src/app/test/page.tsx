@@ -836,13 +836,10 @@ export default function TestPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
-                {t("pg.apiKeyRequired", { defaultValue: "API Key Required" })}
+                {t("pg.apiKeyRequired")}
               </CardTitle>
               <CardDescription>
-                {t("pg.apiKeyRequiredDesc", {
-                  defaultValue:
-                    "A Default API key must be set and verified before using the Playground. Go to API Keys to set your Default API Key.",
-                })}
+                {t("pg.apiKeyRequiredDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -852,7 +849,7 @@ export default function TestPage() {
                 data-analytics-action="go-to-api-keys"
                 data-analytics-destination="/api-keys"
               >
-                {t("pg.goToApiKeys", { defaultValue: "Go to API Keys" })}
+                {t("pg.goToApiKeys")}
               </Button>
             </CardContent>
           </Card>
@@ -894,7 +891,7 @@ export default function TestPage() {
                 disabled={loadingModels}
               >
                 <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs font-mono text-foreground shadow-none focus:ring-0 focus:outline-none min-w-[80px] max-w-[200px] [&>svg]:h-3 [&>svg]:w-3 [&>svg]:ml-1 [&>svg]:opacity-50">
-                  <SelectValue placeholder={t("pg.selectModel", { defaultValue: "Select model" })} />
+                  <SelectValue placeholder={t("pg.selectModel")} />
                 </SelectTrigger>
                 <SelectContent>
                   {loadingModels ? (
@@ -903,10 +900,10 @@ export default function TestPage() {
                       data-analytics-action="select-test-model-loading"
                       data-analytics-destination="test-model:loading"
                     >
-                      {t("pg.loadingModels", { defaultValue: "Loading…" })}
+                      {t("pg.loadingModels")}
                     </SelectItem>
                   ) : filteredModels.length === 0 ? (
-                    <SelectItem value="none" data-analytics-action="select-test-model-empty" data-analytics-destination="test-model:none">{t("pg.noModels", { defaultValue: "No models available" })}</SelectItem>
+                    <SelectItem value="none" data-analytics-action="select-test-model-empty" data-analytics-destination="test-model:none">{t("pg.noModels")}</SelectItem>
                   ) : (
                     filteredModels.map((model) => (
                       <SelectItem
@@ -945,7 +942,7 @@ export default function TestPage() {
             onClick={() => setParamsOpen((o) => !o)}
             className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
           >
-            <span>{t("pg.parameters", { defaultValue: "Parameters" })}</span>
+            <span>{t("pg.parameters")}</span>
             {paramsOpen ? (
               <ChevronUp className="h-3.5 w-3.5" />
             ) : (
@@ -1044,7 +1041,7 @@ export default function TestPage() {
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">
-                  {t("pg.addMessage", { defaultValue: "Add message" })}
+                  {t("pg.addMessage")}
                 </span>
               </button>
 

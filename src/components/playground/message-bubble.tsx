@@ -101,14 +101,6 @@ export function MessageBubble({
               : message.role === "user"
               ? "pg.roleUser"
               : "pg.roleAssistant",
-            {
-              defaultValue:
-                message.role === "system"
-                  ? "SYSTEM"
-                  : message.role === "user"
-                  ? "USER"
-                  : "ASSISTANT",
-            }
           )}
         </span>
 
@@ -124,7 +116,7 @@ export function MessageBubble({
           <button
             onClick={onRemove}
             className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-            aria-label={t("pg.removeMessage", { defaultValue: "Remove message" })}
+            aria-label={t("pg.removeMessage")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -145,12 +137,10 @@ export function MessageBubble({
           onChange={(e) => onContentChange(e.target.value)}
           placeholder={
             message.role === "system"
-              ? t("pg.systemPlaceholder", { defaultValue: "System prompt…" })
+              ? t("pg.systemPlaceholder")
               : message.role === "user"
-              ? t("pg.userPlaceholder", { defaultValue: "User message…" })
-              : t("pg.assistantPlaceholder", {
-                  defaultValue: "Assistant response…",
-                })
+              ? t("pg.userPlaceholder")
+              : t("pg.assistantPlaceholder")
           }
           rows={2}
           className={cn(
@@ -177,7 +167,7 @@ export function MessageBubble({
           {onRegenerate && (
             <ActionButton
               icon={<RefreshCw className="h-3 w-3" />}
-              label={t("pg.regenerate", { defaultValue: "Regenerate" })}
+              label={t("pg.regenerate")}
               onClick={onRegenerate}
             />
           )}
@@ -192,8 +182,8 @@ export function MessageBubble({
               }
               label={
                 isCopied
-                  ? t("pg.copied", { defaultValue: "Copied" })
-                  : t("pg.copy", { defaultValue: "Copy" })
+                  ? t("pg.copied")
+                  : t("pg.copy")
               }
               onClick={onCopy}
             />
@@ -201,7 +191,7 @@ export function MessageBubble({
           {onBranch && (
             <ActionButton
               icon={<GitBranch className="h-3 w-3" />}
-              label={t("pg.branch", { defaultValue: "Branch" })}
+              label={t("pg.branch")}
               onClick={onBranch}
             />
           )}

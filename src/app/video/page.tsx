@@ -809,7 +809,7 @@ export default function VideoPage() {
                       promptTooLong ? "text-destructive" : "text-muted-foreground"
                     )}
                   >
-                    {t("video.promptCounter", { count: promptBytes, max: MAX_PROMPT_BYTES })}
+                    {t("video.promptCounter", {count: promptBytes, max: MAX_PROMPT_BYTES})}
                   </span>
                 </div>
                 <Textarea
@@ -824,7 +824,6 @@ export default function VideoPage() {
                 {promptTooLong && (
                   <p className="text-xs text-destructive">
                     {t("video.promptTooLong", {
-                      defaultValue: "The prompt is longer than {{max}} bytes.",
                       max: MAX_PROMPT_BYTES,
                     })}
                   </p>
@@ -962,7 +961,7 @@ export default function VideoPage() {
               >
                 {submitting && <Loader2 className="animate-spin" />}
                 {submitting
-                  ? t("video.generating", { defaultValue: "Generating…" })
+                  ? t("video.generating")
                   : t("video.generate")}
               </Button>
             </CardContent>
