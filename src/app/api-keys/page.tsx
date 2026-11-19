@@ -96,6 +96,13 @@ function formatCurrency(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
+const FILTER_TAB_KEYS = {
+  all: "keys.filterAll",
+  active: "keys.filterActive",
+  stale: "keys.filterStale",
+  revoked: "keys.filterRevoked",
+} as const;
+
 function ApiKeysPageContent() {
   const { t } = useTranslation();
   const { apiKeys, refreshApiKeys, defaultApiKey, getValidToken } = useCognitoAuth();
@@ -467,7 +474,7 @@ function ApiKeysPageContent() {
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {t(tb === "all" ? "keys.filterAll" : tb === "active" ? "keys.filterActive" : tb === "stale" ? "keys.filterStale" : "keys.filterRevoked")}
+                    {t(FILTER_TAB_KEYS[tb])}
                     {showCount && <span className="ml-1 text-muted-foreground/70">· {c}</span>}
                   </button>
                 );

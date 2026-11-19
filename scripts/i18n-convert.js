@@ -3,9 +3,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const EN_PATH = '/tmp/mor-app-i18n/src/i18n/locales/en.json';
-const MD_DIR = '/Users/bernardo/.openclaw/workspace/memory/projects/morpheus/appmor-i18n';
-const OUT_DIR = '/tmp/mor-app-i18n/src/i18n/locales';
+// Portable usage: node scripts/i18n-convert.js [MD_DIR] [OUT_DIR]
+// MD_DIR holds the per-locale Markdown catalogs (en.md, ja.md, ...).
+// OUT_DIR is the locale JSON output directory (must contain en.json).
+const OUT_DIR = process.argv[3] || path.join(process.cwd(), 'src/i18n/locales');
+const MD_DIR = process.argv[2] || path.join(process.cwd(), 'i18n-md');
+const EN_PATH = path.join(OUT_DIR, 'en.json');
 const LOCALES = ['ja','pt-BR','de-DE','fr-FR','es','ko','hi','tr','it','pl','ru','zh-Hans'];
 
 const en = JSON.parse(fs.readFileSync(EN_PATH, 'utf8'));
@@ -162,7 +165,7 @@ function buildNested(flat) {
   return obj;
 }
 
-fs.writeFileSync('/tmp/i18n-report.json', JSON.stringify({ perLocaleMissing, perLocaleUntranslatedRows }, null, 2));
+fs.writeFileSync(path.join(process.cwd(), 'i18n-convert-report.json'), JSON.stringify({ perLocaleMissing, perLocaleUntranslatedRows }, null, 2));
 console.log('Wrote', LOCALES.length, 'files.');
 for (const loc of LOCALES) {
   console.log(loc, 'fallbackToEn:', perLocaleMissing[loc].length, 'sameAsEn:', perLocaleUntranslatedRows[loc].length);

@@ -288,7 +288,8 @@
     "pricingRateLimits": "Limites de requisições",
     "pricingSee": "Ver preços",
     "errorLoad": "Falha ao carregar dados de faturamento",
-    "overagesEnabled": "Ativado"
+    "overagesEnabled": "Ativado",
+    "errorRetry": "Tente atualizar a página"
   },
   "account": {
     "title": "Configurações da conta",

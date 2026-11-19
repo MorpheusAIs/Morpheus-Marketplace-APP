@@ -288,7 +288,8 @@
     "pricingRateLimits": "Ratenlimits",
     "pricingSee": "Preise ansehen",
     "errorLoad": "Abrechnungsdaten konnten nicht geladen werden",
-    "overagesEnabled": "Aktiviert"
+    "overagesEnabled": "Aktiviert",
+    "errorRetry": "Bitte versuche, die Seite neu zu laden"
   },
   "account": {
     "title": "Kontoeinstellungen",

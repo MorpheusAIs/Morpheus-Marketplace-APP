@@ -288,7 +288,8 @@
     "pricingRateLimits": "レート制限",
     "pricingSee": "料金を見る",
     "errorLoad": "請求データの読み込みに失敗しました",
-    "overagesEnabled": "有効"
+    "overagesEnabled": "有効",
+    "errorRetry": "ページを再読み込みしてください"
   },
   "account": {
     "title": "アカウント設定",

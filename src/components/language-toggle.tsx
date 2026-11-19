@@ -27,10 +27,14 @@ export function LanguageToggle() {
   const ready = useLocaleReady();
 
   useEffect(() => {
-    if (ready && !window.localStorage.getItem("mor.locale")) {
+    if (!ready) return;
+    const stored = window.localStorage.getItem("mor.locale");
+    if (stored === null) {
       setLocale(getStoredLocale());
-    } else if (ready) {
-      setLocale(window.localStorage.getItem("mor.locale") as LocaleCode);
+    } else {
+      // Defense-in-depth: only accept known locale codes from storage.
+      const allowed = LOCALES.some((l) => l.code === stored);
+      setLocale(allowed ? (stored as LocaleCode) : getStoredLocale());
     }
   }, [ready]);
 

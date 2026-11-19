@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DIR = '/tmp/mor-app-i18n/src/i18n/locales';
+const DIR = process.argv[2] || path.join(process.cwd(), 'src/i18n/locales');
 const LOCALES = ['ja','pt-BR','de-DE','fr-FR','es','ko','hi','tr','it','pl','ru','zh-Hans'];
 
 const en = JSON.parse(fs.readFileSync(path.join(DIR, 'en.json'), 'utf8'));

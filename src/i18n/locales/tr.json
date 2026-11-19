@@ -288,7 +288,8 @@
     "pricingRateLimits": "Hız Sınırları",
     "pricingSee": "Fiyatları Gör",
     "errorLoad": "Faturalama verileri yüklenemedi",
-    "overagesEnabled": "Etkin"
+    "overagesEnabled": "Etkin",
+    "errorRetry": "Sayfayı yenilemeyi deneyin"
   },
   "account": {
     "title": "Hesap Ayarları",

@@ -288,7 +288,8 @@
     "pricingRateLimits": "Лимиты запросов",
     "pricingSee": "Посмотреть цены",
     "errorLoad": "Не удалось загрузить данные об оплате",
-    "overagesEnabled": "Включено"
+    "overagesEnabled": "Включено",
+    "errorRetry": "Попробуйте обновить страницу"
   },
   "account": {
     "title": "Настройки аккаунта",

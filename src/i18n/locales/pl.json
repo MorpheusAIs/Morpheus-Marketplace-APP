@@ -288,7 +288,8 @@
     "pricingRateLimits": "Limity zapytań",
     "pricingSee": "Zobacz cennik",
     "errorLoad": "Nie udało się wczytać danych rozliczeniowych",
-    "overagesEnabled": "Włączone"
+    "overagesEnabled": "Włączone",
+    "errorRetry": "Spróbuj odświeżyć stronę"
   },
   "account": {
     "title": "Ustawienia konta",

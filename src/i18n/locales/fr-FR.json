@@ -288,7 +288,8 @@
     "pricingRateLimits": "Limites de débit",
     "pricingSee": "Voir les tarifs",
     "errorLoad": "Échec du chargement des données de facturation",
-    "overagesEnabled": "Activé"
+    "overagesEnabled": "Activé",
+    "errorRetry": "Veuillez essayer de rafraîchir la page"
   },
   "account": {
     "title": "Paramètres du compte",

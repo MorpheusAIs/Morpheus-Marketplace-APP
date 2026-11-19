@@ -288,7 +288,8 @@
     "pricingRateLimits": "दर-सीमाएँ",
     "pricingSee": "मूल्य देखें",
     "errorLoad": "बिलिंग डेटा लोड करने में विफल",
-    "overagesEnabled": "सक्षम"
+    "overagesEnabled": "सक्षम",
+    "errorRetry": "कृपया पेज रीफ़्रेश करने का प्रयास करें"
   },
   "account": {
     "title": "खाता सेटिंग्स",

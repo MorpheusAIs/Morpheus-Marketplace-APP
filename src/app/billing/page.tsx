@@ -136,7 +136,7 @@ export default function BillingPage() {
             <div>
               <p className="text-sm font-medium text-foreground">{t("billing.errorLoad")}</p>
               <p className="text-xs text-muted-foreground">
-                {balanceError.message || t('usage.errorRetry')}
+                {balanceError.message || t('billing.errorRetry')}
               </p>
             </div>
           </div>

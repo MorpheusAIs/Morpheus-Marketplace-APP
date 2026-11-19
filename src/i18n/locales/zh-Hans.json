@@ -288,7 +288,8 @@
     "pricingRateLimits": "速率限制",
     "pricingSee": "查看定价",
     "errorLoad": "加载账单数据失败",
-    "overagesEnabled": "已启用"
+    "overagesEnabled": "已启用",
+    "errorRetry": "请尝试刷新页面"
   },
   "account": {
     "title": "账户设置",
