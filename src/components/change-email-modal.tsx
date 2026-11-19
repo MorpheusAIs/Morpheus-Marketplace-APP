@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { useNotification } from "@/lib/NotificationContext";
+import { useTranslation } from "react-i18next";
 import { 
   UpdateUserAttributesCommand,
   VerifyUserAttributeCommand,
@@ -44,6 +45,7 @@ type Step = "enter-email" | "verify-code";
 export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalProps) {
   const { user, accessToken, refreshUserAttributes } = useCognitoAuth();
   const { success, error } = useNotification();
+  const { t } = useTranslation();
   const [newEmail, setNewEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [step, setStep] = useState<Step>("enter-email");
@@ -175,12 +177,22 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
-            {step === "enter-email" ? "Change Email" : "Verify New Email"}
+            {step === "enter-email"
+              ? t("account.changeEmailTitle", { defaultValue: "Change Email" })
+              : t("account.changeEmailVerifyTitle", {
+                  defaultValue: "Verify New Email",
+                })}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {step === "enter-email"
-              ? "Enter your new email address. You will need to verify it with a code."
-              : `Enter the 6-digit code sent to ${newEmail}`}
+              ? t("account.changeEmailDesc", {
+                  defaultValue:
+                    "Enter your new email address. You will need to verify it with a code.",
+                })
+              : t("account.changeEmailVerifyDesc", {
+                  defaultValue: "Enter the 6-digit code sent to {{email}}",
+                  email: newEmail,
+                })}
           </DialogDescription>
         </DialogHeader>
         
@@ -188,7 +200,7 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="new-email" className="text-right col-span-4 sm:col-span-1">
-                New Email
+                {t("account.changeEmailNew", { defaultValue: "New Email" })}
               </Label>
               <div className="col-span-4 sm:col-span-3">
                 <Input
@@ -215,7 +227,7 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="verification-code" className="text-right col-span-4 sm:col-span-1">
-                Code
+                {t("account.changeEmailCode", { defaultValue: "Code" })}
               </Label>
               <div className="col-span-4 sm:col-span-3">
                 <Input
@@ -239,7 +251,9 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
                 />
                 {errorMessage && <p className="text-sm text-red-500 mt-1">{errorMessage}</p>}
                 <p className="text-xs text-muted-foreground mt-2">
-                  Check your new email inbox for the verification code
+                  {t("account.changeEmailCheckInbox", {
+                    defaultValue: "Check your new email inbox for the verification code",
+                  })}
                 </p>
               </div>
             </div>
@@ -248,7 +262,9 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
 
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
-            {step === "verify-code" ? "Back" : "Cancel"}
+            {step === "verify-code"
+              ? t("account.back", { defaultValue: "Back" })
+              : t("account.cancel", { defaultValue: "Cancel" })}
           </Button>
           <Button
             type="submit"
@@ -256,7 +272,11 @@ export function ChangeEmailModal({ open, onOpenChangeAction }: ChangeEmailModalP
             onClick={step === "enter-email" ? handleRequestEmailChange : handleVerifyCode}
             disabled={isLoading}
           >
-            {isLoading ? "Processing..." : step === "enter-email" ? "Send Code" : "Verify"}
+            {isLoading
+              ? t("account.processing", { defaultValue: "Processing..." })
+              : step === "enter-email"
+                ? t("account.changeEmailSendCode", { defaultValue: "Send Code" })
+                : t("account.changeEmailVerify", { defaultValue: "Verify" })}
           </Button>
         </DialogFooter>
       </DialogContent>

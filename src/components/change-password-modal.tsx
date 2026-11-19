@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { useNotification } from "@/lib/NotificationContext";
+import { useTranslation } from "react-i18next";
 import {
   ChangePasswordCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
@@ -40,6 +41,7 @@ interface ChangePasswordModalProps {
 export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePasswordModalProps) {
   const { accessToken } = useCognitoAuth();
   const { success, error } = useNotification();
+  const { t } = useTranslation();
   const [previousPassword, setPreviousPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -96,21 +98,23 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
       <DialogContent className="w-full max-w-md p-6 bg-card text-card-foreground rounded shadow-lg border-none">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-2xl font-bold text-foreground">
-            Change Password
+            {t("account.changePasswordTitle", { defaultValue: "Change Password" })}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
-            Enter your current password to switch to a new password
+            {t("account.changePasswordDesc", {
+              defaultValue: "Enter your current password to switch to a new password",
+            })}
           </DialogDescription>
         </DialogHeader>
         <form className="mt-6 space-y-5" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           {/* Previous Password */}
           <div className="space-y-2">
-            <Label htmlFor="previous-password">Previous Password</Label>
+            <Label htmlFor="previous-password">{t("account.changePasswordCurrent", { defaultValue: "Previous Password" })}</Label>
             <div className="relative">
               <Input
                 id="previous-password"
                 type={showPreviousPassword ? "text" : "password"}
-                placeholder="Enter password"
+                placeholder={t("account.passwordPlaceholder", { defaultValue: "Enter password" })}
                 value={previousPassword}
                 onChange={(e) => {
                   setPreviousPassword(e.target.value);
@@ -137,7 +141,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
 
           {/* New Password */}
           <div className="space-y-2">
-            <Label htmlFor="new-password">New Password</Label>
+            <Label htmlFor="new-password">{t("account.changePasswordNew", { defaultValue: "New Password" })}</Label>
             <div className="relative">
               <Input
                 id="new-password"
@@ -169,7 +173,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
 
           {/* Confirm New Password */}
           <div className="space-y-2">
-            <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+            <Label htmlFor="confirm-new-password">{t("account.changePasswordConfirm", { defaultValue: "Confirm New Password" })}</Label>
             <div className="relative">
               <Input
                 id="confirm-new-password"
@@ -209,7 +213,7 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
               className="px-6 py-2"
               onClick={() => onOpenChangeAction(false)}
             >
-              Cancel
+              {t("account.cancel", { defaultValue: "Cancel" })}
             </Button>
             <Button
               type="submit"
@@ -217,7 +221,9 @@ export function ChangePasswordModal({ open, onOpenChangeAction }: ChangePassword
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2"
               disabled={isLoading}
             >
-              {isLoading ? "Changing..." : "Change Password"}
+              {isLoading
+                ? t("account.changing", { defaultValue: "Changing..." })
+                : t("account.changePasswordTitle", { defaultValue: "Change Password" })}
             </Button>
           </div>
         </form>

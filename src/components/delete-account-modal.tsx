@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { useNotification } from "@/lib/NotificationContext";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import { apiDelete } from "@/lib/api/apiService";
 import { API_URLS } from "@/lib/api/config";
@@ -28,6 +29,7 @@ interface DeleteAccountModalProps {
 export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalProps) {
   const { logout, accessToken } = useCognitoAuth();
   const { success, error } = useNotification();
+  const { t } = useTranslation();
   const router = useRouter();
   const [confirmationText, setConfirmationText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -69,16 +71,18 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
       <AlertDialogContent className="bg-card text-card-foreground rounded p-6">
         <AlertDialogHeader className="space-y-4 mb-6">
           <AlertDialogTitle className="text-2xl font-bold text-red-500">
-            Delete Account
+            {t("account.deleteConfirmTitle", { defaultValue: "Delete Account" })}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground text-sm leading-relaxed">
-            Are you sure you want to permanently delete your account? This action can not be
-            undone.
+            {t("account.deleteConfirmBody", {
+              defaultValue:
+                "Are you sure you want to permanently delete your account? This action can not be undone.",
+            })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="mt-6 mb-8 space-y-2">
           <Label htmlFor="delete-confirmation" className="text-foreground text-sm font-medium">
-            Type "Delete"
+            {t("account.deleteConfirmType", { defaultValue: 'Type "Delete"' })}
           </Label>
           <Input
             id="delete-confirmation"
@@ -97,7 +101,7 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
         <AlertDialogFooter className="flex justify-end gap-3 mt-6">
           <AlertDialogCancel asChild>
             <Button variant="ghost" className="text-muted-foreground hover:bg-muted">
-              Cancel
+              {t("account.cancel", { defaultValue: "Cancel" })}
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
@@ -107,7 +111,9 @@ export function DeleteAccountModal({ open, onOpenChange }: DeleteAccountModalPro
               onClick={handleDelete}
               disabled={!isConfirmed || isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete Account"}
+              {isDeleting
+                ? t("account.deleting", { defaultValue: "Deleting..." })
+                : t("account.deleteButton", { defaultValue: "Delete Account" })}
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>

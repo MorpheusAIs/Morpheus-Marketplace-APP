@@ -8,10 +8,10 @@ import { Pencil, Trash2, Copy, Check } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
 import { useNotification } from "@/lib/NotificationContext";
+import { useTranslation } from "react-i18next";
 import { ChangeEmailModal } from "@/components/change-email-modal";
 import { ChangePasswordModal } from "@/components/change-password-modal";
 import { DeleteAccountModal } from "@/components/delete-account-modal";
-import { useTranslation } from "react-i18next";
 
 export default function AccountSettingsPage() {
   const { t } = useTranslation();
@@ -71,7 +71,7 @@ export default function AccountSettingsPage() {
                 {accountIdCopied ? (
                   <>
                     <Check className="mr-2 h-4 w-4" />
-                    Copied
+                    {t("account.copied", { defaultValue: "Copied" })}
                   </>
                 ) : (
                   <>
@@ -105,7 +105,7 @@ export default function AccountSettingsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 py-4 border-b border-border">
               <div className="flex-1 min-w-0">
                 <Label htmlFor="password" className="text-foreground block mb-1 md:mb-0">
-                  Password
+                  {t("account.password", { defaultValue: "Password" })}
                 </Label>
                 <span className="text-muted-foreground text-sm md:text-base">••••••••••</span>
               </div>

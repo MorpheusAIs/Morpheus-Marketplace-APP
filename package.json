@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "node scripts/i18n-validate.js && next build",
     "start": "next start",
     "lint": "next lint",
-    "audit": "pnpm audit --audit-level=high"
+    "audit": "pnpm audit --audit-level=high",
+    "i18n:validate": "node scripts/i18n-validate.js"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.928.0",

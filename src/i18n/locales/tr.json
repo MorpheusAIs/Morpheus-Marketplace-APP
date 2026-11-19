@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Morpheus Inference API (Morpheus Çıkarım API'si)",
-    "brand": "Morpheus"
+    "brand": "Morpheus",
+    "brandSidebar": "Çıkarım API"
   },
   "meta": {
     "titleDefault": "Morpheus Inference API Admin",
@@ -22,7 +23,8 @@
     "errorFillAll": "Tüm alanları doldurun",
     "errorInvalidEmail": "Geçerli bir e-posta adresi girin",
     "noAccount": "Hesabınız yok mu?",
-    "signupLink": "Kayıt ol"
+    "signupLink": "Kayıt ol",
+    "signupHere": "Buradan kayıt ol"
   },
   "signup": {
     "title": "Kayıt ol",
@@ -51,7 +53,7 @@
     "errorCertify": "Hesap oluşturmak için en az 18 yaşında olduğunuzu onaylamanız gerekir",
     "errorAcceptTos": "Hesap oluşturmak için Hizmet Koşulları'nı kabul etmeniz gerekir",
     "errorMismatch": "Şifreler eşleşmiyor",
-    "certifyTosPrefix": "I have read and accept the",
+    "certifyTosPrefix": "Hizmet Koşulları'nı okudum ve kabul ediyorum:",
     "certifyTosSuffix": "."
   },
   "reset": {
@@ -65,8 +67,8 @@
     "errorTitle": "Şifre sıfırlama başarısız",
     "errorNoVerified": "Kullanıcının kayıtlı/doğrulanmış bir e-postası veya phone_number'ı olmadığından şifre sıfırlanamıyor",
     "enterCode": "Enter Reset Code",
-    "codeSent": "We've sent a password reset code to {{email}}. Enter it below with your new password.",
-    "success": "Your password has been reset successfully!",
+    "codeSent": "{{email}} adresine bir şifre sıfırlama kodu gönderdik. Aşağıda kodu yeni şifrenizle birlikte girin.",
+    "success": "Şifreniz başarıyla sıfırlandı!",
     "errorGeneric": "Failed to reset password",
     "codeLabel": "Reset Code",
     "codePlaceholder": "123456",
@@ -74,7 +76,9 @@
     "newPasswordPlaceholder": "Min 15 chars, upper/lower/number",
     "confirmNew": "Confirm New Password",
     "confirmNewPlaceholder": "Confirm your new password",
-    "backToRequest": "Back to request code"
+    "backToRequest": "Back to request code",
+    "errorSendFailed": "Sıfırlama kodu gönderilemedi",
+    "codeSentToEmail": "E-posta adresinize bir şifre sıfırlama kodu gönderildi."
   },
   "nav": {
     "toggle": "Toggle Sidebar",
@@ -94,7 +98,10 @@
     "networkStatus": "Ağ Durumu",
     "logout": "Çıkış yap",
     "account": "Account",
-    "website": "Website"
+    "website": "Website",
+    "privacy": "Gizlilik",
+    "playgroundDisabledReason": "Oyun Alanı'nı kullanmadan önce bir varsayılan API anahtarı oluşturulup doğrulanmalıdır. Varsayılan anahtarınızı ayarlamak için API Anahtarları'na gidin.",
+    "videoDisabledReason": "Videoyu kullanmadan önce bir varsayılan API anahtarı oluşturulup doğrulanmalıdır. Varsayılan anahtarınızı ayarlamak için API Anahtarları'na gidin."
   },
   "keys": {
     "title": "API Anahtarları",
@@ -134,18 +141,18 @@
     "deleteConfirm": "Varsayılan anahtarı sil",
     "colName": "Name",
     "colKey": "Key",
-    "emptyNone": "No API keys yet. Create your first key above.",
-    "emptyNoMatch": "No keys match the current filter.",
+    "emptyNone": "Henüz API anahtarı yok. Yukarıdan ilk anahtarınızı oluşturun.",
+    "emptyNoMatch": "Geçerli filtreye uyan anahtar yok.",
     "setDefault": "Set as default",
     "selectKey": "Select API key",
     "noDefault": "No default key",
     "deleteWarningLabel": "Warning:",
-    "deleteWarningBody": "You are about to delete your",
+    "deleteWarningBody": "Şunları silmek üzeresiniz:",
     "defaultKeyPhrase": "default API key",
-    "deleteMultiKey": "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it.",
-    "deleteSingleKey": "After deletion, you will need to create and set a new default API key to continue using the API.",
-    "deleteIrreversible": "This action cannot be undone.",
-    "deleteNonDefaultConfirm": "Are you sure you want to delete the API key \"{{keyName}}\"?"
+    "deleteMultiKey": "Başka anahtarlarınız varsa biri otomatik olarak varsayılan yapılır. Kullanmadan önce yeni varsayılan anahtarı doğrulamanız gerekir.",
+    "deleteSingleKey": "Silme işleminden sonra API'yi kullanmaya devam etmek için yeni bir varsayılan API anahtarı oluşturup ayarlamanız gerekir.",
+    "deleteIrreversible": "Bu işlem geri alınamaz.",
+    "deleteNonDefaultConfirm": "\"{{keyName}}\" API anahtarını silmek istediğinizden emin misiniz?"
   },
   "usage": {
     "title": "Kullanım Analizi",
@@ -202,14 +209,14 @@
     "helpTrackingTitle": "API Anahtarı İzleme",
     "helpTrackingBody": "Her istek bir API anahtarıyla ilişkilendirilir; böylece kullanımı farklı uygulamalara veya ekip üyelerine göre izleyebilirsiniz.",
     "exportRecords": "{{count}} kayıt kullanılabilir (son 90 gün)",
-    "exportSubtitle": "Kullanım verilerinizi dışa aktarın",
-    "exportCardTitle": "Kullanım Dışa Aktarma",
-    "exportLoading": "Yükleniyor…",
+    "exportSubtitle": "Tam API kullanım geçmişinizi görüntüleyin ve dışa aktarın",
+    "exportCardTitle": "Kullanım Verisi Dışa Aktarma",
+    "exportLoading": "Veriler yükleniyor...",
     "exportDownloadCsv": "CSV İndir",
-    "exportSearchPlaceholder": "Ara…",
-    "exportNoData": "Veri yok",
-    "exportNoMatch": "Eşleşen kayıt yok",
-    "exportNoData90": "Son 90 günde veri yok",
+    "exportSearchPlaceholder": "Model, uç nokta veya istek kimliğine göre ara...",
+    "exportNoData": "Veri bulunamadı",
+    "exportNoMatch": "Arama ölçütlerinizle eşleşen kullanım kaydı yok.",
+    "exportNoData90": "Son 90 günde API kullanımı bulunamadı.",
     "exportDate": "Tarih",
     "exportModel": "Model",
     "exportEndpoint": "Uç nokta",
@@ -218,17 +225,18 @@
     "exportPaid": "Ücretli",
     "exportPrev": "Önceki",
     "exportNext": "Sonraki",
-    "exportInfoTitle": "Bilgi",
-    "exportInfoDefault": "Varsayılan olarak son 90 günlük verileri içerir",
-    "exportInfoSearch": "Verileri filtrelemek için aramayı kullanın",
-    "exportInfoCsv": "CSV, tablo hesaplama uygulamalarında açılabilir",
-    "exportInfoSplit": "Stake ve ücretli tutarlar ayrı sütunlardadır",
+    "exportInfoTitle": "Dışa Aktarma Bilgileri",
+    "exportInfoDefault": "Tablo, varsayılan olarak son 90 günlük API kullanım verilerini gösterir.",
+    "exportInfoSearch": "Model adına veya uç noktaya göre filtrelemek için arama kutusunu kullanın",
+    "exportInfoCsv": "Filtrelenen tüm kayıtları bir elektronik tabloya aktarmak için \"CSV İndir\" düğmesine tıklayın.",
+    "exportInfoSplit": "Maliyetler, stake kredisi (yeşil) ve ücretli bakiye (mavi) arasında ayrılmıştır.",
     "errorLoad": "Kullanım verileri yüklenemedi",
     "errorRetry": "Sayfayı yenilemeyi deneyin",
     "requestCount": "İstek Sayısı",
     "totalCost": "Toplam Maliyet",
     "viewSample": "Örnek Verileri Görüntüle (ilk 3 kayıt)",
-    "dateRange": "Zaman Aralığı"
+    "dateRange": "Zaman Aralığı",
+    "exportHeading": "Kullanım verilerini dışa aktar"
   },
   "txn": {
     "title": "İşlem Geçmişi",
@@ -301,7 +309,31 @@
     "copy": "Kopyala",
     "deleteTitle": "Hesabı Sil",
     "deleteWarning": "UYARI! Bu işlem geri alınamaz",
-    "deleteButton": "Sil"
+    "deleteButton": "Sil",
+    "copied": "Kopyalandı",
+    "password": "Şifre",
+    "changePasswordTitle": "Şifreyi değiştir",
+    "changePasswordDesc": "Yeni bir şifre belirlemek için mevcut şifrenizi girin",
+    "changePasswordCurrent": "Önceki şifre",
+    "passwordPlaceholder": "Şifrenizi girin",
+    "changePasswordNew": "Yeni şifre",
+    "changePasswordConfirm": "Yeni şifreyi onaylayın",
+    "cancel": "İptal",
+    "changing": "Değiştiriliyor...",
+    "deleteConfirmTitle": "Hesabı sil",
+    "deleteConfirmBody": "Hesabınızı kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+    "deleting": "Siliniyor...",
+    "changeEmailTitle": "E-postayı değiştir",
+    "changeEmailVerifyTitle": "Yeni e-postayı doğrula",
+    "changeEmailDesc": "Yeni e-posta adresinizi girin. Bir kodla doğrulamanız gerekecek.",
+    "changeEmailVerifyDesc": "{{email}} adresine gönderilen 6 haneli kodu girin",
+    "changeEmailNew": "Yeni e-posta",
+    "changeEmailCode": "Kod",
+    "changeEmailCheckInbox": "Doğrulama kodu için yeni e-postanızın gelen kutusunu kontrol edin",
+    "back": "Geri",
+    "processing": "İşleniyor...",
+    "changeEmailSendCode": "Kod gönder",
+    "changeEmailVerify": "Doğrula"
   },
   "pg": {
     "title": "Oyun Alanı",
@@ -339,7 +371,26 @@
     "stopCount": "({{count}}/4)",
     "stopPlaceholder": "e.g. \"\\n\\n\"",
     "stopAdd": "Ekle",
-    "defaultSystem": "Sen yardımcı bir asistansın."
+    "defaultSystem": "Sen yardımcı bir asistansın.",
+    "apiKeyRequired": "API anahtarı gerekli",
+    "apiKeyRequiredDesc": "Oyun Alanı'nı kullanmadan önce bir varsayılan API anahtarı oluşturulup doğrulanmalıdır. Varsayılan anahtarınızı ayarlamak için API Anahtarları'na gidin.",
+    "goToApiKeys": "API Anahtarları'na git",
+    "selectModel": "Model seç",
+    "loadingModels": "Yükleniyor…",
+    "noModels": "Kullanılabilir model yok",
+    "addMessage": "Mesaj ekle",
+    "assistantPlaceholder": "Asistan yanıtı…",
+    "regenerate": "Yeniden oluştur",
+    "copied": "Kopyalandı",
+    "copy": "Kopyala",
+    "branch": "Dal",
+    "noResponseYet": "Henüz yanıt yok.",
+    "configureRequest": "Kod parçacıkları üretmek için bir istek yapılandırın.",
+    "waiting": "Yanıt bekleniyor…",
+    "requestFailed": "istek başarısız",
+    "errorLabel": "hata:",
+    "apiError": "API Hatası",
+    "streamComplete": "akış tamamlandı"
   },
   "video": {
     "title": "Video",
@@ -366,8 +417,11 @@
     "apiSub": "Bu sayfanın yaptığı çağrılar ve bunları kendiniz yapmak için kod.",
     "tabRequests": "İstekler",
     "tabCode": "Kod",
-    "requestsCount": "{{count}} istek · yenilenene kadar tutulur",
-    "clear": "Temizle"
+    "clear": "Temizle",
+    "requestsCount_one": "{{count}} istek · yenilenene kadar tutulur",
+    "requestsCount_other": "{{count}} istek · yenilenene kadar tutulur",
+    "promptTooLong": "İstem {{max}} bayttan uzun.",
+    "generating": "Oluşturuluyor…"
   },
   "cookies": {
     "title": "Çerez Politikası",
@@ -378,5 +432,18 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookie Policy"
+  },
+  "confirm": {
+    "title": "Hesabınızı doğrulayın",
+    "subtitle": "E-postanıza gönderilen doğrulama kodunu girin",
+    "email": "E-posta",
+    "code": "Doğrulama Kodu",
+    "codeHint": "6 haneli doğrulama kodu için e-postanızı kontrol edin",
+    "submit": "Hesabı doğrula",
+    "resending": "Yeniden gönderiliyor...",
+    "resend": "Kodu yeniden gönder",
+    "noCode": "Kod almadınız mı?",
+    "signUpAgain": "Yeniden kayıt ol",
+    "loading": "Yükleniyor..."
   }
 }

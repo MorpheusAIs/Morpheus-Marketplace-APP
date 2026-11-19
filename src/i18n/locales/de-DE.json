@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Morpheus Inference API",
-    "brand": "Morpheus"
+    "brand": "Morpheus",
+    "brandSidebar": "Inference API"
   },
   "meta": {
     "titleDefault": "Morpheus Inference API Admin",
@@ -22,7 +23,8 @@
     "errorFillAll": "Bitte fülle alle Felder aus",
     "errorInvalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein",
     "noAccount": "Du hast noch kein Konto?",
-    "signupLink": "Registrieren"
+    "signupLink": "Registrieren",
+    "signupHere": "Hier registrieren"
   },
   "signup": {
     "title": "Registrieren",
@@ -51,7 +53,7 @@
     "errorCertify": "Du musst bestätigen, dass du mindestens 18 Jahre alt bist, um ein Konto zu erstellen",
     "errorAcceptTos": "Du musst die Nutzungsbedingungen akzeptieren, um ein Konto zu erstellen",
     "errorMismatch": "Die Passwörter stimmen nicht überein",
-    "certifyTosPrefix": "I have read and accept the",
+    "certifyTosPrefix": "Ich habe die Nutzungsbedingungen gelesen und akzeptiere sie",
     "certifyTosSuffix": "."
   },
   "reset": {
@@ -65,8 +67,8 @@
     "errorTitle": "Passwort-Reset fehlgeschlagen",
     "errorNoVerified": "Passwort-Reset nicht möglich: Für den Benutzer ist keine registrierte/verifizierte E-Mail oder phone_number vorhanden",
     "enterCode": "Enter Reset Code",
-    "codeSent": "We've sent a password reset code to {{email}}. Enter it below with your new password.",
-    "success": "Your password has been reset successfully!",
+    "codeSent": "Wir haben einen Code zum Zurücksetzen des Passworts an {{email}} gesendet. Gib ihn unten zusammen mit deinem neuen Passwort ein.",
+    "success": "Dein Passwort wurde erfolgreich zurückgesetzt!",
     "errorGeneric": "Failed to reset password",
     "codeLabel": "Reset Code",
     "codePlaceholder": "123456",
@@ -74,7 +76,9 @@
     "newPasswordPlaceholder": "Min 15 chars, upper/lower/number",
     "confirmNew": "Confirm New Password",
     "confirmNewPlaceholder": "Confirm your new password",
-    "backToRequest": "Back to request code"
+    "backToRequest": "Back to request code",
+    "errorSendFailed": "Senden des Reset-Codes fehlgeschlagen",
+    "codeSentToEmail": "Ein Code zum Zurücksetzen des Passworts wurde an deine E-Mail-Adresse gesendet."
   },
   "nav": {
     "toggle": "Toggle Sidebar",
@@ -94,7 +98,10 @@
     "networkStatus": "Netzwerkstatus",
     "logout": "Abmelden",
     "account": "Account",
-    "website": "Website"
+    "website": "Website",
+    "privacy": "Datenschutz",
+    "playgroundDisabledReason": "Bevor du den Playground verwenden kannst, muss ein Standard-API-Schlüssel festgelegt und verifiziert sein. Lege ihn unter API-Schlüssel fest.",
+    "videoDisabledReason": "Bevor du Video verwenden kannst, muss ein Standard-API-Schlüssel festgelegt und verifiziert sein. Lege ihn unter API-Schlüssel fest."
   },
   "keys": {
     "title": "API-Schlüssel",
@@ -134,18 +141,18 @@
     "deleteConfirm": "Standardschlüssel löschen",
     "colName": "Name",
     "colKey": "Key",
-    "emptyNone": "No API keys yet. Create your first key above.",
-    "emptyNoMatch": "No keys match the current filter.",
+    "emptyNone": "Noch keine API-Schlüssel. Erstelle oben deinen ersten Schlüssel.",
+    "emptyNoMatch": "Keine Schlüssel entsprechen dem aktuellen Filter.",
     "setDefault": "Set as default",
     "selectKey": "Select API key",
     "noDefault": "No default key",
     "deleteWarningLabel": "Warning:",
-    "deleteWarningBody": "You are about to delete your",
+    "deleteWarningBody": "Du bist dabei, deinen",
     "defaultKeyPhrase": "default API key",
-    "deleteMultiKey": "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it.",
-    "deleteSingleKey": "After deletion, you will need to create and set a new default API key to continue using the API.",
-    "deleteIrreversible": "This action cannot be undone.",
-    "deleteNonDefaultConfirm": "Are you sure you want to delete the API key \"{{keyName}}\"?"
+    "deleteMultiKey": "Wenn du andere Schlüssel hast, wird einer automatisch zum Standard befördert. Du musst den neuen Standardschlüssel vor der Verwendung verifizieren.",
+    "deleteSingleKey": "Nach dem Löschen musst du einen neuen Standard-API-Schlüssel erstellen und festlegen, um die API weiter nutzen zu können.",
+    "deleteIrreversible": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteNonDefaultConfirm": "Möchtest du den API-Schlüssel „{{keyName}}“ wirklich löschen?"
   },
   "usage": {
     "title": "Nutzungsanalysen",
@@ -202,14 +209,14 @@
     "helpTrackingTitle": "API-Schlüssel-Tracking",
     "helpTrackingBody": "Jede Anfrage ist einem API-Schlüssel zugeordnet. So kannst du die Nutzung über verschiedene Anwendungen oder Teammitglieder hinweg verfolgen.",
     "exportRecords": "{{count}} Datensätze verfügbar (letzte 90 Tage)",
-    "exportSubtitle": "Exportiere deine Nutzungsdaten",
-    "exportCardTitle": "Nutzungsexport",
-    "exportLoading": "Wird geladen …",
+    "exportSubtitle": "Deinen vollständigen API-Nutzungsverlauf ansehen und exportieren",
+    "exportCardTitle": "Export der Nutzungsdaten",
+    "exportLoading": "Daten werden geladen ...",
     "exportDownloadCsv": "CSV herunterladen",
-    "exportSearchPlaceholder": "Suchen …",
-    "exportNoData": "Keine Daten",
-    "exportNoMatch": "Keine übereinstimmenden Datensätze",
-    "exportNoData90": "Keine Daten in den letzten 90 Tagen",
+    "exportSearchPlaceholder": "Nach Modell, Endpunkt oder Anfrage-ID suchen ...",
+    "exportNoData": "Keine Daten gefunden",
+    "exportNoMatch": "Keine Nutzungsdatensätze entsprechen deinen Suchkriterien.",
+    "exportNoData90": "Keine API-Nutzung in den letzten 90 Tagen gefunden.",
     "exportDate": "Datum",
     "exportModel": "Modell",
     "exportEndpoint": "Endpunkt",
@@ -218,17 +225,18 @@
     "exportPaid": "Bezahlt",
     "exportPrev": "Zurück",
     "exportNext": "Weiter",
-    "exportInfoTitle": "Informationen",
-    "exportInfoDefault": "Enthält standardmäßig die letzten 90 Tage Daten",
-    "exportInfoSearch": "Nutze die Suche, um Daten zu filtern",
-    "exportInfoCsv": "Die CSV lässt sich in Tabellenkalkulationsprogrammen öffnen",
-    "exportInfoSplit": "Staking- und bezahlte Beträge sind in getrennten Spalten",
+    "exportInfoTitle": "Export-Informationen",
+    "exportInfoDefault": "Die Tabelle zeigt standardmäßig die Nutzungsdaten der letzten 90 Tage.",
+    "exportInfoSearch": "Nutze das Suchfeld, um nach Modellname oder Endpunkt zu filtern",
+    "exportInfoCsv": "Klicke auf „CSV herunterladen“, um alle gefilterten Datensätze in eine Tabellenkalkulation zu exportieren.",
+    "exportInfoSplit": "Die Kosten sind aufgeteilt in Staking-Guthaben (grün) und bezahltes Guthaben (blau).",
     "errorLoad": "Nutzungsdaten konnten nicht geladen werden",
     "errorRetry": "Bitte versuche, die Seite neu zu laden",
     "requestCount": "Anfragenanzahl",
     "totalCost": "Gesamtkosten",
     "viewSample": "Beispieldaten anzeigen (erste 3 Einträge)",
-    "dateRange": "Zeitraum"
+    "dateRange": "Zeitraum",
+    "exportHeading": "Nutzungsdaten exportieren"
   },
   "txn": {
     "title": "Transaktionsverlauf",
@@ -301,7 +309,31 @@
     "copy": "Kopieren",
     "deleteTitle": "Konto löschen",
     "deleteWarning": "ACHTUNG! Diese Aktion kann nicht rückgängig gemacht werden",
-    "deleteButton": "Löschen"
+    "deleteButton": "Löschen",
+    "copied": "Kopiert",
+    "password": "Passwort",
+    "changePasswordTitle": "Passwort ändern",
+    "changePasswordDesc": "Gib dein aktuelles Passwort ein, um ein neues festzulegen",
+    "changePasswordCurrent": "Bisheriges Passwort",
+    "passwordPlaceholder": "Passwort eingeben",
+    "changePasswordNew": "Neues Passwort",
+    "changePasswordConfirm": "Neues Passwort bestätigen",
+    "cancel": "Abbrechen",
+    "changing": "Wird geändert ...",
+    "deleteConfirmTitle": "Konto löschen",
+    "deleteConfirmBody": "Möchtest du dein Konto endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleting": "Wird gelöscht ...",
+    "changeEmailTitle": "E-Mail ändern",
+    "changeEmailVerifyTitle": "Neue E-Mail verifizieren",
+    "changeEmailDesc": "Gib deine neue E-Mail-Adresse ein. Du musst sie mit einem Code verifizieren.",
+    "changeEmailVerifyDesc": "Gib den 6-stelligen Code ein, der an {{email}} gesendet wurde",
+    "changeEmailNew": "Neue E-Mail",
+    "changeEmailCode": "Code",
+    "changeEmailCheckInbox": "Prüfe den Posteingang deiner neuen E-Mail auf den Verifizierungscode",
+    "back": "Zurück",
+    "processing": "Wird verarbeitet ...",
+    "changeEmailSendCode": "Code senden",
+    "changeEmailVerify": "Verifizieren"
   },
   "pg": {
     "title": "Playground",
@@ -339,7 +371,26 @@
     "stopCount": "({{count}}/4)",
     "stopPlaceholder": "e.g. \"\\n\\n\"",
     "stopAdd": "Hinzufügen",
-    "defaultSystem": "Du bist ein hilfreicher Assistent."
+    "defaultSystem": "Du bist ein hilfreicher Assistent.",
+    "apiKeyRequired": "API-Schlüssel erforderlich",
+    "apiKeyRequiredDesc": "Bevor du den Playground verwenden kannst, muss ein Standard-API-Schlüssel festgelegt und verifiziert sein. Lege ihn unter API-Schlüssel fest.",
+    "goToApiKeys": "Zu den API-Schlüsseln",
+    "selectModel": "Modell auswählen",
+    "loadingModels": "Wird geladen …",
+    "noModels": "Keine Modelle verfügbar",
+    "addMessage": "Nachricht hinzufügen",
+    "assistantPlaceholder": "Assistentenantwort …",
+    "regenerate": "Neu generieren",
+    "copied": "Kopiert",
+    "copy": "Kopieren",
+    "branch": "Verzweigung",
+    "noResponseYet": "Noch keine Antwort.",
+    "configureRequest": "Konfiguriere eine Anfrage, um Codeausschnitte zu erzeugen.",
+    "waiting": "Warte auf Antwort …",
+    "requestFailed": "Anfrage fehlgeschlagen",
+    "errorLabel": "Fehler:",
+    "apiError": "API-Fehler",
+    "streamComplete": "Stream abgeschlossen"
   },
   "video": {
     "title": "Video",
@@ -366,8 +417,11 @@
     "apiSub": "Die Aufrufe dieser Seite und Code, um sie selbst zu stellen.",
     "tabRequests": "Anfragen",
     "tabCode": "Code",
-    "requestsCount": "{{count}} Anfragen · bleiben bis zum Neuladen erhalten",
-    "clear": "Leeren"
+    "clear": "Leeren",
+    "requestsCount_one": "{{count}} Anfrage · bleibt bis zum Neuladen erhalten",
+    "requestsCount_other": "{{count}} Anfragen · bleiben bis zum Neuladen erhalten",
+    "promptTooLong": "Der Prompt ist länger als {{max}} Bytes.",
+    "generating": "Wird generiert …"
   },
   "cookies": {
     "title": "Cookie-Richtlinie",
@@ -378,5 +432,18 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookie Policy"
+  },
+  "confirm": {
+    "title": "Konto bestätigen",
+    "subtitle": "Gib den Bestätigungscode ein, der an deine E-Mail gesendet wurde",
+    "email": "E-Mail",
+    "code": "Bestätigungscode",
+    "codeHint": "Prüfe deine E-Mails auf den 6-stelligen Bestätigungscode",
+    "submit": "Konto bestätigen",
+    "resending": "Wird erneut gesendet ...",
+    "resend": "Code erneut senden",
+    "noCode": "Keinen Code erhalten?",
+    "signUpAgain": "Erneut registrieren",
+    "loading": "Wird geladen ..."
   }
 }

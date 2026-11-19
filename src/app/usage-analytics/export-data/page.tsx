@@ -96,7 +96,7 @@ export default function ExportDataPage() {
             Back
           </Button>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground">{t('usage.export')}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('usage.exportHeading')}</h1>
             <p className="text-muted-foreground">
               {t('usage.exportSubtitle')}
             </p>

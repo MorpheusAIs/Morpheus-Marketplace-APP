@@ -75,16 +75,14 @@ export function Sidebar() {
       icon: Play,
       href: "/test",
       disabled: !hasDefaultApiKey,
-      disabledReason:
-        'A Default API key must be set and verified before using the "Playground". Go to API Keys to set your Default API Key.',
+      disabledReason: t("nav.playgroundDisabledReason"),
     },
     {
       label: t("nav.video"),
       icon: Clapperboard,
       href: "/video",
       disabled: !hasDefaultApiKey,
-      disabledReason:
-        'A Default API key must be set and verified before using "Video". Go to API Keys to set your Default API Key.',
+      disabledReason: t("nav.videoDisabledReason"),
     },
     {
       label: t("nav.models"),
@@ -141,7 +139,7 @@ export function Sidebar() {
             className="h-6 w-6 shrink-0"
           />
           <span className="text-sm font-semibold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-            {t("app.name")}
+            {t("app.brandSidebar")}
           </span>
         </Link>
       </SidebarHeader>
@@ -169,7 +167,7 @@ export function Sidebar() {
               onAccountClick={handleAccountClick}
               onLogout={handleLogout}
             />
-            <div className="mt-2 flex justify-end group-data-[collapsible=icon]:hidden">
+            <div className="mt-2 flex justify-center">
               <LanguageToggle />
             </div>
             <div className="mx-auto mt-2 flex w-3/4 items-center justify-between gap-3 group-data-[collapsible=icon]:hidden">

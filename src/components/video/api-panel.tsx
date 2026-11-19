@@ -462,7 +462,11 @@ export function VideoApiPanel({
           <TabsContent value="requests" className="mt-4 space-y-3 data-[state=inactive]:hidden" forceMount>
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs text-muted-foreground">
-                {t("video.requestsCount", { count: entries.length })}
+                {t("video.requestsCount", {
+                  count: entries.length,
+                  defaultValue_one: "{{count}} request · kept until you reload",
+                  defaultValue_other: "{{count}} requests · kept until you reload",
+                })}
               </span>
               <Button
                 variant="outline"

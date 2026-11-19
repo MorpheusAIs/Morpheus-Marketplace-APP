@@ -99,7 +99,7 @@ export function NavUser({
             <SidebarMenuButton asChild className="w-full justify-start">
               <Link href="/privacy">
                 <Shield className="h-4 w-4" />
-                <span>{t("footer.privacy")}</span>
+                <span>{t("nav.privacy")}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -180,7 +180,7 @@ export function NavUser({
           <DropdownMenuItem asChild>
             <Link href="/privacy">
               <Shield className="mr-2 h-4 w-4" />
-              {t("footer.privacy")}
+              {t("nav.privacy")}
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>

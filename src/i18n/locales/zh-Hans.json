@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Morpheus Inference API（Morpheus 推理 API）",
-    "brand": "Morpheus"
+    "brand": "Morpheus",
+    "brandSidebar": "推理 API"
   },
   "meta": {
     "titleDefault": "Morpheus Inference API Admin",
@@ -22,7 +23,8 @@
     "errorFillAll": "请填写所有字段",
     "errorInvalidEmail": "请输入有效的电子邮箱地址",
     "noAccount": "还没有账户？",
-    "signupLink": "注册"
+    "signupLink": "注册",
+    "signupHere": "在此注册"
   },
   "signup": {
     "title": "注册",
@@ -51,7 +53,7 @@
     "errorCertify": "创建账户前需确认您已年满 18 周岁",
     "errorAcceptTos": "创建账户前需接受服务条款",
     "errorMismatch": "两次输入的密码不一致",
-    "certifyTosPrefix": "I have read and accept the",
+    "certifyTosPrefix": "我已阅读并接受",
     "certifyTosSuffix": "."
   },
   "reset": {
@@ -63,10 +65,10 @@
     "remember": "想起密码了？",
     "signinLink": "Sign in",
     "errorTitle": "密码重置失败",
-    "errorNoVerified": "无法重置密码：该用户没有已注册/已验证的电子邮箱或 phone_number",
+    "errorNoVerified": "无法重置密码：该用户没有已注册/已验证的电子邮箱或电话号码",
     "enterCode": "Enter Reset Code",
-    "codeSent": "We've sent a password reset code to {{email}}. Enter it below with your new password.",
-    "success": "Your password has been reset successfully!",
+    "codeSent": "我们已将密码重置验证码发送至 {{email}}。请在下方输入验证码和新密码。",
+    "success": "密码重置成功！",
     "errorGeneric": "Failed to reset password",
     "codeLabel": "Reset Code",
     "codePlaceholder": "123456",
@@ -74,7 +76,9 @@
     "newPasswordPlaceholder": "Min 15 chars, upper/lower/number",
     "confirmNew": "Confirm New Password",
     "confirmNewPlaceholder": "Confirm your new password",
-    "backToRequest": "Back to request code"
+    "backToRequest": "Back to request code",
+    "errorSendFailed": "发送重置验证码失败",
+    "codeSentToEmail": "密码重置验证码已发送到您的电子邮箱。"
   },
   "nav": {
     "toggle": "Toggle Sidebar",
@@ -94,7 +98,10 @@
     "networkStatus": "网络状态",
     "logout": "退出登录",
     "account": "Account",
-    "website": "Website"
+    "website": "Website",
+    "privacy": "隐私",
+    "playgroundDisabledReason": "使用试玩场前需要先设置并验证默认 API 密钥。请前往“API 密钥”设置你的默认密钥。",
+    "videoDisabledReason": "使用视频功能前需要先设置并验证默认 API 密钥。请前往“API 密钥”设置你的默认密钥。"
   },
   "keys": {
     "title": "API 密钥",
@@ -134,18 +141,18 @@
     "deleteConfirm": "删除默认密钥",
     "colName": "Name",
     "colKey": "Key",
-    "emptyNone": "No API keys yet. Create your first key above.",
-    "emptyNoMatch": "No keys match the current filter.",
+    "emptyNone": "还没有 API 密钥。在上方创建你的第一个密钥。",
+    "emptyNoMatch": "没有符合当前筛选条件的密钥。",
     "setDefault": "Set as default",
     "selectKey": "Select API key",
     "noDefault": "No default key",
     "deleteWarningLabel": "Warning:",
-    "deleteWarningBody": "You are about to delete your",
+    "deleteWarningBody": "你即将删除你的",
     "defaultKeyPhrase": "default API key",
-    "deleteMultiKey": "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it.",
-    "deleteSingleKey": "After deletion, you will need to create and set a new default API key to continue using the API.",
-    "deleteIrreversible": "This action cannot be undone.",
-    "deleteNonDefaultConfirm": "Are you sure you want to delete the API key \"{{keyName}}\"?"
+    "deleteMultiKey": "如果你有其他密钥，其中一个将自动设为默认密钥。使用新的默认密钥前需要先验证。",
+    "deleteSingleKey": "删除后，你需要创建并设置新的默认 API 密钥才能继续使用本 API。",
+    "deleteIrreversible": "此操作无法撤销。",
+    "deleteNonDefaultConfirm": "确定要删除 API 密钥“{{keyName}}”吗？"
   },
   "usage": {
     "title": "用量分析",
@@ -202,14 +209,14 @@
     "helpTrackingTitle": "按密钥跟踪",
     "helpTrackingBody": "每个请求都关联一个 API 密钥，因此可以按应用或团队成员分别跟踪用量。",
     "exportRecords": "可用记录数：{{count}}（最近 90 天）",
-    "exportSubtitle": "导出你的用量数据",
-    "exportCardTitle": "用量导出",
-    "exportLoading": "加载中…",
+    "exportSubtitle": "查看并导出你的完整 API 使用记录",
+    "exportCardTitle": "用量数据导出",
+    "exportLoading": "正在加载数据...",
     "exportDownloadCsv": "下载 CSV",
-    "exportSearchPlaceholder": "搜索…",
-    "exportNoData": "暂无数据",
-    "exportNoMatch": "没有匹配的记录",
-    "exportNoData90": "最近 90 天暂无数据",
+    "exportSearchPlaceholder": "按模型、端点或请求 ID 搜索...",
+    "exportNoData": "未找到数据",
+    "exportNoMatch": "没有符合搜索条件的使用记录。",
+    "exportNoData90": "最近 90 天内没有 API 使用记录。",
     "exportDate": "日期",
     "exportModel": "模型",
     "exportEndpoint": "端点",
@@ -218,17 +225,18 @@
     "exportPaid": "已付费",
     "exportPrev": "上一页",
     "exportNext": "下一页",
-    "exportInfoTitle": "信息",
-    "exportInfoDefault": "默认包含最近 90 天的数据",
-    "exportInfoSearch": "使用搜索框筛选数据",
-    "exportInfoCsv": "CSV 可在电子表格应用中打开",
-    "exportInfoSplit": "质押金额与付费金额分列显示",
+    "exportInfoTitle": "导出信息",
+    "exportInfoDefault": "表格默认显示最近 90 天的 API 用量数据。",
+    "exportInfoSearch": "使用搜索框按模型名称或端点筛选",
+    "exportInfoCsv": "点击\"下载 CSV\"将所有筛选后的记录导出为电子表格。",
+    "exportInfoSplit": "成本分为质押积分（绿色）和付费余额（蓝色）两部分。",
     "errorLoad": "加载用量数据失败",
     "errorRetry": "请尝试刷新页面",
     "requestCount": "请求数",
     "totalCost": "总成本",
     "viewSample": "查看示例数据（前 3 条记录）",
-    "dateRange": "时间范围"
+    "dateRange": "时间范围",
+    "exportHeading": "导出用量数据"
   },
   "txn": {
     "title": "交易历史",
@@ -301,7 +309,31 @@
     "copy": "复制",
     "deleteTitle": "删除账户",
     "deleteWarning": "警告！此操作无法撤销",
-    "deleteButton": "删除"
+    "deleteButton": "删除",
+    "copied": "已复制",
+    "password": "密码",
+    "changePasswordTitle": "修改密码",
+    "changePasswordDesc": "输入当前密码以设置新密码",
+    "changePasswordCurrent": "当前密码",
+    "passwordPlaceholder": "输入密码",
+    "changePasswordNew": "新密码",
+    "changePasswordConfirm": "确认新密码",
+    "cancel": "取消",
+    "changing": "修改中...",
+    "deleteConfirmTitle": "删除账户",
+    "deleteConfirmBody": "确定要永久删除你的账户吗？此操作无法撤销。",
+    "deleting": "删除中...",
+    "changeEmailTitle": "修改邮箱",
+    "changeEmailVerifyTitle": "验证新邮箱",
+    "changeEmailDesc": "输入新的电子邮箱地址。你需要用验证码完成验证。",
+    "changeEmailVerifyDesc": "输入发送至 {{email}} 的 6 位验证码",
+    "changeEmailNew": "新邮箱",
+    "changeEmailCode": "验证码",
+    "changeEmailCheckInbox": "请查收新邮箱中的验证码",
+    "back": "返回",
+    "processing": "处理中...",
+    "changeEmailSendCode": "发送验证码",
+    "changeEmailVerify": "验证"
   },
   "pg": {
     "title": "试玩场",
@@ -339,7 +371,26 @@
     "stopCount": "（{{count}}/4）",
     "stopPlaceholder": "e.g. \"\\n\\n\"",
     "stopAdd": "添加",
-    "defaultSystem": "你是一个乐于助人的助手。"
+    "defaultSystem": "你是一个乐于助人的助手。",
+    "apiKeyRequired": "需要 API 密钥",
+    "apiKeyRequiredDesc": "使用试玩场前需要先设置并验证默认 API 密钥。请前往“API 密钥”设置你的默认密钥。",
+    "goToApiKeys": "前往 API 密钥",
+    "selectModel": "选择模型",
+    "loadingModels": "加载中…",
+    "noModels": "没有可用的模型",
+    "addMessage": "添加消息",
+    "assistantPlaceholder": "助手回复…",
+    "regenerate": "重新生成",
+    "copied": "已复制",
+    "copy": "复制",
+    "branch": "分支",
+    "noResponseYet": "暂无回复。",
+    "configureRequest": "配置一个请求即可生成代码片段。",
+    "waiting": "等待响应…",
+    "requestFailed": "请求失败",
+    "errorLabel": "错误：",
+    "apiError": "API 错误",
+    "streamComplete": "流式传输完成"
   },
   "video": {
     "title": "视频",
@@ -366,8 +417,11 @@
     "apiSub": "本页面调用的接口，以及自行调用的代码。",
     "tabRequests": "请求",
     "tabCode": "代码",
-    "requestsCount": "{{count}} 个请求 · 保留至页面刷新",
-    "clear": "清空"
+    "clear": "清空",
+    "requestsCount_one": "{{count}} 个请求 · 保留至页面刷新",
+    "requestsCount_other": "{{count}} 个请求 · 保留至页面刷新",
+    "promptTooLong": "提示词超过 {{max}} 字节。",
+    "generating": "生成中…"
   },
   "cookies": {
     "title": "Cookie 政策",
@@ -378,5 +432,18 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookie Policy"
+  },
+  "confirm": {
+    "title": "确认你的账户",
+    "subtitle": "输入发送到你邮箱的确认验证码",
+    "email": "电子邮箱",
+    "code": "确认验证码",
+    "codeHint": "请查看邮箱获取 6 位确认验证码",
+    "submit": "确认账户",
+    "resending": "重新发送中...",
+    "resend": "重新发送验证码",
+    "noCode": "没有收到验证码？",
+    "signUpAgain": "重新注册",
+    "loading": "加载中..."
   }
 }

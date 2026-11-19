@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import {
   LOCALES,
   getStoredLocale,
   setLocale,
-  useLocaleReady,
   type LocaleCode,
 } from "@/lib/i18n";
 import {
@@ -24,10 +24,11 @@ import { Button } from "@/components/ui/button";
  */
 export function LanguageToggle() {
   const { i18n } = useTranslation();
-  const ready = useLocaleReady();
 
   useEffect(() => {
-    if (!ready) return;
+    // Init happens at module scope in @/lib/i18n; this only applies the
+    // stored / detected locale once i18n is ready.
+    if (!i18next.isInitialized) return;
     const stored = window.localStorage.getItem("mor.locale");
     if (stored === null) {
       setLocale(getStoredLocale());
@@ -36,7 +37,7 @@ export function LanguageToggle() {
       const allowed = LOCALES.some((l) => l.code === stored);
       setLocale(allowed ? (stored as LocaleCode) : getStoredLocale());
     }
-  }, [ready]);
+  }, []);
 
   const current = (i18n.resolvedLanguage || "en") as LocaleCode;
   const currentLabel = LOCALES.find((l) => l.code === current)?.label ?? "EN";

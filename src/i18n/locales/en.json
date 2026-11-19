@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Morpheus Inference API",
-    "brand": "Morpheus"
+    "brand": "Morpheus",
+    "brandSidebar": "Inference API"
   },
   "meta": {
     "titleDefault": "Morpheus Inference API Admin",
@@ -22,7 +23,8 @@
     "errorFillAll": "Please fill in all fields",
     "errorInvalidEmail": "Please enter a valid email address",
     "noAccount": "Don't have an account?",
-    "signupLink": "Sign up"
+    "signupLink": "Sign up",
+    "signupHere": "Sign up here"
   },
   "signup": {
     "title": "Sign up",
@@ -74,7 +76,9 @@
     "newPasswordPlaceholder": "Min 15 chars, upper/lower/number",
     "confirmNew": "Confirm New Password",
     "confirmNewPlaceholder": "Confirm your new password",
-    "backToRequest": "Back to request code"
+    "backToRequest": "Back to request code",
+    "errorSendFailed": "Failed to send reset code",
+    "codeSentToEmail": "A password reset code has been sent to your email address."
   },
   "nav": {
     "toggle": "Toggle Sidebar",
@@ -94,7 +98,10 @@
     "networkStatus": "Network Status",
     "logout": "Log out",
     "account": "Account",
-    "website": "Website"
+    "website": "Website",
+    "privacy": "Privacy",
+    "playgroundDisabledReason": "A Default API key must be set and verified before using the \"Playground\". Go to API Keys to set your Default API Key.",
+    "videoDisabledReason": "A Default API key must be set and verified before using \"Video\". Go to API Keys to set your Default API Key."
   },
   "keys": {
     "title": "API keys",
@@ -208,14 +215,14 @@
     "totalCost": "Total Cost",
     "viewSample": "View Sample Data (first 3 records)",
     "exportRecords": "{{count}} records available (last 90 days)",
-    "exportSubtitle": "Export your usage data",
-    "exportCardTitle": "Usage Export",
-    "exportLoading": "Loading…",
+    "exportSubtitle": "View and export your complete API usage history",
+    "exportCardTitle": "Usage Data Export",
+    "exportLoading": "Loading data...",
     "exportDownloadCsv": "Download CSV",
-    "exportSearchPlaceholder": "Search…",
-    "exportNoData": "No data",
-    "exportNoMatch": "No matching records",
-    "exportNoData90": "No data in the last 90 days",
+    "exportSearchPlaceholder": "Search by model, endpoint, or request ID...",
+    "exportNoData": "No data found",
+    "exportNoMatch": "No usage records match your search criteria.",
+    "exportNoData90": "No API usage found in the last 90 days.",
     "exportDate": "Date",
     "exportModel": "Model",
     "exportEndpoint": "Endpoint",
@@ -224,11 +231,12 @@
     "exportPaid": "Paid",
     "exportPrev": "Previous",
     "exportNext": "Next",
-    "exportInfoTitle": "Information",
-    "exportInfoDefault": "Includes the last 90 days of data by default",
-    "exportInfoSearch": "Use the search box to filter the data",
-    "exportInfoCsv": "The CSV can be opened in spreadsheet applications",
-    "exportInfoSplit": "Staking and paid amounts are shown in separate columns"
+    "exportInfoTitle": "Export Information",
+    "exportInfoDefault": "The table shows the last 90 days of API usage data by default.",
+    "exportInfoSearch": "Use the search box to filter by model name or endpoint",
+    "exportInfoCsv": "Click \"Download CSV\" to export all filtered records to a spreadsheet.",
+    "exportInfoSplit": "Costs are split between staking credits (green) and paid balance (blue).",
+    "exportHeading": "Export Usage Data"
   },
   "txn": {
     "title": "Transaction History",
@@ -301,7 +309,31 @@
     "copy": "Copy",
     "deleteTitle": "Delete Account",
     "deleteWarning": "WARNING! This action can not be undone",
-    "deleteButton": "Delete"
+    "deleteButton": "Delete",
+    "copied": "Copied",
+    "password": "Password",
+    "changePasswordTitle": "Change Password",
+    "changePasswordDesc": "Enter your current password to switch to a new password",
+    "changePasswordCurrent": "Previous Password",
+    "passwordPlaceholder": "Enter password",
+    "changePasswordNew": "New Password",
+    "changePasswordConfirm": "Confirm New Password",
+    "cancel": "Cancel",
+    "changing": "Changing...",
+    "deleteConfirmTitle": "Delete Account",
+    "deleteConfirmBody": "Are you sure you want to permanently delete your account? This action can not be undone.",
+    "deleting": "Deleting...",
+    "changeEmailTitle": "Change Email",
+    "changeEmailVerifyTitle": "Verify New Email",
+    "changeEmailDesc": "Enter your new email address. You will need to verify it with a code.",
+    "changeEmailVerifyDesc": "Enter the 6-digit code sent to {{email}}",
+    "changeEmailNew": "New Email",
+    "changeEmailCode": "Code",
+    "changeEmailCheckInbox": "Check your new email inbox for the verification code",
+    "back": "Back",
+    "processing": "Processing...",
+    "changeEmailSendCode": "Send Code",
+    "changeEmailVerify": "Verify"
   },
   "pg": {
     "title": "Playground",
@@ -339,7 +371,26 @@
     "stopCount": "({{count}}/4)",
     "stopPlaceholder": "e.g. \"\\n\\n\"",
     "stopAdd": "Add",
-    "defaultSystem": "You are a helpful assistant."
+    "defaultSystem": "You are a helpful assistant.",
+    "apiKeyRequired": "API Key Required",
+    "apiKeyRequiredDesc": "A Default API key must be set and verified before using the Playground. Go to API Keys to set your Default API Key.",
+    "goToApiKeys": "Go to API Keys",
+    "selectModel": "Select model",
+    "loadingModels": "Loading…",
+    "noModels": "No models available",
+    "addMessage": "Add message",
+    "assistantPlaceholder": "Assistant response…",
+    "regenerate": "Regenerate",
+    "copied": "Copied",
+    "copy": "Copy",
+    "branch": "Branch",
+    "noResponseYet": "No response yet.",
+    "configureRequest": "Configure a request to generate code snippets.",
+    "waiting": "Waiting for response…",
+    "requestFailed": "request failed",
+    "errorLabel": "error:",
+    "apiError": "API Error",
+    "streamComplete": "stream complete"
   },
   "video": {
     "title": "Video",
@@ -366,8 +417,11 @@
     "apiSub": "The calls this page makes, and code to make them yourself.",
     "tabRequests": "Requests",
     "tabCode": "Code",
-    "requestsCount": "{{count}} requests · kept until you reload",
-    "clear": "Clear"
+    "clear": "Clear",
+    "requestsCount_one": "{{count}} request · kept until you reload",
+    "requestsCount_other": "{{count}} requests · kept until you reload",
+    "promptTooLong": "The prompt is longer than {{max}} bytes.",
+    "generating": "Generating…"
   },
   "cookies": {
     "title": "Cookie Policy",
@@ -378,5 +432,18 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookie Policy"
+  },
+  "confirm": {
+    "title": "Confirm Your Account",
+    "subtitle": "Enter the confirmation code sent to your email",
+    "email": "Email",
+    "code": "Confirmation Code",
+    "codeHint": "Check your email for the 6-digit confirmation code",
+    "submit": "Confirm Account",
+    "resending": "Resending...",
+    "resend": "Resend Code",
+    "noCode": "Didn't receive the code?",
+    "signUpAgain": "Sign up again",
+    "loading": "Loading..."
   }
 }

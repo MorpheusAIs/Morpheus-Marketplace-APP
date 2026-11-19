@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Morpheus Inference API (инференс-API Morpheus)",
-    "brand": "Morpheus"
+    "brand": "Morpheus",
+    "brandSidebar": "Инференс-API"
   },
   "meta": {
     "titleDefault": "Morpheus Inference API Admin",
@@ -22,7 +23,8 @@
     "errorFillAll": "Заполните все поля",
     "errorInvalidEmail": "Введите корректный адрес эл. почты",
     "noAccount": "Нет аккаунта?",
-    "signupLink": "Зарегистрироваться"
+    "signupLink": "Зарегистрироваться",
+    "signupHere": "Зарегистрироваться здесь"
   },
   "signup": {
     "title": "Регистрация",
@@ -51,7 +53,7 @@
     "errorCertify": "Чтобы создать аккаунт, необходимо подтвердить, что вам не менее 18 лет",
     "errorAcceptTos": "Чтобы создать аккаунт, необходимо принять Условия обслуживания",
     "errorMismatch": "Пароли не совпадают",
-    "certifyTosPrefix": "I have read and accept the",
+    "certifyTosPrefix": "Я прочитал(а) и принимаю",
     "certifyTosSuffix": "."
   },
   "reset": {
@@ -65,8 +67,8 @@
     "errorTitle": "Не удалось сбросить пароль",
     "errorNoVerified": "Невозможно сбросить пароль: у пользователя нет зарегистрированного/подтверждённого адреса эл. почты или phone_number",
     "enterCode": "Enter Reset Code",
-    "codeSent": "We've sent a password reset code to {{email}}. Enter it below with your new password.",
-    "success": "Your password has been reset successfully!",
+    "codeSent": "Мы отправили код сброса пароля на {{email}}. Введите его ниже вместе с новым паролем.",
+    "success": "Пароль успешно изменён!",
     "errorGeneric": "Failed to reset password",
     "codeLabel": "Reset Code",
     "codePlaceholder": "123456",
@@ -74,7 +76,9 @@
     "newPasswordPlaceholder": "Min 15 chars, upper/lower/number",
     "confirmNew": "Confirm New Password",
     "confirmNewPlaceholder": "Confirm your new password",
-    "backToRequest": "Back to request code"
+    "backToRequest": "Back to request code",
+    "errorSendFailed": "Не удалось отправить код сброса",
+    "codeSentToEmail": "Код сброса пароля отправлен на ваш адрес эл. почты."
   },
   "nav": {
     "toggle": "Toggle Sidebar",
@@ -94,7 +98,10 @@
     "networkStatus": "Состояние сети",
     "logout": "Выйти",
     "account": "Account",
-    "website": "Website"
+    "website": "Website",
+    "privacy": "Конфиденциальность",
+    "playgroundDisabledReason": "Перед использованием песочницы необходимо задать и подтвердить API-ключ по умолчанию. Задайте его в разделе «API-ключи».",
+    "videoDisabledReason": "Перед использованием видео необходимо задать и подтвердить API-ключ по умолчанию. Задайте его в разделе «API-ключи»."
   },
   "keys": {
     "title": "API-ключи",
@@ -134,18 +141,18 @@
     "deleteConfirm": "Удалить ключ по умолчанию",
     "colName": "Name",
     "colKey": "Key",
-    "emptyNone": "No API keys yet. Create your first key above.",
-    "emptyNoMatch": "No keys match the current filter.",
+    "emptyNone": "Пока нет API-ключей. Создайте свой первый ключ выше.",
+    "emptyNoMatch": "Нет ключей, соответствующих текущему фильтру.",
     "setDefault": "Set as default",
     "selectKey": "Select API key",
     "noDefault": "No default key",
     "deleteWarningLabel": "Warning:",
-    "deleteWarningBody": "You are about to delete your",
+    "deleteWarningBody": "Вы собираетесь удалить свой",
     "defaultKeyPhrase": "default API key",
-    "deleteMultiKey": "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it.",
-    "deleteSingleKey": "After deletion, you will need to create and set a new default API key to continue using the API.",
-    "deleteIrreversible": "This action cannot be undone.",
-    "deleteNonDefaultConfirm": "Are you sure you want to delete the API key \"{{keyName}}\"?"
+    "deleteMultiKey": "Если у вас есть другие ключи, один из них автоматически станет ключом по умолчанию. Новый ключ по умолчанию нужно будет подтвердить перед использованием.",
+    "deleteSingleKey": "После удаления вам нужно будет создать и назначить новый API-ключ по умолчанию, чтобы продолжить работу с API.",
+    "deleteIrreversible": "Это действие необратимо.",
+    "deleteNonDefaultConfirm": "Вы уверены, что хотите удалить API-ключ «{{keyName}}»?"
   },
   "usage": {
     "title": "Аналитика использования",
@@ -202,14 +209,14 @@
     "helpTrackingTitle": "Отслеживание по API-ключу",
     "helpTrackingBody": "Каждый запрос связан с API-ключом, поэтому можно отслеживать использование по приложениям и участникам команды.",
     "exportRecords": "Доступно записей: {{count}} (последние 90 дней)",
-    "exportSubtitle": "Экспортируйте данные об использовании",
-    "exportCardTitle": "Экспорт использования",
-    "exportLoading": "Загрузка…",
+    "exportSubtitle": "Просмотрите и экспортируйте полную историю использования API",
+    "exportCardTitle": "Экспорт данных об использовании",
+    "exportLoading": "Загрузка данных...",
     "exportDownloadCsv": "Скачать CSV",
-    "exportSearchPlaceholder": "Поиск…",
-    "exportNoData": "Нет данных",
-    "exportNoMatch": "Нет подходящих записей",
-    "exportNoData90": "Нет данных за последние 90 дней",
+    "exportSearchPlaceholder": "Поиск по модели, эндпоинту или ID запроса...",
+    "exportNoData": "Данные не найдены",
+    "exportNoMatch": "Нет записей использования, соответствующих вашим критериям.",
+    "exportNoData90": "За последние 90 дней использование API не найдено.",
     "exportDate": "Дата",
     "exportModel": "Модель",
     "exportEndpoint": "Эндпоинт",
@@ -218,17 +225,18 @@
     "exportPaid": "Платно",
     "exportPrev": "Назад",
     "exportNext": "Далее",
-    "exportInfoTitle": "Сведения",
-    "exportInfoDefault": "По умолчанию включает данные за последние 90 дней",
-    "exportInfoSearch": "Используйте поиск для фильтрации данных",
-    "exportInfoCsv": "CSV можно открыть в табличном редакторе",
-    "exportInfoSplit": "Суммы стейкинга и платных расходов в отдельных столбцах",
+    "exportInfoTitle": "Сведения об экспорте",
+    "exportInfoDefault": "По умолчанию в таблице показаны данные об использовании API за последние 90 дней.",
+    "exportInfoSearch": "Используйте поле поиска, чтобы фильтровать по имени модели или эндпоинту",
+    "exportInfoCsv": "Нажмите «Скачать CSV», чтобы экспортировать все отфильтрованные записи в электронную таблицу.",
+    "exportInfoSplit": "Затраты разделены на стейкинг-кредиты (зелёный) и платный баланс (синий).",
     "errorLoad": "Не удалось загрузить данные об использовании",
     "errorRetry": "Попробуйте обновить страницу",
     "requestCount": "Количество запросов",
     "totalCost": "Общая стоимость",
     "viewSample": "Просмотреть пример данных (первые 3 записи)",
-    "dateRange": "Период"
+    "dateRange": "Период",
+    "exportHeading": "Экспорт данных об использовании"
   },
   "txn": {
     "title": "История транзакций",
@@ -301,7 +309,31 @@
     "copy": "Копировать",
     "deleteTitle": "Удалить аккаунт",
     "deleteWarning": "ВНИМАНИЕ! Это действие необратимо",
-    "deleteButton": "Удалить"
+    "deleteButton": "Удалить",
+    "copied": "Скопировано",
+    "password": "Пароль",
+    "changePasswordTitle": "Смена пароля",
+    "changePasswordDesc": "Введите текущий пароль, чтобы задать новый",
+    "changePasswordCurrent": "Прежний пароль",
+    "passwordPlaceholder": "Введите пароль",
+    "changePasswordNew": "Новый пароль",
+    "changePasswordConfirm": "Подтвердите новый пароль",
+    "cancel": "Отмена",
+    "changing": "Изменение...",
+    "deleteConfirmTitle": "Удалить аккаунт",
+    "deleteConfirmBody": "Вы уверены, что хотите удалить свой аккаунт безвозвратно? Это действие необратимо.",
+    "deleting": "Удаление...",
+    "changeEmailTitle": "Смена эл. почты",
+    "changeEmailVerifyTitle": "Подтверждение новой почты",
+    "changeEmailDesc": "Введите новый адрес эл. почты. Его нужно подтвердить кодом.",
+    "changeEmailVerifyDesc": "Введите 6-значный код, отправленный на {{email}}",
+    "changeEmailNew": "Новая почта",
+    "changeEmailCode": "Код",
+    "changeEmailCheckInbox": "Проверьте входящие новой почты — там код подтверждения",
+    "back": "Назад",
+    "processing": "Обработка...",
+    "changeEmailSendCode": "Отправить код",
+    "changeEmailVerify": "Подтвердить"
   },
   "pg": {
     "title": "Песочница",
@@ -339,7 +371,26 @@
     "stopCount": "({{count}}/4)",
     "stopPlaceholder": "e.g. \"\\n\\n\"",
     "stopAdd": "Добавить",
-    "defaultSystem": "Вы — полезный ассистент."
+    "defaultSystem": "Вы — полезный ассистент.",
+    "apiKeyRequired": "Требуется API-ключ",
+    "apiKeyRequiredDesc": "Перед использованием песочницы необходимо задать и подтвердить API-ключ по умолчанию. Задайте его в разделе «API-ключи».",
+    "goToApiKeys": "Перейти к API-ключам",
+    "selectModel": "Выберите модель",
+    "loadingModels": "Загрузка…",
+    "noModels": "Нет доступных моделей",
+    "addMessage": "Добавить сообщение",
+    "assistantPlaceholder": "Ответ ассистента…",
+    "regenerate": "Сгенерировать заново",
+    "copied": "Скопировано",
+    "copy": "Копировать",
+    "branch": "Ветка",
+    "noResponseYet": "Ответа пока нет.",
+    "configureRequest": "Настройте запрос, чтобы сгенерировать примеры кода.",
+    "waiting": "Ожидание ответа…",
+    "requestFailed": "ошибка запроса",
+    "errorLabel": "ошибка:",
+    "apiError": "Ошибка API",
+    "streamComplete": "поток завершён"
   },
   "video": {
     "title": "Видео",
@@ -366,8 +417,13 @@
     "apiSub": "Вызовы, которые делает эта страница, и код, чтобы выполнять их самостоятельно.",
     "tabRequests": "Запросы",
     "tabCode": "Код",
-    "requestsCount": "Запросов: {{count}} · сохраняются до перезагрузки",
-    "clear": "Очистить"
+    "clear": "Очистить",
+    "requestsCount_one": "{{count}} запрос · сохраняется до перезагрузки",
+    "requestsCount_other": "Запросов: {{count}} · сохраняются до перезагрузки",
+    "requestsCount_few": "{{count}} запроса · сохраняются до перезагрузки",
+    "requestsCount_many": "{{count}} запросов · сохраняются до перезагрузки",
+    "promptTooLong": "Промпт превышает {{max}} байт.",
+    "generating": "Генерация…"
   },
   "cookies": {
     "title": "Политика файлов cookie",
@@ -378,5 +434,18 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookie Policy"
+  },
+  "confirm": {
+    "title": "Подтверждение аккаунта",
+    "subtitle": "Введите код подтверждения, отправленный на вашу почту",
+    "email": "Эл. почта",
+    "code": "Код подтверждения",
+    "codeHint": "Проверьте почту — там 6-значный код подтверждения",
+    "submit": "Подтвердить аккаунт",
+    "resending": "Повторная отправка...",
+    "resend": "Отправить код снова",
+    "noCode": "Код не пришёл?",
+    "signUpAgain": "Зарегистрироваться снова",
+    "loading": "Загрузка..."
   }
 }

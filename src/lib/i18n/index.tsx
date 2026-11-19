@@ -128,3 +128,8 @@ export function useLocaleReady(): I18nInstance | null {
 export function I18nProvider({ children }: { children: ReactNode }) {
   return <I18nextProvider i18n={i18next}>{children}</I18nextProvider>;
 }
+
+// Initialize at module load: any useTranslation() below this module resolves
+// against an initialized instance (react-i18next 18 does not subscribe to a
+// later init, so init must happen before the first render reads t()).
+void initI18n();

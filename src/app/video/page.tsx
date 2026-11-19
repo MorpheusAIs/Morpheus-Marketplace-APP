@@ -823,7 +823,10 @@ export default function VideoPage() {
                 />
                 {promptTooLong && (
                   <p className="text-xs text-destructive">
-                    The prompt is longer than {MAX_PROMPT_BYTES} bytes.
+                    {t("video.promptTooLong", {
+                      defaultValue: "The prompt is longer than {{max}} bytes.",
+                      max: MAX_PROMPT_BYTES,
+                    })}
                   </p>
                 )}
               </div>
@@ -958,7 +961,9 @@ export default function VideoPage() {
                 data-analytics-label="Generate video"
               >
                 {submitting && <Loader2 className="animate-spin" />}
-                {submitting ? "Generating…" : t("video.generate")}
+                {submitting
+                  ? t("video.generating", { defaultValue: "Generating…" })
+                  : t("video.generate")}
               </Button>
             </CardContent>
           </Card>

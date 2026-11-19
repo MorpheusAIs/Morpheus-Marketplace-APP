@@ -10,6 +10,7 @@ import javascript from "highlight.js/lib/languages/javascript";
 import json from "highlight.js/lib/languages/json";
 import "highlight.js/styles/github-dark.css";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 hljs.registerLanguage("bash", bash);
 hljs.registerLanguage("python", python);
@@ -107,6 +108,7 @@ function RawResponsePanel({
 }) {
   const [open, setOpen] = useState(forceOpen || Boolean(raw));
   const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (forceOpen || raw) setOpen(true);
@@ -135,8 +137,8 @@ function RawResponsePanel({
           ) : (
             <ChevronRight className="h-3.5 w-3.5" />
           )}
-          Raw Response
-        </button>
+                  {t("pg.rawResponse", { defaultValue: "Raw Response" })}
+                </button>
         {open && raw && (
           <button
             onClick={handleCopy}
@@ -147,7 +149,7 @@ function RawResponsePanel({
             ) : (
               <Copy className="h-3 w-3" />
             )}
-            {copied ? "Copied" : "Copy"}
+            {copied ? t("pg.copied", { defaultValue: "Copied" }) : t("pg.copy", { defaultValue: "Copy" })}
           </button>
         )}
       </div>
@@ -156,7 +158,9 @@ function RawResponsePanel({
           {raw ? (
             <HighlightedCode code={raw} language="json" />
           ) : (
-            <p className="text-xs text-muted-foreground">No response yet.</p>
+            <p className="text-xs text-muted-foreground">
+              {t("pg.noResponseYet", { defaultValue: "No response yet." })}
+            </p>
           )}
         </div>
       )}
@@ -175,6 +179,7 @@ export function CodeSnippetTab({
 }) {
   const [lang, setLang] = useState<"curl" | "python" | "node">("curl");
   const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
 
   const snippet = lang === "curl" ? curl : lang === "python" ? python : node;
 
@@ -214,7 +219,7 @@ export function CodeSnippetTab({
           ) : (
             <Copy className="h-3 w-3" />
           )}
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("pg.copied", { defaultValue: "Copied" }) : t("pg.copy", { defaultValue: "Copy" })}
         </button>
       </div>
       <div className="flex-1 min-h-0 bg-card border border-border rounded p-3 overflow-auto">
@@ -225,7 +230,9 @@ export function CodeSnippetTab({
           />
         ) : (
           <p className="text-xs text-muted-foreground">
-            Configure a request to generate code snippets.
+            {t("pg.configureRequest", {
+              defaultValue: "Configure a request to generate code snippets.",
+            })}
           </p>
         )}
       </div>
@@ -242,7 +249,8 @@ export function ResponsePanel({
   curlSnippet,
   pythonSnippet,
   nodeSnippet,
-}: ResponsePanelProps) {
+} : ResponsePanelProps) {
+  const { t } = useTranslation();
   const apiError = useMemo(() => {
     if (!rawResponse) return null;
     try {
@@ -284,7 +292,7 @@ export function ResponsePanel({
       {/* Header */}
       <div className="flex items-center px-4 py-3 border-b border-border shrink-0">
         <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
-          Response
+          {t("pg.response", { defaultValue: "Response" })}
         </span>
       </div>
 
@@ -296,13 +304,13 @@ export function ResponsePanel({
               value="response"
               className="h-6 px-3 text-xs rounded data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
-              Response
+              {t("pg.tabResponse", { defaultValue: "Response" })}
             </TabsTrigger>
             <TabsTrigger
               value="code"
               className="h-6 px-3 text-xs rounded data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
-              Code
+              {t("pg.tabCode", { defaultValue: "Code" })}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -317,14 +325,14 @@ export function ResponsePanel({
             {/* Metrics grid */}
             <div className="grid grid-cols-2 gap-2">
               <MetricCell
-                label="Latency"
+                label={t("pg.latency", { defaultValue: "Latency" })}
                 value={metrics.latencyMs !== null ? metrics.latencyMs : null}
                 unit="ms"
               />
-              <MetricCell label="Tokens In" value={metrics.tokensIn} />
-              <MetricCell label="Tokens Out" value={metrics.tokensOut} />
+              <MetricCell label={t("pg.tokensIn", { defaultValue: "Tokens In" })} value={metrics.tokensIn} />
+              <MetricCell label={t("pg.tokensOut", { defaultValue: "Tokens Out" })} value={metrics.tokensOut} />
               <MetricCell
-                label="Cost"
+                label={t("pg.cost", { defaultValue: "Cost" })}
                 value={
                   metrics.costUsd !== null
                     ? `$${metrics.costUsd.toFixed(6)}`
@@ -346,16 +354,16 @@ export function ResponsePanel({
                       />
                     ))}
                   </span>
-                  Waiting for response…
+                  {t("pg.waiting", { defaultValue: "Waiting for response…" })}
                 </div>
               ) : isErrorState ? (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>request failed</span>
+                    <span>{t("pg.requestFailed", { defaultValue: "request failed" })}</span>
                     {(apiError?.type || finishReason) && (
                       <>
                         <span className="text-muted-foreground/40">·</span>
-                        <span>error:</span>
+                        <span>{t("pg.errorLabel", { defaultValue: "error:" })}</span>
                         <span
                           className={cn(
                             "px-1.5 py-0.5 rounded border text-[11px] font-mono",
@@ -370,7 +378,7 @@ export function ResponsePanel({
                   {apiError?.message && (
                     <div className="rounded border border-destructive/30 bg-destructive/10 p-3">
                       <p className="text-xs font-semibold tracking-widest uppercase text-destructive mb-1.5">
-                        API Error
+                        {t("pg.apiError", { defaultValue: "API Error" })}
                       </p>
                       <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
                         {apiError.message}
@@ -380,7 +388,7 @@ export function ResponsePanel({
                 </div>
               ) : finishReason ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>stream complete</span>
+                  <span>{t("pg.streamComplete", { defaultValue: "stream complete" })}</span>
                   <span className="text-muted-foreground/40">·</span>
                   <span>finish_reason:</span>
                   <span
@@ -394,7 +402,9 @@ export function ResponsePanel({
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Run a request to see the response here.
+                  {t("pg.empty", {
+                    defaultValue: "Run a request to see the response here.",
+                  })}
                 </p>
               )}
             </div>

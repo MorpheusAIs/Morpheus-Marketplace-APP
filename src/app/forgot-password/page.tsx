@@ -93,9 +93,16 @@ function ForgotPasswordContent() {
         sessionStorage.setItem('password_reset_email', email);
       }
       setStep("confirm");
-      setSuccessMessage("A password reset code has been sent to your email address.");
+      setSuccessMessage(t("reset.codeSentToEmail"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reset code");
+      const raw = err instanceof Error ? err.message : "";
+      // Cognito's UserNotFoundException-style message for unverified accounts:
+      // show our localized sentence instead of the raw server string.
+      setError(
+        /no registered\/verified email/i.test(raw)
+          ? t("reset.errorNoVerified")
+          : raw || t("reset.errorSendFailed"),
+      );
     } finally {
       setIsSubmitting(false);
     }

@@ -118,11 +118,15 @@ export function OveragesToggle() {
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="allow-overages" className="text-sm font-medium">
-              {isEnabled ? 'Enabled' : t('billing.overagesDisabled')}
+              {isEnabled
+                ? t('billing.overagesEnabled')
+                : t('billing.overagesDisabled')}
             </Label>
             <p className="text-xs text-muted-foreground">
               {isEnabled
-                ? 'Credit Balance will be used as fallback'
+                ? t('billing.overagesEnabledSub', {
+                    defaultValue: 'Credit Balance will be used as fallback',
+                  })
                 : t('billing.overagesDisabledSub')
               }
             </p>

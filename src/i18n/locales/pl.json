@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Morpheus Inference API (API inferencji Morpheus)",
-    "brand": "Morpheus"
+    "brand": "Morpheus",
+    "brandSidebar": "API inferencji"
   },
   "meta": {
     "titleDefault": "Morpheus Inference API Admin",
@@ -22,7 +23,8 @@
     "errorFillAll": "Wypełnij wszystkie pola",
     "errorInvalidEmail": "Podaj prawidłowy adres e-mail",
     "noAccount": "Nie masz konta?",
-    "signupLink": "Zarejestruj się"
+    "signupLink": "Zarejestruj się",
+    "signupHere": "Zarejestruj się tutaj"
   },
   "signup": {
     "title": "Rejestracja",
@@ -51,7 +53,7 @@
     "errorCertify": "Aby utworzyć konto, musisz oświadczyć, że masz co najmniej 18 lat",
     "errorAcceptTos": "Aby utworzyć konto, musisz zaakceptować Regulamin usług",
     "errorMismatch": "Hasła nie są zgodne",
-    "certifyTosPrefix": "I have read and accept the",
+    "certifyTosPrefix": "Przeczytałem/am i akceptuję",
     "certifyTosSuffix": "."
   },
   "reset": {
@@ -65,8 +67,8 @@
     "errorTitle": "Resetowanie hasła nie powiodło się",
     "errorNoVerified": "Nie można zresetować hasła: użytkownik nie ma zarejestrowanego/zweryfikowanego adresu e-mail ani phone_number",
     "enterCode": "Enter Reset Code",
-    "codeSent": "We've sent a password reset code to {{email}}. Enter it below with your new password.",
-    "success": "Your password has been reset successfully!",
+    "codeSent": "Wysłaliśmy kod do zresetowania hasła na adres {{email}}. Wpisz go poniżej razem z nowym hasłem.",
+    "success": "Twoje hasło zostało pomyślnie zresetowane!",
     "errorGeneric": "Failed to reset password",
     "codeLabel": "Reset Code",
     "codePlaceholder": "123456",
@@ -74,7 +76,9 @@
     "newPasswordPlaceholder": "Min 15 chars, upper/lower/number",
     "confirmNew": "Confirm New Password",
     "confirmNewPlaceholder": "Confirm your new password",
-    "backToRequest": "Back to request code"
+    "backToRequest": "Back to request code",
+    "errorSendFailed": "Nie udało się wysłać kodu resetowania",
+    "codeSentToEmail": "Kod do zresetowania hasła został wysłany na Twój adres e-mail."
   },
   "nav": {
     "toggle": "Toggle Sidebar",
@@ -94,7 +98,10 @@
     "networkStatus": "Stan sieci",
     "logout": "Wyloguj się",
     "account": "Account",
-    "website": "Website"
+    "website": "Website",
+    "privacy": "Prywatność",
+    "playgroundDisabledReason": "Przed użyciem placu zabaw należy ustawić i zweryfikować domyślny klucz API. Ustaw go w sekcji Klucze API.",
+    "videoDisabledReason": "Przed użyciem wideo należy ustawić i zweryfikować domyślny klucz API. Ustaw go w sekcji Klucze API."
   },
   "keys": {
     "title": "Klucze API",
@@ -134,18 +141,18 @@
     "deleteConfirm": "Usuń klucz domyślny",
     "colName": "Name",
     "colKey": "Key",
-    "emptyNone": "No API keys yet. Create your first key above.",
-    "emptyNoMatch": "No keys match the current filter.",
+    "emptyNone": "Nie ma jeszcze kluczy API. Utwórz pierwszy klucz powyżej.",
+    "emptyNoMatch": "Żaden klucz nie pasuje do bieżącego filtra.",
     "setDefault": "Set as default",
     "selectKey": "Select API key",
     "noDefault": "No default key",
     "deleteWarningLabel": "Warning:",
-    "deleteWarningBody": "You are about to delete your",
+    "deleteWarningBody": "Zamierzasz usunąć swój",
     "defaultKeyPhrase": "default API key",
-    "deleteMultiKey": "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it.",
-    "deleteSingleKey": "After deletion, you will need to create and set a new default API key to continue using the API.",
-    "deleteIrreversible": "This action cannot be undone.",
-    "deleteNonDefaultConfirm": "Are you sure you want to delete the API key \"{{keyName}}\"?"
+    "deleteMultiKey": "Jeśli masz inne klucze, jeden zostanie automatycznie ustanowiony jako domyślny. Przed użyciem musisz zweryfikować nowy klucz domyślny.",
+    "deleteSingleKey": "Po usunięciu konieczne będzie utworzenie i ustawienie nowego domyślnego klucza API, aby dalej korzystać z API.",
+    "deleteIrreversible": "Tej operacji nie można cofnąć.",
+    "deleteNonDefaultConfirm": "Czy na pewno chcesz usunąć klucz API „{{keyName}}”?"
   },
   "usage": {
     "title": "Analiza użycia",
@@ -201,15 +208,15 @@
     "helpRetentionBody": "Dane o użyciu są przechowywane przez 12 miesięcy. W każdej chwili możesz wyeksportować swoje dane do archiwum lub analizy.",
     "helpTrackingTitle": "Śledzenie według klucza API",
     "helpTrackingBody": "Każde żądanie jest przypisane do klucza API, dzięki czemu możesz śledzić użycie per aplikacja lub członek zespołu.",
-    "exportRecords": "Dostępne rekordy: {{count}} (ostatnie 90 dni)",
-    "exportSubtitle": "Wyeksportuj swoje dane o użyciu",
-    "exportCardTitle": "Eksport użycia",
-    "exportLoading": "Wczytywanie…",
+    "exportRecords": "{{count}} rekordów dostępnych (ostatnie 90 dni)",
+    "exportSubtitle": "Przejrzyj i wyeksportuj pełną historię użycia API",
+    "exportCardTitle": "Eksport danych o użyciu",
+    "exportLoading": "Wczytywanie danych...",
     "exportDownloadCsv": "Pobierz CSV",
-    "exportSearchPlaceholder": "Szukaj…",
-    "exportNoData": "Brak danych",
-    "exportNoMatch": "Brak pasujących rekordów",
-    "exportNoData90": "Brak danych z ostatnich 90 dni",
+    "exportSearchPlaceholder": "Szukaj według modelu, punktu końcowego lub identyfikatora żądania...",
+    "exportNoData": "Nie znaleziono danych",
+    "exportNoMatch": "Żaden rekord użycia nie spełnia Twoich kryteriów wyszukiwania.",
+    "exportNoData90": "Nie znaleziono użycia API w ostatnich 90 dniach.",
     "exportDate": "Data",
     "exportModel": "Model",
     "exportEndpoint": "Punkt końcowy",
@@ -218,17 +225,18 @@
     "exportPaid": "Płatne",
     "exportPrev": "Poprzednia",
     "exportNext": "Następna",
-    "exportInfoTitle": "Informacje",
-    "exportInfoDefault": "Domyślnie obejmuje dane z ostatnich 90 dni",
-    "exportInfoSearch": "Użyj wyszukiwania, aby filtrować dane",
-    "exportInfoCsv": "Plik CSV można otworzyć w arkuszu kalkulacyjnym",
-    "exportInfoSplit": "Kwoty ze stakingu i płatne znajdują się w osobnych kolumnach",
+    "exportInfoTitle": "Informacje o eksporcie",
+    "exportInfoDefault": "Tabela domyślnie pokazuje dane o użyciu API z ostatnich 90 dni.",
+    "exportInfoSearch": "Użyj pola wyszukiwania, aby filtrować według nazwy modelu lub punktu końcowego",
+    "exportInfoCsv": "Kliknij „Pobierz CSV”, aby wyeksportować wszystkie odfiltrowane rekordy do arkusza kalkulacyjnego.",
+    "exportInfoSplit": "Koszty są podzielone między kredyty ze stakingu (zielony) a saldo płatne (niebieski).",
     "errorLoad": "Nie udało się wczytać danych o użyciu",
     "errorRetry": "Spróbuj odświeżyć stronę",
     "requestCount": "Liczba żądań",
     "totalCost": "Łączny koszt",
     "viewSample": "Zobacz przykładowe dane (pierwsze 3 rekordy)",
-    "dateRange": "Zakres czasu"
+    "dateRange": "Zakres czasu",
+    "exportHeading": "Eksport danych o użyciu"
   },
   "txn": {
     "title": "Historia transakcji",
@@ -301,7 +309,31 @@
     "copy": "Kopiuj",
     "deleteTitle": "Usuń konto",
     "deleteWarning": "UWAGA! Tej operacji nie można cofnąć",
-    "deleteButton": "Usuń"
+    "deleteButton": "Usuń",
+    "copied": "Skopiowano",
+    "password": "Hasło",
+    "changePasswordTitle": "Zmień hasło",
+    "changePasswordDesc": "Wpisz swoje obecne hasło, aby ustawić nowe",
+    "changePasswordCurrent": "Poprzednie hasło",
+    "passwordPlaceholder": "Wpisz hasło",
+    "changePasswordNew": "Nowe hasło",
+    "changePasswordConfirm": "Potwierdź nowe hasło",
+    "cancel": "Anuluj",
+    "changing": "Zmienianie...",
+    "deleteConfirmTitle": "Usuń konto",
+    "deleteConfirmBody": "Czy na pewno trwale usunąć swoje konto? Tej operacji nie można cofnąć.",
+    "deleting": "Usuwanie...",
+    "changeEmailTitle": "Zmień adres e-mail",
+    "changeEmailVerifyTitle": "Zweryfikuj nowy e-mail",
+    "changeEmailDesc": "Wpisz swój nowy adres e-mail. Musisz go zweryfikować kodem.",
+    "changeEmailVerifyDesc": "Wpisz 6-cyfrowy kod wysłany na adres {{email}}",
+    "changeEmailNew": "Nowy e-mail",
+    "changeEmailCode": "Kod",
+    "changeEmailCheckInbox": "Sprawdź skrzynkę nowego adresu, aby zdobyć kod weryfikacyjny",
+    "back": "Wstecz",
+    "processing": "Przetwarzanie...",
+    "changeEmailSendCode": "Wyślij kod",
+    "changeEmailVerify": "Zweryfikuj"
   },
   "pg": {
     "title": "Plac zabaw",
@@ -339,7 +371,26 @@
     "stopCount": "({{count}}/4)",
     "stopPlaceholder": "e.g. \"\\n\\n\"",
     "stopAdd": "Dodaj",
-    "defaultSystem": "Jesteś pomocnym asystentem."
+    "defaultSystem": "Jesteś pomocnym asystentem.",
+    "apiKeyRequired": "Wymagany klucz API",
+    "apiKeyRequiredDesc": "Przed użyciem placu zabaw należy ustawić i zweryfikować domyślny klucz API. Ustaw go w sekcji Klucze API.",
+    "goToApiKeys": "Przejdź do kluczy API",
+    "selectModel": "Wybierz model",
+    "loadingModels": "Wczytywanie…",
+    "noModels": "Brak dostępnych modeli",
+    "addMessage": "Dodaj wiadomość",
+    "assistantPlaceholder": "Odpowiedź asystenta…",
+    "regenerate": "Generuj ponownie",
+    "copied": "Skopiowano",
+    "copy": "Kopiuj",
+    "branch": "Gałąź",
+    "noResponseYet": "Jeszcze nie ma odpowiedzi.",
+    "configureRequest": "Skonfiguruj żądanie, aby wygenerować fragmenty kodu.",
+    "waiting": "Oczekiwanie na odpowiedź…",
+    "requestFailed": "żądanie nie powiodło się",
+    "errorLabel": "błąd:",
+    "apiError": "Błąd API",
+    "streamComplete": "strumień zakończony"
   },
   "video": {
     "title": "Wideo",
@@ -366,8 +417,13 @@
     "apiSub": "Wywołania, które wykonuje ta strona, i kod, aby wykonać je samodzielnie.",
     "tabRequests": "Żądania",
     "tabCode": "Kod",
-    "requestsCount": "Żądania: {{count}} · przechowywane do przeładowania",
-    "clear": "Wyczyść"
+    "clear": "Wyczyść",
+    "requestsCount_one": "{{count}} żądanie · przechowywane do przeładowania",
+    "requestsCount_other": "{{count}} żądania · przechowywane do przeładowania",
+    "requestsCount_few": "{{count}} żądania · przechowywane do przeładowania",
+    "requestsCount_many": "{{count}} żądań · przechowywanych do przeładowania",
+    "promptTooLong": "Prompt przekracza {{max}} bajtów.",
+    "generating": "Generowanie…"
   },
   "cookies": {
     "title": "Polityka plików cookie",
@@ -378,5 +434,18 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookie Policy"
+  },
+  "confirm": {
+    "title": "Potwierdź swoje konto",
+    "subtitle": "Wpisz kod potwierdzający wysłany na Twój adres e-mail",
+    "email": "E-mail",
+    "code": "Kod potwierdzający",
+    "codeHint": "Sprawdź e-mail, aby znaleźć 6-cyfrowy kod potwierdzający",
+    "submit": "Potwierdź konto",
+    "resending": "Ponowne wysyłanie...",
+    "resend": "Wyślij kod ponownie",
+    "noCode": "Nie otrzymałeś kodu?",
+    "signUpAgain": "Zarejestruj się ponownie",
+    "loading": "Wczytywanie..."
   }
 }

@@ -22,6 +22,8 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoConfig } from "@/lib/auth/cognito-config";
 import { useNotification } from "@/lib/NotificationContext";
+import { useTranslation } from "react-i18next";
+import { LanguageToggle } from "@/components/language-toggle";
 
 // Lazy initialization of Cognito client
 let cognitoClient: CognitoIdentityProviderClient | null = null;
@@ -38,6 +40,7 @@ function getCognitoClient(): CognitoIdentityProviderClient {
 function ConfirmRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const {
     confirmSignUp,
     verifyAge,
@@ -163,20 +166,25 @@ function ConfirmRegistrationContent() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex justify-end p-4">
+        <LanguageToggle />
+      </div>
       <div className="flex-1 flex items-center justify-center p-6">
         <Card className="w-full max-w-md p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">
-              Confirm Your Account
+              {t("confirm.title", { defaultValue: "Confirm Your Account" })}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Enter the confirmation code sent to your email
+              {t("confirm.subtitle", {
+                defaultValue: "Enter the confirmation code sent to your email",
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("confirm.email", { defaultValue: "Email" })}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -192,7 +200,9 @@ function ConfirmRegistrationContent() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmation-code">Confirmation Code</Label>
+                <Label htmlFor="confirmation-code">
+                  {t("confirm.code", { defaultValue: "Confirmation Code" })}
+                </Label>
                 <Input
                   id="confirmation-code"
                   type="text"
@@ -208,7 +218,9 @@ function ConfirmRegistrationContent() {
                   maxLength={6}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Check your email for the 6-digit confirmation code
+                  {t("confirm.codeHint", {
+                    defaultValue: "Check your email for the 6-digit confirmation code",
+                  })}
                 </p>
               </div>
               {error && (
@@ -220,7 +232,7 @@ function ConfirmRegistrationContent() {
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center space-x-2"
                   disabled={isSubmitting || isResending}
                 >
-                  <span>Confirm Account</span>
+                  <span>{t("confirm.submit", { defaultValue: "Confirm Account" })}</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
@@ -231,15 +243,19 @@ function ConfirmRegistrationContent() {
                   disabled={isSubmitting || isResending}
                 >
                   <RefreshCw className={`h-4 w-4 ${isResending ? 'animate-spin' : ''}`} />
-                  <span>{isResending ? "Resending..." : "Resend Code"}</span>
+                  <span>
+                    {isResending
+                      ? t("confirm.resending", { defaultValue: "Resending..." })
+                      : t("confirm.resend", { defaultValue: "Resend Code" })}
+                  </span>
                 </Button>
               </div>
             </form>
           </CardContent>
           <CardFooter className="text-center justify-center text-sm text-muted-foreground">
-            Didn&apos;t receive the code?{" "}
+            {t("confirm.noCode", { defaultValue: "Didn't receive the code?" })}{" "}
             <Link href="/signup" className="text-primary hover:underline ml-1">
-              Sign up again
+              {t("confirm.signUpAgain", { defaultValue: "Sign up again" })}
             </Link>
           </CardFooter>
         </Card>
@@ -249,12 +265,15 @@ function ConfirmRegistrationContent() {
 }
 
 export default function ConfirmRegistrationPage() {
+  const { t } = useTranslation();
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">
+            {t("confirm.loading", { defaultValue: "Loading..." })}
+          </p>
         </div>
       </div>
     }>
