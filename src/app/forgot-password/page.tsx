@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Mail, Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { useTranslation } from "react-i18next";
+import { LanguageToggle } from "@/components/language-toggle";
 
 function ForgotPasswordContent() {
   const router = useRouter();
@@ -16,6 +18,7 @@ function ForgotPasswordContent() {
   
   // Check if we're in the reset confirmation step (code in URL or email in sessionStorage)
   const [step, setStep] = useState<"request" | "confirm">("request");
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [confirmationCode, setConfirmationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -78,7 +81,7 @@ function ForgotPasswordContent() {
     }
 
     if (!isValidEmail(email)) {
-      setError("Please enter a valid email address");
+      setError(t("signin.errorInvalidEmail"));
       return;
     }
 
@@ -90,9 +93,16 @@ function ForgotPasswordContent() {
         sessionStorage.setItem('password_reset_email', email);
       }
       setStep("confirm");
-      setSuccessMessage("A password reset code has been sent to your email address.");
+      setSuccessMessage(t("reset.codeSentToEmail"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reset code");
+      const raw = err instanceof Error ? err.message : "";
+      // Cognito's UserNotFoundException-style message for unverified accounts:
+      // show our localized sentence instead of the raw server string.
+      setError(
+        /no registered\/verified email/i.test(raw)
+          ? t("reset.errorNoVerified")
+          : raw || t("reset.errorSendFailed"),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +114,7 @@ function ForgotPasswordContent() {
     setSuccessMessage("");
 
     if (!confirmationCode.trim() || !newPassword.trim() || !confirmPassword.trim()) {
-      setError("Please fill in all fields");
+      setError(t("signin.errorFillAll"));
       return;
     }
 
@@ -116,7 +126,7 @@ function ForgotPasswordContent() {
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("signup.errorMismatch"));
       return;
     }
 
@@ -127,13 +137,13 @@ function ForgotPasswordContent() {
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('password_reset_email');
       }
-      setSuccessMessage("Your password has been reset successfully!");
+      setSuccessMessage(t("reset.success"));
       // Redirect to sign in after a short delay
       setTimeout(() => {
         router.push("/signin");
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reset password");
+      setError(err instanceof Error ? err.message : t("reset.errorGeneric"));
     } finally {
       setIsSubmitting(false);
     }
@@ -150,6 +160,9 @@ function ForgotPasswordContent() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex justify-end p-4">
+        <LanguageToggle />
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <div className="flex items-center gap-3 mb-8">
           <img
@@ -157,17 +170,17 @@ function ForgotPasswordContent() {
             alt="Morpheus Logo"
             className="h-8 w-auto"
           />
-          <span className="text-2xl font-semibold text-foreground">Morpheus Inference API</span>
+          <span className="text-2xl font-semibold text-foreground">{t("app.name")}</span>
         </div>
         <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold text-foreground">
-              {step === "request" ? "Reset Password" : "Enter Reset Code"}
+              {step === "request" ? t("reset.title") : t("reset.enterCode")}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
               {step === "request"
-                ? "Enter your email address and we'll send you a password reset code."
-                : `We've sent a password reset code to ${email}. Enter it below with your new password.`}
+                ? t("reset.subtitle")
+                : t("reset.codeSent", { email })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -175,7 +188,7 @@ function ForgotPasswordContent() {
               <form className="space-y-6 mt-6" onSubmit={handleRequestReset}>
                 <FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor="email">Email</FieldLabel>
+                    <FieldLabel htmlFor="email">{t("reset.email")}</FieldLabel>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -202,14 +215,14 @@ function ForgotPasswordContent() {
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       disabled={isSubmitting}
                     >
-                      <span>Send Reset Code</span>
+                      <span>{t("reset.submit")}</span>
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Field>
                   <FieldDescription className="text-center">
-                    Remember your password?{" "}
+                    {t("reset.remember")}{" "}
                     <Link href="/signin" className="text-primary hover:underline">
-                      Sign in
+                      {t("reset.signinLink")}
                     </Link>
                   </FieldDescription>
                 </FieldGroup>
@@ -218,11 +231,11 @@ function ForgotPasswordContent() {
               <form className="space-y-6 mt-6" onSubmit={handleConfirmReset}>
                 <FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor="code">Reset Code</FieldLabel>
+                    <FieldLabel htmlFor="code">{t("reset.codeLabel")}</FieldLabel>
                     <Input
                       id="code"
                       type="text"
-                      placeholder="123456"
+                      placeholder={t("reset.codePlaceholder")}
                       value={confirmationCode}
                       onChange={(e) => setConfirmationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       className="text-center text-lg tracking-widest bg-input text-input-foreground border-border"
@@ -231,12 +244,12 @@ function ForgotPasswordContent() {
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="newPassword">New Password</FieldLabel>
+                    <FieldLabel htmlFor="newPassword">{t("reset.newPassword")}</FieldLabel>
                     <div className="relative">
                       <Input
                         id="newPassword"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Min 15 chars, upper/lower/number"
+                        placeholder={t("reset.newPasswordPlaceholder")}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="pr-10 bg-input text-input-foreground border-border"
@@ -255,12 +268,12 @@ function ForgotPasswordContent() {
                     </div>
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="confirmPassword">Confirm New Password</FieldLabel>
+                    <FieldLabel htmlFor="confirmPassword">{t("reset.confirmNew")}</FieldLabel>
                     <div className="relative">
                       <Input
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm your new password"
+                        placeholder={t("reset.confirmNewPlaceholder")}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="pr-10 bg-input text-input-foreground border-border"
@@ -290,7 +303,7 @@ function ForgotPasswordContent() {
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       disabled={isSubmitting}
                     >
-                      <span>Reset Password</span>
+                      <span>{t("reset.title")}</span>
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Field>
@@ -302,13 +315,13 @@ function ForgotPasswordContent() {
                       className="w-full text-muted-foreground"
                     >
                       <ArrowLeft className="mr-2 h-4 w-4" />
-                      <span>Back to request code</span>
+                      <span>{t("reset.backToRequest")}</span>
                     </Button>
                   </Field>
                   <FieldDescription className="text-center">
-                    Remember your password?{" "}
+                    {t("reset.remember")}{" "}
                     <Link href="/signin" className="text-primary hover:underline">
-                      Sign in
+                      {t("reset.signinLink")}
                     </Link>
                   </FieldDescription>
                 </FieldGroup>

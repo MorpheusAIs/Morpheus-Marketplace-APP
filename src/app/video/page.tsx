@@ -36,6 +36,7 @@ import type {
 } from "@/lib/types/videos";
 import { formatLocaleDateTime } from "@/lib/utils/billing-utils";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 /* ------------------------------------------------------------------ */
 /* Constants                                                             */
@@ -396,6 +397,7 @@ function VideoCard({
 /* ------------------------------------------------------------------ */
 
 export default function VideoPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { success, error: showError } = useNotification();
   const { apiKeys, defaultApiKey } = useCognitoAuth();
@@ -729,8 +731,8 @@ export default function VideoPage() {
       <div className="container mx-auto space-y-6 p-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Video</h1>
-          <p className="text-muted-foreground">Generate short clips from a text prompt</p>
+          <h1 className="text-3xl font-bold text-foreground">{t("video.title")}</h1>
+          <p className="text-muted-foreground">{t("video.subtitle")}</p>
         </div>
 
         {/* Form, videos, API: three columns from xl; below xl the API card sits under the videos */}
@@ -738,13 +740,13 @@ export default function VideoPage() {
           {/* Left column - form */}
           <Card className="h-fit min-w-0 lg:col-span-1">
             <CardHeader>
-              <CardTitle>New video</CardTitle>
-              <CardDescription>Describe the clip, choose its format and generate it.</CardDescription>
+              <CardTitle>{t("video.new")}</CardTitle>
+              <CardDescription>{t("video.newSub")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               {/* Model */}
               <div className="space-y-2">
-                <Label htmlFor="video-model">Model</Label>
+                <Label htmlFor="video-model">{t("video.model")}</Label>
                 {loadingModels ? (
                   <Skeleton className="h-9 w-full" />
                 ) : modelsError ? (
@@ -762,7 +764,7 @@ export default function VideoPage() {
                     </Button>
                   </div>
                 ) : models.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No video models are available right now.</p>
+                  <p className="text-sm text-muted-foreground">{t("video.modelNone")}</p>
                 ) : (
                   <Select
                     value={modelId}
@@ -800,14 +802,14 @@ export default function VideoPage() {
               {/* Prompt */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="video-prompt">Prompt</Label>
+                  <Label htmlFor="video-prompt">{t("video.prompt")}</Label>
                   <span
                     className={cn(
                       "text-xs font-mono tabular-nums",
                       promptTooLong ? "text-destructive" : "text-muted-foreground"
                     )}
                   >
-                    {promptBytes} / {MAX_PROMPT_BYTES} bytes
+                    {t("video.promptCounter", {count: promptBytes, max: MAX_PROMPT_BYTES})}
                   </span>
                 </div>
                 <Textarea
@@ -817,11 +819,13 @@ export default function VideoPage() {
                   rows={5}
                   required
                   aria-invalid={promptTooLong}
-                  placeholder="A paper boat drifting down a rainy street, close-up, slow motion"
+                  placeholder={t("video.promptPlaceholder")}
                 />
                 {promptTooLong && (
                   <p className="text-xs text-destructive">
-                    The prompt is longer than {MAX_PROMPT_BYTES} bytes.
+                    {t("video.promptTooLong", {
+                      max: MAX_PROMPT_BYTES,
+                    })}
                   </p>
                 )}
               </div>
@@ -829,7 +833,7 @@ export default function VideoPage() {
               {/* Length, resolution, aspect ratio: stacked while the form column is narrow */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1 2xl:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="video-length">Length</Label>
+                  <Label htmlFor="video-length">{t("video.length")}</Label>
                   <Select value={String(seconds)} onValueChange={(v) => setSeconds(Number(v))}>
                     <SelectTrigger id="video-length">
                       <SelectValue />
@@ -844,7 +848,7 @@ export default function VideoPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="video-resolution">Resolution</Label>
+                  <Label htmlFor="video-resolution">{t("video.resolution")}</Label>
                   <Select value={resolution} onValueChange={setResolution}>
                     <SelectTrigger id="video-resolution">
                       <SelectValue />
@@ -859,7 +863,7 @@ export default function VideoPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="video-aspect-ratio">Aspect ratio</Label>
+                  <Label htmlFor="video-aspect-ratio">{t("video.aspect")}</Label>
                   <Select value={aspectRatio} onValueChange={setAspectRatio}>
                     <SelectTrigger id="video-aspect-ratio">
                       <SelectValue />
@@ -956,7 +960,9 @@ export default function VideoPage() {
                 data-analytics-label="Generate video"
               >
                 {submitting && <Loader2 className="animate-spin" />}
-                {submitting ? "Generating…" : "Generate"}
+                {submitting
+                  ? t("video.generating")
+                  : t("video.generate")}
               </Button>
             </CardContent>
           </Card>
@@ -967,9 +973,9 @@ export default function VideoPage() {
             <Card className="min-w-0">
               <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
                 <div className="space-y-1.5">
-                  <CardTitle>Your videos</CardTitle>
+                  <CardTitle>{t("video.yours")}</CardTitle>
                   <CardDescription>
-                    Ready clips can be played or downloaded until their link expires.
+                    {t("video.yoursSub")}
                   </CardDescription>
                 </div>
                 <Button
@@ -982,7 +988,7 @@ export default function VideoPage() {
                   data-analytics-label="Refresh videos"
                 >
                   <RefreshCw className={cn(loadingVideos && "animate-spin")} />
-                  Refresh
+                  {t("video.refresh")}
                 </Button>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -996,7 +1002,7 @@ export default function VideoPage() {
                   [...Array(3)].map((_, i) => <Skeleton key={i} className="h-28" />)
                 ) : videos.length === 0 ? (
                   !videosError && (
-                    <p className="text-sm text-muted-foreground">No videos yet. Generated clips show up here.</p>
+                    <p className="text-sm text-muted-foreground">{t("video.empty")}</p>
                   )
                 ) : (
                   videos.map((video) => (

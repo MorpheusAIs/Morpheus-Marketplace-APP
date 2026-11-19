@@ -24,6 +24,7 @@ import {
 import { logModelName } from "@/lib/model-name-utils";
 import { useNotification } from "@/lib/NotificationContext";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { useTranslation } from "react-i18next";
 import { validateJsonDepth, safeJsonParseOrNull } from "@/lib/utils/safe-json";
 import { calculateCostUsd } from "@/lib/model-pricing";
 
@@ -175,6 +176,7 @@ console.log(response.choices[0].message.content);`;
 
 export default function TestPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { error: showError } = useNotification();
   const { apiKeys } = useCognitoAuth();
 
@@ -834,11 +836,10 @@ export default function TestPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
-                API Key Required
+                {t("pg.apiKeyRequired")}
               </CardTitle>
               <CardDescription>
-                A Default API key must be set and verified before using the
-                Playground. Go to API Keys to set your Default API Key.
+                {t("pg.apiKeyRequiredDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -848,7 +849,7 @@ export default function TestPage() {
                 data-analytics-action="go-to-api-keys"
                 data-analytics-destination="/api-keys"
               >
-                Go to API Keys
+                {t("pg.goToApiKeys")}
               </Button>
             </CardContent>
           </Card>
@@ -867,10 +868,10 @@ export default function TestPage() {
         <header className="shrink-0 flex items-center justify-between gap-4 px-5 py-4 border-b border-border bg-background">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl md:text-4xl font-bold text-foreground leading-tight">
-              Playground
+              {t("pg.title")}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Iterate on prompts before shipping
+              {t("pg.subtitle")}
             </p>
           </div>
 
@@ -878,7 +879,7 @@ export default function TestPage() {
             {/* Model pill */}
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-border bg-card text-xs text-foreground">
               <span className="font-semibold tracking-widest uppercase text-muted-foreground text-[10px]">
-                MODEL
+                {t("pg.model")}
               </span>
               <Select
                 value={selectedModel}
@@ -890,7 +891,7 @@ export default function TestPage() {
                 disabled={loadingModels}
               >
                 <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs font-mono text-foreground shadow-none focus:ring-0 focus:outline-none min-w-[80px] max-w-[200px] [&>svg]:h-3 [&>svg]:w-3 [&>svg]:ml-1 [&>svg]:opacity-50">
-                  <SelectValue placeholder="Select model" />
+                  <SelectValue placeholder={t("pg.selectModel")} />
                 </SelectTrigger>
                 <SelectContent>
                   {loadingModels ? (
@@ -899,10 +900,10 @@ export default function TestPage() {
                       data-analytics-action="select-test-model-loading"
                       data-analytics-destination="test-model:loading"
                     >
-                      Loading…
+                      {t("pg.loadingModels")}
                     </SelectItem>
                   ) : filteredModels.length === 0 ? (
-                    <SelectItem value="none" data-analytics-action="select-test-model-empty" data-analytics-destination="test-model:none">No models available</SelectItem>
+                    <SelectItem value="none" data-analytics-action="select-test-model-empty" data-analytics-destination="test-model:none">{t("pg.noModels")}</SelectItem>
                   ) : (
                     filteredModels.map((model) => (
                       <SelectItem
@@ -923,7 +924,7 @@ export default function TestPage() {
             {/* Key pill */}
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-border bg-card text-xs">
               <span className="font-semibold tracking-widest uppercase text-muted-foreground text-[10px]">
-                KEY
+                {t("pg.key")}
               </span>
               <span className="font-medium text-foreground">
                 {apiKeyName || "—"}
@@ -941,7 +942,7 @@ export default function TestPage() {
             onClick={() => setParamsOpen((o) => !o)}
             className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
           >
-            <span>Parameters</span>
+            <span>{t("pg.parameters")}</span>
             {paramsOpen ? (
               <ChevronUp className="h-3.5 w-3.5" />
             ) : (
@@ -967,7 +968,7 @@ export default function TestPage() {
             {/* Column header */}
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border">
               <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
-                Conversation
+                {t("pg.conversation")}
               </span>
               <div className="flex items-center gap-3">
                 <button
@@ -975,14 +976,14 @@ export default function TestPage() {
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Message
+                  {t("pg.message")}
                 </button>
                 <button
                   onClick={clearConversation}
                   className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Clear
+                  {t("pg.clear")}
                 </button>
               </div>
             </div>
@@ -1039,7 +1040,9 @@ export default function TestPage() {
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Add message</span>
+                <span className="hidden sm:inline">
+                  {t("pg.addMessage")}
+                </span>
               </button>
 
               <div className="flex-1" />
@@ -1050,7 +1053,7 @@ export default function TestPage() {
                 className="h-8 px-3 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded gap-1.5"
               >
                 <Send className="h-3.5 w-3.5" />
-                Run
+                {t("pg.run")}
                 <kbd className="hidden sm:inline text-[10px] opacity-70 ml-0.5">⌘↩</kbd>
               </Button>
             </div>

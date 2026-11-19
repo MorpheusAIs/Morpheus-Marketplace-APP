@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Info, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface PlaygroundParams {
   temperature: number;
@@ -39,12 +40,13 @@ interface ParametersPanelProps {
 }
 
 function ParamTooltip({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <Tooltip delayDuration={150}>
       <TooltipTrigger asChild>
         <button
           type="button"
-          aria-label="More info"
+          aria-label={t("pg.moreInfo")}
           className="inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-colors cursor-help"
         >
           <Info className="h-3 w-3" />
@@ -103,6 +105,7 @@ function SliderRow({
 
 export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
   const [stopInput, setStopInput] = useState("");
+  const { t } = useTranslation();
 
   const set = <K extends keyof PlaygroundParams>(key: K, value: PlaygroundParams[K]) =>
     onChange({ ...params, [key]: value });
@@ -128,20 +131,20 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
-            Parameters
+            {t("pg.parameters")}
           </span>
           <button
             onClick={() => onChange({ ...DEFAULT_PARAMS })}
             className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
           >
-            Reset
+            {t("pg.reset")}
           </button>
         </div>
 
         {/* Sliders */}
         <div className="flex flex-col gap-5 px-4 py-4">
           <SliderRow
-            label="Temperature"
+            label={t("pg.paramTemperature")}
             tooltip={
               <>
                 Controls randomness. Lower values (≈ 0.2) make output more
@@ -156,7 +159,7 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
             onChange={(v) => set("temperature", v)}
           />
           <SliderRow
-            label="Max Tokens"
+            label={t("pg.paramMaxTokens")}
             tooltip={
               <>
                 Upper bound on tokens the model can generate in the response.
@@ -171,7 +174,7 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
             onChange={(v) => set("maxTokens", v)}
           />
           <SliderRow
-            label="Top P"
+            label={t("pg.paramTopP")}
             tooltip={
               <>
                 Nucleus sampling. The model only considers tokens whose
@@ -187,7 +190,7 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
             onChange={(v) => set("topP", v)}
           />
           <SliderRow
-            label="Freq. Penalty"
+            label={t("pg.paramFreqPenalty")}
             tooltip={
               <>
                 Discourages tokens that have already appeared often in the
@@ -202,7 +205,7 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
             onChange={(v) => set("frequencyPenalty", v)}
           />
           <SliderRow
-            label="Pres. Penalty"
+            label={t("pg.paramPresPenalty")}
             tooltip={
               <>
                 Discourages tokens that have appeared at all (regardless of
@@ -223,7 +226,7 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
         {/* Stream toggle */}
         <div className="flex items-center justify-between px-4 py-4">
           <span className="flex items-center gap-1.5 text-xs font-medium tracking-widest uppercase text-muted-foreground">
-            Stream Response
+            {t("pg.stream")}
             <ParamTooltip>
               When on, tokens render as they arrive (lower time-to-first-token,
               feels snappier). When off, the response returns as one complete
@@ -241,9 +244,9 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
         {/* Stop sequences */}
         <div className="flex flex-col gap-3 px-4 py-4">
           <span className="flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase text-muted-foreground">
-            Stop Sequences
+            {t("pg.stopSequences")}
             <span className="font-normal normal-case text-muted-foreground/60">
-              ({params.stopSequences.length}/4)
+              {t("pg.stopCount", { count: params.stopSequences.length })}
             </span>
             <ParamTooltip>
               Strings that, when generated, cause the model to stop immediately
@@ -287,7 +290,7 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
                     addStop();
                   }
                 }}
-                placeholder='e.g. "\n\n"'
+                placeholder={t('pg.stopPlaceholder')}
                 className="flex-1 min-w-0 px-2.5 py-1.5 text-xs font-mono rounded bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-0 transition-colors"
               />
               <Button
@@ -297,7 +300,7 @@ export function ParametersPanel({ params, onChange }: ParametersPanelProps) {
                 disabled={!stopInput.trim()}
                 className="text-xs px-2.5 h-7 rounded shrink-0"
               >
-                Add
+                {t("pg.stopAdd")}
               </Button>
             </div>
           )}

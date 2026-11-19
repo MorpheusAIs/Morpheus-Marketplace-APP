@@ -4,8 +4,10 @@ import React from 'react';
 import { TrendingUp, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 export function PricingPlans() {
+  const { t } = useTranslation();
   const handleSeePricing = () => {
     window.open('https://apidocs.mor.org/documentation/models/pricing?utm_source=api-admin', '_blank', 'noopener,noreferrer');
   };
@@ -15,11 +17,11 @@ export function PricingPlans() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" />
-          <CardTitle>Pricing</CardTitle>
+          <CardTitle>{t('billing.pricingTitle')}</CardTitle>
         </div>
         <CardDescription className="pt-4 space-y-3">
           <p>
-            View the current model pricing and associated rate limits at the links below. Daily Credit Allowance from Staking is spent first, followed by the pre-paid Available Credit (when allow overages is enabled).
+            {t('billing.pricingBody')}
           </p>
           <div className="space-y-1">
             <div>
@@ -29,7 +31,7 @@ export function PricingPlans() {
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-1"
               >
-                Model Pricing
+                {t('billing.pricingModels')}
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -40,7 +42,7 @@ export function PricingPlans() {
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-1"
               >
-                Rate Limits
+                {t('billing.pricingRateLimits')}
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -55,7 +57,7 @@ export function PricingPlans() {
           data-analytics-destination="https://apidocs.mor.org/documentation/models/pricing?utm_source=api-admin"
           onClick={handleSeePricing}
         >
-          See Pricing
+          {t('billing.pricingSee')}
           <ExternalLink className="ml-2 h-4 w-4" />
         </Button>
       </CardContent>

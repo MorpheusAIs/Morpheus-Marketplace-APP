@@ -32,6 +32,8 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXTwitter } from "@fortawesome/free-brands-svg-icons";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { useTranslation } from "react-i18next";
+import { LanguageToggle } from "@/components/language-toggle";
 import { NavUser } from "@/components/nav-user";
 import { DiscordIcon } from "@/components/discord-icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -53,6 +55,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user, defaultApiKey } = useCognitoAuth();
+  const { t } = useTranslation();
   const hasDefaultApiKey = defaultApiKey !== null;
   const network = useNetworkStatus();
 
@@ -66,25 +69,23 @@ export function Sidebar() {
   };
 
   const buildItems: NavItem[] = [
-    { label: "API Keys", icon: Key, href: "/api-keys" },
+    { label: t("nav.apiKeys"), icon: Key, href: "/api-keys" },
     {
-      label: "Playground",
+      label: t("nav.playground"),
       icon: Play,
       href: "/test",
       disabled: !hasDefaultApiKey,
-      disabledReason:
-        'A Default API key must be set and verified before using the "Playground". Go to API Keys to set your Default API Key.',
+      disabledReason: t("nav.playgroundDisabledReason"),
     },
     {
-      label: "Video",
+      label: t("nav.video"),
       icon: Clapperboard,
       href: "/video",
       disabled: !hasDefaultApiKey,
-      disabledReason:
-        'A Default API key must be set and verified before using "Video". Go to API Keys to set your Default API Key.',
+      disabledReason: t("nav.videoDisabledReason"),
     },
     {
-      label: "Models",
+      label: t("nav.models"),
       icon: Box,
       href: "https://apidocs.mor.org/documentation/models",
       external: true,
@@ -92,29 +93,29 @@ export function Sidebar() {
   ];
 
   const monitorItems: NavItem[] = [
-    { label: "Usage", icon: BarChart3, href: "/usage-analytics" },
+    { label: t("nav.usage"), icon: BarChart3, href: "/usage-analytics" },
   ];
 
   const accountItems: NavItem[] = [
-    { label: "Billing", icon: CreditCard, href: "/billing" },
-    { label: "Settings", icon: Settings, href: "/account" },
+    { label: t("nav.billing"), icon: CreditCard, href: "/billing" },
+    { label: t("nav.settings"), icon: Settings, href: "/account" },
   ];
 
   const resourceItems: NavItem[] = [
     {
-      label: "Docs",
+      label: t("nav.docs"),
       icon: BookOpen,
       href: "https://apidocs.mor.org?utm_source=api-admin",
       external: true,
     },
     {
-      label: "Pricing",
+      label: t("nav.pricing"),
       icon: Tag,
       href: "https://apidocs.mor.org/documentation/models/pricing",
       external: true,
     },
     {
-      label: "Network Status",
+      label: t("nav.networkStatus"),
       icon: Activity,
       href: "https://active.mor.org/status",
       external: true,
@@ -138,22 +139,22 @@ export function Sidebar() {
             className="h-6 w-6 shrink-0"
           />
           <span className="text-sm font-semibold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-            Inference API
+            {t("app.brandSidebar")}
           </span>
         </Link>
       </SidebarHeader>
 
       <SidebarContent>
-        <NavGroup label="Build" items={buildItems} pathname={pathname} />
-        <NavGroup label="Monitor" items={monitorItems} pathname={pathname} withDivider />
-        <NavGroup label="Account" items={accountItems} pathname={pathname} withDivider />
+        <NavGroup label={t("nav.sectionBuild")} items={buildItems} pathname={pathname} />
+        <NavGroup label={t("nav.sectionMonitor")} items={monitorItems} pathname={pathname} withDivider />
+        <NavGroup label={t("nav.sectionAccount")} items={accountItems} pathname={pathname} withDivider />
         <NavGroup
-          label="Resources"
+          label={t("nav.sectionResources")}
           items={resourceItems}
           pathname={pathname}
           withDivider
           tooltipExtra={(item) =>
-            item.label === "Network Status" && network ? network.label : undefined
+            item.label === t("nav.networkStatus") && network ? network.label : undefined
           }
         />
       </SidebarContent>
@@ -166,6 +167,9 @@ export function Sidebar() {
               onAccountClick={handleAccountClick}
               onLogout={handleLogout}
             />
+            <div className="mt-2 flex justify-center">
+              <LanguageToggle />
+            </div>
             <div className="mx-auto mt-2 flex w-3/4 items-center justify-between gap-3 group-data-[collapsible=icon]:hidden">
               <Link
                 href="https://twitter.com/MorpheusAIs"
@@ -191,7 +195,7 @@ export function Sidebar() {
                 rel="noopener noreferrer"
                 className="text-sm text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
               >
-                Website
+                {t("nav.website")}
               </Link>
             </div>
           </>
