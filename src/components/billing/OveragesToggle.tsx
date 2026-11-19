@@ -124,9 +124,7 @@ export function OveragesToggle() {
             </Label>
             <p className="text-xs text-muted-foreground">
               {isEnabled
-                ? t('billing.overagesEnabledSub', {
-                    defaultValue: 'Credit Balance will be used as fallback',
-                  })
+                ? t('billing.overagesEnabledSub')
                 : t('billing.overagesDisabledSub')
               }
             </p>

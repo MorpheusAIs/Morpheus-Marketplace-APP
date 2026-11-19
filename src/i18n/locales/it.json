@@ -297,7 +297,8 @@
     "pricingSee": "Vedi prezzi",
     "errorLoad": "Caricamento dei dati di fatturazione non riuscito",
     "overagesEnabled": "Attivato",
-    "errorRetry": "Prova ad aggiornare la pagina"
+    "errorRetry": "Prova ad aggiornare la pagina",
+    "overagesEnabledSub": "Il saldo crediti verrà usato come riserva"
   },
   "account": {
     "title": "Impostazioni account",
@@ -400,7 +401,7 @@
     "model": "Modello",
     "modelNone": "Al momento non ci sono modelli video disponibili.",
     "prompt": "Prompt",
-    "promptCounter": "{{count}} / 4000 byte",
+    "promptCounter": "{{count}} / {{max}} byte",
     "promptPlaceholder": "Una barchetta di carta che scende per una strada sotto la pioggia, primo piano, slow motion",
     "length": "Durata",
     "length5s": "5 s",

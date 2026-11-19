@@ -297,7 +297,8 @@
     "pricingSee": "查看定价",
     "errorLoad": "加载账单数据失败",
     "overagesEnabled": "已启用",
-    "errorRetry": "请尝试刷新页面"
+    "errorRetry": "请尝试刷新页面",
+    "overagesEnabledSub": "将使用积分余额作为备用"
   },
   "account": {
     "title": "账户设置",
@@ -400,7 +401,7 @@
     "model": "模型",
     "modelNone": "目前没有可用的视频模型。",
     "prompt": "提示词",
-    "promptCounter": "{{count}} / 4000 字节",
+    "promptCounter": "{{count}} / {{max}} 字节",
     "promptPlaceholder": "一只纸船漂过雨中的街道，特写，慢动作",
     "length": "时长",
     "length5s": "5 s",

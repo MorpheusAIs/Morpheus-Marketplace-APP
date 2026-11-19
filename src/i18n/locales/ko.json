@@ -297,7 +297,8 @@
     "pricingSee": "요금 보기",
     "errorLoad": "결제 데이터를 불러오지 못했습니다",
     "overagesEnabled": "활성화됨",
-    "errorRetry": "페이지를 새로고침해 주세요"
+    "errorRetry": "페이지를 새로고침해 주세요",
+    "overagesEnabledSub": "크레딧 잔액이 대체 수단으로 사용됩니다"
   },
   "account": {
     "title": "계정 설정",
@@ -400,7 +401,7 @@
     "model": "모델",
     "modelNone": "현재 사용 가능한 비디오 모델이 없습니다.",
     "prompt": "프롬프트",
-    "promptCounter": "{{count}} / 4000바이트",
+    "promptCounter": "{{count}} / {{max}}바이트",
     "promptPlaceholder": "비 오는 거리를 떠다니는 종이배, 클로즈업, 슬로 모션",
     "length": "길이",
     "length5s": "5 s",

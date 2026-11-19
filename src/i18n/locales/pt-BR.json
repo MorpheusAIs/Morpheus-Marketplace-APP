@@ -297,7 +297,8 @@
     "pricingSee": "Ver preços",
     "errorLoad": "Falha ao carregar dados de faturamento",
     "overagesEnabled": "Ativado",
-    "errorRetry": "Tente atualizar a página"
+    "errorRetry": "Tente atualizar a página",
+    "overagesEnabledSub": "O saldo de créditos será usado como reserva"
   },
   "account": {
     "title": "Configurações da conta",
@@ -400,7 +401,7 @@
     "model": "Modelo",
     "modelNone": "Não há modelos de vídeo disponíveis no momento.",
     "prompt": "Prompt",
-    "promptCounter": "{{count}} / 4000 bytes",
+    "promptCounter": "{{count}} / {{max}} bytes",
     "promptPlaceholder": "Um barquinho de papel descendo uma rua chuvosa, close-up, câmera lenta",
     "length": "Duração",
     "length5s": "5 s",

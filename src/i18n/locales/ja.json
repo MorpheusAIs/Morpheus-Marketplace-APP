@@ -297,7 +297,8 @@
     "pricingSee": "料金を見る",
     "errorLoad": "請求データの読み込みに失敗しました",
     "overagesEnabled": "有効",
-    "errorRetry": "ページを再読み込みしてください"
+    "errorRetry": "ページを再読み込みしてください",
+    "overagesEnabledSub": "クレジット残高がフォールバックとして使用されます"
   },
   "account": {
     "title": "アカウント設定",
@@ -400,7 +401,7 @@
     "model": "モデル",
     "modelNone": "現在利用できる動画モデルはありません。",
     "prompt": "プロンプト",
-    "promptCounter": "{{count}} / 4000 バイト",
+    "promptCounter": "{{count}} / {{max}} バイト",
     "promptPlaceholder": "雨の日に流れる紙の舟、クローズアップ、スローモーション",
     "length": "長さ",
     "length5s": "5 s",

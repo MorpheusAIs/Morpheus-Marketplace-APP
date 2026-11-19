@@ -297,7 +297,8 @@
     "pricingSee": "Preise ansehen",
     "errorLoad": "Abrechnungsdaten konnten nicht geladen werden",
     "overagesEnabled": "Aktiviert",
-    "errorRetry": "Bitte versuche, die Seite neu zu laden"
+    "errorRetry": "Bitte versuche, die Seite neu zu laden",
+    "overagesEnabledSub": "Das Guthaben wird als Fallback verwendet"
   },
   "account": {
     "title": "Kontoeinstellungen",
@@ -400,7 +401,7 @@
     "model": "Modell",
     "modelNone": "Zurzeit sind keine Videomodelle verfügbar.",
     "prompt": "Prompt",
-    "promptCounter": "{{count}} / 4000 Bytes",
+    "promptCounter": "{{count}} / {{max}} Bytes",
     "promptPlaceholder": "Ein Papierboot treibt eine regnerische Straße hinab, Nahaufnahme, Zeitlupe",
     "length": "Länge",
     "length5s": "5 s",

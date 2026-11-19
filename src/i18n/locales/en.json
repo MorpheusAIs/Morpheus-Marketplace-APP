@@ -297,7 +297,8 @@
     "pricingSee": "See Pricing",
     "errorLoad": "Failed to load billing data",
     "overagesEnabled": "Enabled",
-    "errorRetry": "Please try refreshing the page"
+    "errorRetry": "Please try refreshing the page",
+    "overagesEnabledSub": "Credit Balance will be used as fallback"
   },
   "account": {
     "title": "Account Settings",
@@ -400,7 +401,7 @@
     "model": "Model",
     "modelNone": "No video models are available right now.",
     "prompt": "Prompt",
-    "promptCounter": "{{count}} / 4000 bytes",
+    "promptCounter": "{{count}} / {{max}} bytes",
     "promptPlaceholder": "A paper boat drifting down a rainy street, close-up, slow motion",
     "length": "Length",
     "length5s": "5 s",

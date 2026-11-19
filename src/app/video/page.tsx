@@ -809,7 +809,7 @@ export default function VideoPage() {
                       promptTooLong ? "text-destructive" : "text-muted-foreground"
                     )}
                   >
-                    {t("video.promptCounter", { count: promptBytes })}
+                    {t("video.promptCounter", { count: promptBytes, max: MAX_PROMPT_BYTES })}
                   </span>
                 </div>
                 <Textarea

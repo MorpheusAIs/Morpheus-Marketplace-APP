@@ -297,7 +297,8 @@
     "pricingSee": "Ver precios",
     "errorLoad": "Error al cargar los datos de facturación",
     "overagesEnabled": "Activado",
-    "errorRetry": "Intenta actualizar la página"
+    "errorRetry": "Intenta actualizar la página",
+    "overagesEnabledSub": "Se usará el saldo de créditos como respaldo"
   },
   "account": {
     "title": "Ajustes de la cuenta",
@@ -400,7 +401,7 @@
     "model": "Modelo",
     "modelNone": "No hay modelos de vídeo disponibles ahora mismo.",
     "prompt": "Prompt",
-    "promptCounter": "{{count}} / 4000 bytes",
+    "promptCounter": "{{count}} / {{max}} bytes",
     "promptPlaceholder": "Un barquito de papel descendiendo por una calle lluviosa, primer plano, cámara lenta",
     "length": "Duración",
     "length5s": "5 s",

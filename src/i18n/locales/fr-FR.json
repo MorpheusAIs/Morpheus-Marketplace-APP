@@ -297,7 +297,8 @@
     "pricingSee": "Voir les tarifs",
     "errorLoad": "Échec du chargement des données de facturation",
     "overagesEnabled": "Activé",
-    "errorRetry": "Veuillez essayer de rafraîchir la page"
+    "errorRetry": "Veuillez essayer de rafraîchir la page",
+    "overagesEnabledSub": "Le solde de crédits sera utilisé en secours"
   },
   "account": {
     "title": "Paramètres du compte",
@@ -400,7 +401,7 @@
     "model": "Modèle",
     "modelNone": "Aucun modèle vidéo n'est disponible pour le moment.",
     "prompt": "Prompt",
-    "promptCounter": "{{count}} / 4000 octets",
+    "promptCounter": "{{count}} / {{max}} octets",
     "promptPlaceholder": "Un petit bateau en papier descendant une rue sous la pluie, gros plan, au ralenti",
     "length": "Durée",
     "length5s": "5 s",
