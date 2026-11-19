@@ -65,6 +65,22 @@ function dottedCandidates(leaf) {
 }
 
 // Build mapping leaf -> mdKey using per-locale rules
+
+// Static key-mapping table for keys whose MD key differs structurally from the JSON leaf.
+// Maintained explicitly — add new entries here instead of ad-hoc rules.
+const SPECIAL_MAPPINGS = {
+  'keys.keyName': 'keys.create.name',
+  'keys.keyNamePlaceholder': 'keys.create.name.placeholder',
+  'keys.baseUrlLabel': 'keys.baseurl',
+  'pg.paramTopP': 'pg.param.top_p',
+  'pg.paramFreqPenalty': 'pg.param.freq_penalty',
+  'pg.paramPresPenalty': 'pg.param.pres_penalty',
+};
+const SPECIAL_PREFIX_RULES = [
+  [/^keys\.(created|lastUsed|requests30d|spend30d|default|delete)$/, (m) => 'keys.card.' + m.toLowerCase()],
+  [/^usage\.(avg|min|max)$/, (m) => 'usage.stat.' + m],
+];
+
 function buildMapping(mdKeys) {
   const has = (k) => mdKeys.has(k);
   const map = new Map(); // leaf -> mdKey or null (untranslated)
@@ -73,25 +89,14 @@ function buildMapping(mdKeys) {
     const cands = dottedCandidates(leaf);
     let found = cands.find(c => has(c)) || null;
     if (found) { map.set(leaf, found); continue; }
-    // rule-based fallbacks
+    // rule-based fallbacks (static tables above)
+    if (SPECIAL_MAPPINGS[leaf]) { map.set(leaf, SPECIAL_MAPPINGS[leaf]); continue; }
     const rules = [];
-    // keys.created/lastUsed/... <- keys.card.*
-    rules.push([/^keys\.(created|lastUsed|requests30d|spend30d|default|delete)$/, m => 'keys.card.' + m.toLowerCase()]);
-    // keys.keyName/keyNamePlaceholder <- keys.create.name(.placeholder)
-    if (leaf === 'keys.keyName') rules.push([/.*/, () => 'keys.create.name']);
-    if (leaf === 'keys.keyNamePlaceholder') rules.push([/.*/, () => 'keys.create.name.placeholder']);
-    // keys.baseUrlLabel <- keys.baseurl
-    if (leaf === 'keys.baseUrlLabel') rules.push([/.*/, () => 'keys.baseurl']);
-    // usage.statAvg/... <- usage.stat.avg etc; usage.avg/min/max <- usage.stat.avg/min/max
-    if (/^usage\.(avg|min|max)$/.test(leaf)) rules.push([/.*/, () => 'usage.stat.' + leaf.split('.')[1]]);
-    if (/^usage\.statAvg(Cost)?$/.test(leaf) || /^usage\.stat(Spend|Tokens|Requests|AvgCost)(Sub)?$/.test(leaf)) {
-      // e.g. usage.statSpendSub -> usage.stat.spend.sub already handled by dotted candidates
+    for (const [re2, fn2] of SPECIAL_PREFIX_RULES) {
+      const m = leaf.match(re2);
+      if (m) rules.push([/.*/, () => fn2(m[1])]);
     }
-    // pg.paramTopP <- pg.param.top_p; pg.paramFreqPenalty; pg.paramPresPenalty
-    if (leaf === 'pg.paramTopP') rules.push([/.*/, () => 'pg.param.top_p']);
-    if (leaf === 'pg.paramFreqPenalty') rules.push([/.*/, () => 'pg.param.freq_penalty']);
-    if (leaf === 'pg.paramPresPenalty') rules.push([/.*/, () => 'pg.param.pres_penalty']);
-    // signin.errorIncorrect etc already via dotted candidates
+    // pg.param* handled via SPECIAL_MAPPINGS; signin/signup errors via dotted candidates
     // signup.emailPlaceholder -> signup.email.placeholder (dotted handles)
     for (const [re, fn] of rules) {
       if (re.test(leaf)) {
