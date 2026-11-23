@@ -2,6 +2,8 @@
 
 A [Next.js](https://nextjs.org) application that provides the user interface for the Morpheus Inference API, including user authentication via AWS Cognito, API key management, automation settings, and an interactive chat interface.
 
+**Community:** questions and ideas go in [Morpheus Discussions](https://github.com/orgs/MorpheusAIs/discussions).
+
 ## 🚀 Features
 
 - 🔐 **AWS Cognito Authentication**: Secure OAuth2/OpenID Connect authentication
@@ -163,7 +165,7 @@ Please see the [Local Developer Guide](./.ai-docs/Local_Developer_Guide.md) for 
 
 ## 📝 License
 
-This project is part of the Morpheus AI ecosystem.
+MIT License. See [LICENSE](LICENSE) for details.
 
 ## 🔗 Related Resources
 

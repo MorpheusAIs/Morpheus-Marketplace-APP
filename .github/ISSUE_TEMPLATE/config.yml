@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Ask a question or share an idea
+    url: https://github.com/orgs/MorpheusAIs/discussions
+    about: Use a matching Discussions category. Ideas go in Ideas.
   - name: The app
     url: https://app.mor.org
     about: Sign in, API keys, billing, chat, and video. Questions are not tracked as issues
@@ -7,8 +10,8 @@ contact_links:
     url: https://apidocs.mor.org
     about: How to call the hosted API with a key from the app
   - name: Report a security issue
-    url: https://github.com/MorpheusAIs/Morpheus-Marketplace-API/security/policy
-    about: Email security@mor.org. Do not open a public issue
+    url: https://github.com/MorpheusAIs/Morpheus-Marketplace-APP/security/policy
+    about: Report a vulnerability privately. Do not open a public issue
   - name: Hosted API
     url: https://github.com/MorpheusAIs/Morpheus-Marketplace-API/issues/new/choose
     about: Bugs and requests for api.mor.org belong on Morpheus-Marketplace-API
