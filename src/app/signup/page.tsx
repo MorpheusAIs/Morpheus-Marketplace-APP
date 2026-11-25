@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,8 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { turnstileSiteKey } from "@/lib/auth/turnstile";
+import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/auth/TurnstileWidget";
+import { useTranslation } from "react-i18next";
+import { LanguageToggle } from "@/components/language-toggle";
 
 export default function SignUpPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { signUp, isAuthenticated, isLoading } = useCognitoAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +33,8 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [ageConsent, setAgeConsent] = useState(false);
   const [tosConsent, setTosConsent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -45,16 +52,16 @@ export default function SignUpPage() {
   // Password validation function to match Cognito password policy
   const validatePassword = (password: string): string | null => {
     if (password.length < 15) {
-      return 'Password must be at least 15 characters long';
+      return t('signup.errorLength');
     }
     if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
+      return t('signup.errorUppercase');
     }
     if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
+      return t('signup.errorLowercase');
     }
     if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number';
+      return t('signup.errorNumber');
     }
     return null;
   };
@@ -64,27 +71,27 @@ export default function SignUpPage() {
     setError("");
 
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      setError("Please fill in all fields");
+      setError(t("signin.errorFillAll"));
       return;
     }
 
     if (!ageConsent) {
-      setError("You must certify that you are at least 18 years old to create an account");
+      setError(t("signup.errorCertify"));
       return;
     }
 
     if (!tosConsent) {
-      setError("You must accept the Terms of Service to create an account");
+      setError(t("signup.errorAcceptTos"));
       return;
     }
 
     if (!isValidEmail(email)) {
-      setError("Please enter a valid email address");
+      setError(t("signin.errorInvalidEmail"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("signup.errorMismatch"));
       return;
     }
 
@@ -95,9 +102,14 @@ export default function SignUpPage() {
       return;
     }
 
+    if (turnstileSiteKey && !turnstileToken) {
+      setError(t("signup.errorVerificationPending"));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const result = await signUp(email, password);
+      const result = await signUp(email, password, turnstileToken ?? undefined);
       // If confirmation is required, redirect to confirmation page
       if (result?.requiresConfirmation) {
         // Store the age consent so confirm-registration can call verify-age
@@ -111,6 +123,8 @@ export default function SignUpPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account");
+      // The token was spent on this attempt, so the next one needs a new challenge.
+      turnstileRef.current?.reset();
     } finally {
       setIsSubmitting(false);
     }
@@ -118,6 +132,9 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex justify-end p-4">
+        <LanguageToggle />
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <div className="flex items-center gap-3 mb-8">
           <img
@@ -129,16 +146,16 @@ export default function SignUpPage() {
         </div>
         <Card className="w-full max-w-[400px] mx-auto p-6 bg-card text-card-foreground rounded shadow-lg">
           <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-3xl font-bold text-foreground">Sign up</CardTitle>
+            <CardTitle className="text-3xl font-bold text-foreground">{t("signup.title")}</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Create a Morpheus account to continue.
+              {t("signup.subtitle")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-6 mt-4" onSubmit={handleSubmit}>
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <FieldLabel htmlFor="email">{t("signin.email")}</FieldLabel>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -154,7 +171,7 @@ export default function SignUpPage() {
                   </div>
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <FieldLabel htmlFor="password">{t("signin.password")}</FieldLabel>
                   <div className="relative">
                     <Input
                       id="password"
@@ -180,25 +197,25 @@ export default function SignUpPage() {
                     <div className="text-xs text-muted-foreground space-y-1 mt-2">
                       <div className={`flex items-center gap-2 ${password.length >= 15 ? 'text-primary' : ''}`}>
                         <span>{password.length >= 15 ? '✓' : '○'}</span>
-                        <span>At least 15 characters</span>
+                        <span>{t("signup.ruleLength")}</span>
                       </div>
                       <div className={`flex items-center gap-2 ${/[A-Z]/.test(password) ? 'text-primary' : ''}`}>
                         <span>{/[A-Z]/.test(password) ? '✓' : '○'}</span>
-                        <span>One uppercase letter</span>
+                        <span>{t("signup.ruleUppercase")}</span>
                       </div>
                       <div className={`flex items-center gap-2 ${/[a-z]/.test(password) ? 'text-primary' : ''}`}>
                         <span>{/[a-z]/.test(password) ? '✓' : '○'}</span>
-                        <span>One lowercase letter</span>
+                        <span>{t("signup.ruleLowercase")}</span>
                       </div>
                       <div className={`flex items-center gap-2 ${/[0-9]/.test(password) ? 'text-primary' : ''}`}>
                         <span>{/[0-9]/.test(password) ? '✓' : '○'}</span>
-                        <span>One number</span>
+                        <span>{t("signup.ruleNumber")}</span>
                       </div>
                     </div>
                   )}
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
+                  <FieldLabel htmlFor="confirm-password">{t("signup.confirm")}</FieldLabel>
                   <div className="relative">
                     <Input
                       id="confirm-password"
@@ -237,7 +254,7 @@ export default function SignUpPage() {
                       className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
                     />
                     <span className="text-xs text-muted-foreground leading-relaxed">
-                      <em>I certify that I am at least 18 years old and the minimum age required in my country to consent to use the Services.</em>
+                      <em>{t("signup.certifyAge")}</em>
                     </span>
                   </label>
                 </Field>
@@ -253,15 +270,27 @@ export default function SignUpPage() {
                       className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
                     />
                     <span className="text-xs text-muted-foreground leading-relaxed">
-                      <em>I have read and accept the{" "}
+                      <em>
+                        {t("signup.certifyTosPrefix")}{" "}
                         <Link href="/terms" className="text-primary hover:underline">
-                          Terms of Service
+                          {t("footer.terms")}
                         </Link>
-                        .
+                        {t("signup.certifyTosSuffix")}
                       </em>
                     </span>
                   </label>
                 </Field>
+                {turnstileSiteKey && (
+                  <Field>
+                    <TurnstileWidget
+                      ref={turnstileRef}
+                      siteKey={turnstileSiteKey}
+                      action="signup"
+                      onToken={setTurnstileToken}
+                      onError={() => setError(t("signup.errorVerificationLoad"))}
+                    />
+                  </Field>
+                )}
                 {error && (
                   <p className="text-sm text-red-500">{error}</p>
                 )}
@@ -271,7 +300,7 @@ export default function SignUpPage() {
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center space-x-2"
                     disabled={isSubmitting}
                   >
-                    <span>Continue</span>
+                    <span>{t("signup.submit")}</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Field>
@@ -326,22 +355,22 @@ export default function SignUpPage() {
                 </Field> */}
                 <FieldDescription className="text-center space-y-2">
                   <span className="block">
-                    Already have an account?{" "}
+                    {t("signup.haveAccount")}{" "}
                     <Link href="/signin" className="text-primary hover:underline">
-                      Sign in
+                      {t("signup.signinLink")}
                     </Link>
                   </span>
                   <span className="block flex flex-wrap gap-x-2 justify-center">
                     <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-xs">
-                      Privacy Policy
+                      {t("footer.privacy")}
                     </Link>
                     <span className="text-muted-foreground">·</span>
                     <Link href="/terms" className="text-muted-foreground hover:text-foreground text-xs">
-                      Terms of Service
+                      {t("footer.terms")}
                     </Link>
                     <span className="text-muted-foreground">·</span>
                     <Link href="/cookies" className="text-muted-foreground hover:text-foreground text-xs">
-                      Cookie Policy
+                      {t("footer.cookies")}
                     </Link>
                   </span>
                 </FieldDescription>

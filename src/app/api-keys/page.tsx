@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { useTranslation } from "react-i18next";
 import { apiPost, apiDelete, apiPut } from "@/lib/api/apiService";
 import { formatLocaleDate, ensureUTCTimestamp } from "@/lib/utils/billing-utils";
 import { API_URLS, DOC_URLS } from "@/lib/api/config";
@@ -95,7 +96,15 @@ function formatCurrency(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
+const FILTER_TAB_KEYS = {
+  all: "keys.filterAll",
+  active: "keys.filterActive",
+  stale: "keys.filterStale",
+  revoked: "keys.filterRevoked",
+} as const;
+
 function ApiKeysPageContent() {
+  const { t } = useTranslation();
   const { apiKeys, refreshApiKeys, defaultApiKey, getValidToken } = useCognitoAuth();
   const { success, error, warning } = useNotification();
   const searchParams = useSearchParams();
@@ -372,16 +381,16 @@ function ApiKeysPageContent() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground">API keys</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground">{t("keys.title")}</h1>
             <p className="text-sm md:text-base text-muted-foreground mt-2">
-              Authenticate requests to the Morpheus inference API.{" "}
+              {t("keys.subtitle")}{" "}
               <a
                 href="https://apidocs.mor.org?utm_source=api-admin"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-0.5"
               >
-                Read the docs <ArrowUpRight className="h-3.5 w-3.5" />
+                {t("keys.readTheDocs")} <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
             </p>
           </div>
@@ -391,7 +400,7 @@ function ApiKeysPageContent() {
             className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shrink-0"
           >
             <Plus className="h-4 w-4" />
-            Create key
+            {t("keys.create")}
           </Button>
         </div>
 
@@ -399,7 +408,7 @@ function ApiKeysPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="rounded border border-border bg-card p-4 flex flex-col gap-3">
             <span className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-              Base URL
+              {t("keys.baseUrlLabel")}
             </span>
             <div className="flex items-center gap-2 rounded border border-border bg-background p-2">
               <code className="flex-1 self-center px-2 font-mono text-sm text-foreground truncate">
@@ -408,7 +417,7 @@ function ApiKeysPageContent() {
               <button
                 type="button"
                 onClick={handleCopyBase}
-                aria-label="Copy base URL"
+                aria-label={t("keys.copyBaseUrl")}
                 className="inline-flex items-center justify-center h-7 w-7 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/10 transition-colors shrink-0"
               >
                 {copiedBase ? (
@@ -421,7 +430,7 @@ function ApiKeysPageContent() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                OpenAI-compatible
+                {t("keys.openaiCompat")}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 {network ? (
@@ -445,27 +454,27 @@ function ApiKeysPageContent() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or last-4..."
+                placeholder={t("keys.searchPlaceholder")}
                 className="pl-9 h-9 bg-background border-border"
               />
             </div>
             <div className="inline-flex items-center gap-0.5 rounded border border-border bg-background p-0.5 self-start md:self-auto">
-              {(["all", "active", "stale", "revoked"] as const).map((t) => {
-                const c = counts[t];
-                const showCount = (t === "stale" || t === "revoked") && c > 0;
+              {(["all", "active", "stale", "revoked"] as const).map((tb) => {
+                const c = counts[tb];
+                const showCount = (tb === "stale" || tb === "revoked") && c > 0;
                 return (
                   <button
-                    key={t}
+                    key={tb}
                     type="button"
-                    onClick={() => setTab(t)}
+                    onClick={() => setTab(tb)}
                     className={cn(
-                      "h-7 px-3 text-xs rounded capitalize transition-colors",
-                      tab === t
+                      "h-7 px-3 text-xs rounded transition-colors",
+                      tab === tb
                         ? "bg-card text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {t}
+                    {t(FILTER_TAB_KEYS[tb])}
                     {showCount && <span className="ml-1 text-muted-foreground/70">· {c}</span>}
                   </button>
                 );
@@ -476,19 +485,19 @@ function ApiKeysPageContent() {
           {/* Desktop table */}
           <div className="hidden md:block">
             <div className="grid grid-cols-[1.6fr_1.1fr_1fr_1fr_1fr_1fr_40px] gap-4 px-4 py-3 border-b border-border text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-              <div>Name</div>
-              <div>Key</div>
-              <div>Created</div>
-              <div>Last used</div>
-              <div>Requests · 30D</div>
-              <div>Spend · 30D</div>
+              <div>{t("keys.colName")}</div>
+              <div>{t("keys.colKey")}</div>
+              <div>{t("keys.created")}</div>
+              <div>{t("keys.lastUsed")}</div>
+              <div>{t("keys.requests30d")}</div>
+              <div>{t("keys.spend30d")}</div>
               <div />
             </div>
             {visibleRows.length === 0 ? (
               <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                 {apiKeys.length === 0
-                  ? "No API keys yet. Create your first key above."
-                  : "No keys match the current filter."}
+                  ? t("keys.emptyNone")
+                  : t("keys.emptyNoMatch")}
               </div>
             ) : (
               visibleRows.map(({ key, stats }) => {
@@ -503,12 +512,12 @@ function ApiKeysPageContent() {
                       <span className="text-foreground truncate">{key.name}</span>
                       {isDefault && (
                         <Badge className="bg-primary text-primary-foreground text-[10px] shrink-0">
-                          Default
+                          {t("keys.default")}
                         </Badge>
                       )}
                       {!key.is_active && (
                         <Badge variant="outline" className="text-[10px] border-border text-muted-foreground shrink-0">
-                          Revoked
+                          {t("keys.filterRevoked")}
                         </Badge>
                       )}
                     </div>
@@ -551,7 +560,7 @@ function ApiKeysPageContent() {
                             <DropdownMenuItem
                               onClick={() => handleStarClick(key.id, key.name, false)}
                             >
-                              <Star className="mr-2 h-3.5 w-3.5" /> Set as default
+                              <Star className="mr-2 h-3.5 w-3.5" /> {t("keys.setDefault")}
                             </DropdownMenuItem>
                           )}
                           {!isDefault && key.is_active && <DropdownMenuSeparator />}
@@ -559,7 +568,7 @@ function ApiKeysPageContent() {
                             onClick={() => handleDeleteClick(key.id, key.name)}
                             className="text-destructive focus:text-destructive"
                           >
-                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> {t("keys.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -575,8 +584,8 @@ function ApiKeysPageContent() {
             {visibleRows.length === 0 ? (
               <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                 {apiKeys.length === 0
-                  ? "No API keys yet. Create your first key above."
-                  : "No keys match the current filter."}
+                  ? t("keys.emptyNone")
+                  : t("keys.emptyNoMatch")}
               </div>
             ) : (
               visibleRows.map(({ key, stats }) => {
@@ -606,23 +615,23 @@ function ApiKeysPageContent() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <div className="text-muted-foreground">Created</div>
+                        <div className="text-muted-foreground">{t("keys.created")}</div>
                         <div className="text-foreground">{formatCreated(key.created_at)}</div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Last used</div>
+                        <div className="text-muted-foreground">{t("keys.lastUsed")}</div>
                         <div className="text-foreground">
                           {formatRelativeTime(stats.lastUsedAt, key.created_at)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Requests · 30d</div>
+                        <div className="text-muted-foreground">{t("keys.requests30d")}</div>
                         <div className="text-foreground font-mono">
                           {formatNumber(stats.requests)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Spend · 30d</div>
+                        <div className="text-muted-foreground">{t("keys.spend30d")}</div>
                         <div className="text-foreground font-mono">
                           {formatCurrency(stats.spend)}
                         </div>
@@ -635,7 +644,7 @@ function ApiKeysPageContent() {
                       className="w-full text-destructive border-border hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="mr-2 h-3.5 w-3.5" />
-                      Delete
+                      {t("keys.delete")}
                     </Button>
                   </div>
                 );
@@ -689,10 +698,10 @@ function ApiKeysPageContent() {
           {/* Footer: default-key selector + reveal-once note */}
           <div className="border-t border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-xs text-muted-foreground">
-              Keys are shown in full only once at creation. Store them in a secrets manager.
+              {t("keys.noticeOnce")}
             </p>
             <div className="flex items-center gap-2 self-end md:self-auto">
-              <span className="text-xs text-muted-foreground">Default API key:</span>
+              <span className="text-xs text-muted-foreground">{t("keys.defaultKey")}</span>
               {isEditingDefaultKey ? (
                 <>
                   <Select
@@ -700,7 +709,7 @@ function ApiKeysPageContent() {
                     onValueChange={handleDefaultKeyChange}
                   >
                     <SelectTrigger className="w-[200px] h-9">
-                      <SelectValue placeholder="Select API key" />
+                      <SelectValue placeholder={t("keys.selectKey")} />
                     </SelectTrigger>
                     <SelectContent>
                       {activeApiKeys.map((k) => (
@@ -739,7 +748,7 @@ function ApiKeysPageContent() {
                     </span>
                   ) : (
                     <span className="h-9 px-3 text-sm text-muted-foreground border border-input rounded bg-background flex items-center">
-                      No default key
+                      {t("keys.noDefault")}
                     </span>
                   )}
                   <Button
@@ -788,38 +797,38 @@ function ApiKeysPageContent() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete API Key</AlertDialogTitle>
+            <AlertDialogTitle>{t("keys.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {keyToDelete?.isDefault ? (
                 <>
                   <span className="font-semibold text-yellow-600 dark:text-yellow-500">
-                    Warning:
+                    {t("keys.deleteWarningLabel")}
                   </span>{" "}
-                  You are about to delete your{" "}
-                  <span className="font-semibold">default API key</span> &quot;
+                  {t("keys.deleteWarningBody")}{" "}
+                  <span className="font-semibold">{t("keys.defaultKeyPhrase")}</span> &quot;
                   {keyToDelete?.name}&quot;.
                   <br />
                   <br />
                   {activeApiKeys.length > 1
-                    ? "If you have other keys, one will be automatically promoted to default. You'll need to verify the new default key before using it."
-                    : "After deletion, you will need to create and set a new default API key to continue using the API."}{" "}
-                  This action cannot be undone.
+                    ? t("keys.deleteMultiKey")
+                    : t("keys.deleteSingleKey")}{" "}
+                  {t("keys.deleteIrreversible")}
                 </>
               ) : (
                 <>
-                  Are you sure you want to delete the API key &quot;{keyToDelete?.name}&quot;?
-                  This action cannot be undone.
+                  {t("keys.deleteNonDefaultConfirm", { keyName: keyToDelete?.name })}
+                  {t("keys.deleteIrreversible")}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelDelete}>{t("keys.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              {keyToDelete?.isDefault ? "Delete Default Key" : "Delete"}
+              {keyToDelete?.isDefault ? t("keys.deleteConfirm") : t("keys.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

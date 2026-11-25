@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AgeVerificationGate } from "@/components/age-verification-gate";
+import { LanguageToggle } from "@/components/language-toggle";
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -44,6 +45,9 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
+          <div className="ml-auto">
+            <LanguageToggle />
+          </div>
         </header>
         <div className="flex-1 overflow-y-auto">{children}</div>
       </SidebarInset>

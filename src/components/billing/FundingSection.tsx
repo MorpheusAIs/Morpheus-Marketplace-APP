@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { PaymentAmountDialog } from './PaymentAmountDialog';
 import { useCognitoAuth } from '@/lib/auth/CognitoAuthContext';
+import { useTranslation } from 'react-i18next';
 
 /** Development/debug mode flag for verbose logging */
 const IS_DEBUG_MODE = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_API === 'true';
@@ -31,6 +32,7 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>(null);
   const { getValidToken } = useCognitoAuth();
+  const { t } = useTranslation();
 
   const stripePaymentLinkUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_URL;
 
@@ -191,8 +193,8 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add Funds</CardTitle>
-          <CardDescription>Add credits to your account</CardDescription>
+          <CardTitle>{t('billing.addFunds')}</CardTitle>
+          <CardDescription>{t('billing.addFundsSub')}</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -214,9 +216,9 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                   <CreditCard className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium">Credit Card</p>
+                  <p className="font-medium">{t('billing.card')}</p>
                   <p className="text-xs text-muted-foreground">
-                    {stripePaymentLinkUrl ? 'Powered by Stripe' : 'Not configured'}
+                    {stripePaymentLinkUrl ? t('billing.cardSub') : 'Not configured'}
                   </p>
                 </div>
               </div>
@@ -235,9 +237,9 @@ export function FundingSection({ currentBalance, isLoading, onBalanceUpdate, use
                   <Coins className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <p className="font-medium">Pay with Crypto</p>
+                  <p className="font-medium">{t('billing.crypto')}</p>
                   <p className="text-xs text-muted-foreground">
-                    {userId ? 'USDC on Base via Coinbase' : 'Login required'}
+                    {userId ? t('billing.cryptoSub') : 'Login required'}
                   </p>
                 </div>
               </div>

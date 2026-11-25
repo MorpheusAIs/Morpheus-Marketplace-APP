@@ -3,8 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function CookiesPageClient() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -34,11 +36,10 @@ export function CookiesPageClient() {
 
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <h1 className="text-2xl font-bold text-foreground mt-2 mb-4">
-          Cookie Policy
+          {t("cookies.title")}
         </h1>
         <p className="text-muted-foreground mb-8 leading-relaxed">
-          This website uses cookieless Umami analytics and does not use a cookie
-          consent banner for analytics tracking.
+          {t("cookies.body")}
         </p>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-x-4 gap-y-2 justify-center text-sm">
@@ -60,7 +61,7 @@ export function CookiesPageClient() {
             href="/signin"
             className="text-primary hover:text-primary hover:underline font-medium"
           >
-            Return to Sign in
+            {t("cookies.return")}
           </Link>
         </div>
       </main>

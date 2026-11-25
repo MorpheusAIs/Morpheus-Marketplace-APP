@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTranslation } from "react-i18next";
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -44,6 +45,7 @@ export function NavUser({
   onLogout?: () => void;
 }) {
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   
   // Get first letter of email for avatar fallback, or use default
   const avatarFallback = user.email?.charAt(0).toUpperCase() || 'U';
@@ -82,14 +84,14 @@ export function NavUser({
               data-analytics-destination="/account"
             >
               <User className="h-4 w-4" />
-              <span>Account</span>
+              <span>{t("nav.account")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="w-full justify-start">
               <Link href="/terms">
                 <FileText className="h-4 w-4" />
-                <span>Terms of Service</span>
+                <span>{t("footer.terms")}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -97,7 +99,7 @@ export function NavUser({
             <SidebarMenuButton asChild className="w-full justify-start">
               <Link href="/privacy">
                 <Shield className="h-4 w-4" />
-                <span>Privacy</span>
+                <span>{t("nav.privacy")}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -110,7 +112,7 @@ export function NavUser({
               data-analytics-destination="/signin"
             >
               <LogOut className="h-4 w-4" />
-              <span>Log out</span>
+              <span>{t("nav.logout")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -167,18 +169,18 @@ export function NavUser({
             data-analytics-destination="/account"
           >
             <User className="mr-2 h-4 w-4" />
-            Account
+            {t("nav.account")}
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/terms">
               <FileText className="mr-2 h-4 w-4" />
-              Terms of Service
+              {t("footer.terms")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/privacy">
               <Shield className="mr-2 h-4 w-4" />
-              Privacy
+              {t("nav.privacy")}
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
@@ -189,7 +191,7 @@ export function NavUser({
           data-analytics-destination="/signin"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Log out
+          {t("nav.logout")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

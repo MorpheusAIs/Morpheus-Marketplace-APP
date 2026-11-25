@@ -34,6 +34,9 @@ frontend:
         # Run the dependency gate before building.
         - pnpm run audit
 
+        # Gate the locale catalogs (key parity, key-as-value, placeholders) before building.
+        - pnpm run i18n:validate
+
         # Amplify WEB_COMPUTE needs server-only variables materialized for the Lambda bundle.
         # Keep this file ignored and write only variables used by active APP routes.
         - printf "COINBASE_PAYMENT_LINK_WEBHOOK_SECRET=%s\n" "$COINBASE_PAYMENT_LINK_WEBHOOK_SECRET" >> .env.production

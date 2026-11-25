@@ -11,6 +11,7 @@ import { API_URLS } from "@/lib/api/config";
 import { subscribeVideoApi, type VideoApiExchange } from "@/lib/api/videos";
 import type { CreateVideoRequest } from "@/lib/types/videos";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 /* ------------------------------------------------------------------ */
 /* Constants                                                             */
@@ -436,23 +437,24 @@ export function VideoApiPanel({
 }) {
   // Rows the user opened or closed; otherwise only the newest POST /videos is open
   const [toggled, setToggled] = useState<Record<number, boolean>>({});
+  const { t } = useTranslation();
   const newestCreateId = entries.find((entry) => entry.method === "POST")?.id;
   const shownBody = body && snippetBody(body);
 
   return (
     <Card className={cn("min-w-0", className)}>
       <CardHeader>
-        <CardTitle>API</CardTitle>
-        <CardDescription>The calls this page makes, and code to make them yourself.</CardDescription>
+        <CardTitle>{t("video.apiTitle")}</CardTitle>
+        <CardDescription>{t("video.apiSub")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="requests">
           <TabsList className="h-7 gap-0 bg-muted p-0.5 rounded">
             <TabsTrigger value="requests" className={TAB_TRIGGER}>
-              Requests
+              {t("video.tabRequests")}
             </TabsTrigger>
             <TabsTrigger value="code" className={TAB_TRIGGER}>
-              Code
+              {t("video.tabCode")}
             </TabsTrigger>
           </TabsList>
 
@@ -460,7 +462,7 @@ export function VideoApiPanel({
           <TabsContent value="requests" className="mt-4 space-y-3 data-[state=inactive]:hidden" forceMount>
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs text-muted-foreground">
-                {entries.length} {entries.length === 1 ? "request" : "requests"} · kept until you reload
+                {t("video.requestsCount", { count: entries.length })}
               </span>
               <Button
                 variant="outline"
@@ -474,7 +476,7 @@ export function VideoApiPanel({
                 data-analytics-label="Clear video API requests"
               >
                 <Trash2 />
-                Clear
+                {t("video.clear")}
               </Button>
             </div>
             {entries.length === 0 ? (
