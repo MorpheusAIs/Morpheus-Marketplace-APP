@@ -54,7 +54,9 @@
     "errorAcceptTos": "You must accept the Terms of Service to create an account",
     "errorMismatch": "Passwords do not match",
     "certifyTosPrefix": "I have read and accept the",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Please wait for the security check to finish, then try again.",
+    "errorVerificationLoad": "The security check could not load. Turn off any content blocker for this page, then reload it."
   },
   "reset": {
     "title": "Reset Password",

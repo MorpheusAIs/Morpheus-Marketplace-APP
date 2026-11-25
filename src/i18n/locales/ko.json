@@ -54,7 +54,9 @@
     "errorAcceptTos": "계정을 만들려면 서비스 약관에 동의해야 합니다",
     "errorMismatch": "비밀번호가 일치하지 않습니다",
     "certifyTosPrefix": "서비스 약관을 읽었으며 이에 동의합니다",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "보안 확인이 끝날 때까지 기다린 후 다시 시도해 주세요.",
+    "errorVerificationLoad": "보안 확인을 불러오지 못했습니다. 이 페이지에서 콘텐츠 차단 기능을 끈 다음 새로고침해 주세요."
   },
   "reset": {
     "title": "비밀번호 재설정",

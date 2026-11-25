@@ -19,6 +19,7 @@ import {
   isBlockedEmailDomain,
   normalizeSignupErrorMessage,
 } from './blocked-email-domains';
+import { TURNSTILE_VALIDATION_KEY } from './turnstile';
 
 // Lazy initialization of Cognito client to avoid build-time errors
 let cognitoClient: CognitoIdentityProviderClient | null = null;
@@ -92,8 +93,12 @@ export class CognitoDirectAuth {
   /**
    * Sign up with email and password.
    * Client-side domain check for UX; Cognito PreSignUp Lambda enforces the blocklist.
+   *
+   * turnstileToken is the token from the signup form's Turnstile widget. The
+   * PreSignUp Lambda verifies it with Cloudflare, so it has to be a fresh one
+   * for each attempt.
    */
-  static async signUp(email: string, password: string): Promise<void> {
+  static async signUp(email: string, password: string, turnstileToken?: string): Promise<void> {
     if (isBlockedEmailDomain(email)) {
       throw new Error(BLOCKED_EMAIL_DOMAIN_MESSAGE);
     }
@@ -108,6 +113,9 @@ export class CognitoDirectAuth {
           Value: email,
         },
       ],
+      ...(turnstileToken
+        ? { ValidationData: [{ Name: TURNSTILE_VALIDATION_KEY, Value: turnstileToken }] }
+        : {}),
     });
 
     try {

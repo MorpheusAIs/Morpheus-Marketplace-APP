@@ -54,7 +54,9 @@
     "errorAcceptTos": "Hesap oluşturmak için Hizmet Koşulları'nı kabul etmeniz gerekir",
     "errorMismatch": "Şifreler eşleşmiyor",
     "certifyTosPrefix": "Hizmet Koşulları'nı okudum ve kabul ediyorum:",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Güvenlik kontrolünün tamamlanmasını bekleyin, ardından tekrar deneyin.",
+    "errorVerificationLoad": "Güvenlik kontrolü yüklenemedi. Bu sayfa için içerik engelleyicileri kapatın ve sayfayı yeniden yükleyin."
   },
   "reset": {
     "title": "Şifreyi sıfırla",

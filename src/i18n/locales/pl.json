@@ -54,7 +54,9 @@
     "errorAcceptTos": "Aby utworzyć konto, musisz zaakceptować Regulamin usług",
     "errorMismatch": "Hasła nie są zgodne",
     "certifyTosPrefix": "Przeczytałem/am i akceptuję",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Poczekaj na zakończenie weryfikacji bezpieczeństwa, a następnie spróbuj ponownie.",
+    "errorVerificationLoad": "Nie udało się wczytać weryfikacji bezpieczeństwa. Wyłącz blokowanie treści na tej stronie i wczytaj ją ponownie."
   },
   "reset": {
     "title": "Zresetuj hasło",

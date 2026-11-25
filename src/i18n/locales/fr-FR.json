@@ -54,7 +54,9 @@
     "errorAcceptTos": "Vous devez accepter les Conditions de service pour créer un compte",
     "errorMismatch": "Les mots de passe ne correspondent pas",
     "certifyTosPrefix": "J'ai lu et j'accepte les",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Veuillez patienter jusqu’à la fin de la vérification de sécurité, puis réessayez.",
+    "errorVerificationLoad": "La vérification de sécurité n’a pas pu se charger. Désactivez les bloqueurs de contenu sur cette page, puis rechargez-la."
   },
   "reset": {
     "title": "Réinitialiser le mot de passe",
