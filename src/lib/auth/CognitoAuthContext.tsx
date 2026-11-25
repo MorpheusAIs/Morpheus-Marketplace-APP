@@ -35,7 +35,7 @@ interface CognitoAuthContextType {
   ageVerified: boolean | null;
   verifyAge: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ requiresConfirmation: true; email: string }>;
+  signUp: (email: string, password: string, turnstileToken?: string) => Promise<{ requiresConfirmation: true; email: string }>;
   confirmSignUp: (email: string, confirmationCode: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   confirmForgotPassword: (email: string, confirmationCode: string, newPassword: string) => Promise<void>;
@@ -446,12 +446,12 @@ export function CognitoAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const signUp = async (email: string, password: string): Promise<{ requiresConfirmation: true; email: string }> => {
+  const signUp = async (email: string, password: string, turnstileToken?: string): Promise<{ requiresConfirmation: true; email: string }> => {
     try {
       setIsLoading(true);
 
       // Sign up with Cognito
-      await CognitoDirectAuth.signUp(email, password);
+      await CognitoDirectAuth.signUp(email, password, turnstileToken);
 
       // Store email and password in module memory (never web storage)
       pendingSignupEmail = email;

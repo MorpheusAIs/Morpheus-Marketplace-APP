@@ -54,7 +54,9 @@
     "errorAcceptTos": "Você precisa aceitar os Termos de Serviço para criar uma conta",
     "errorMismatch": "As senhas não coincidem",
     "certifyTosPrefix": "Li e aceito os",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Aguarde a conclusão da verificação de segurança e tente novamente.",
+    "errorVerificationLoad": "Não foi possível carregar a verificação de segurança. Desative os bloqueadores de conteúdo nesta página e recarregue-a."
   },
   "reset": {
     "title": "Redefinir senha",

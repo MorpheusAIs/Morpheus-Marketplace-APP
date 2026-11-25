@@ -54,7 +54,9 @@
     "errorAcceptTos": "Devi accettare i Termini di servizio per creare un account",
     "errorMismatch": "Le password non corrispondono",
     "certifyTosPrefix": "Ho letto e accetto i",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Attendi il completamento del controllo di sicurezza, poi riprova.",
+    "errorVerificationLoad": "Impossibile caricare il controllo di sicurezza. Disattiva i blocchi dei contenuti per questa pagina e ricaricala."
   },
   "reset": {
     "title": "Reimposta password",

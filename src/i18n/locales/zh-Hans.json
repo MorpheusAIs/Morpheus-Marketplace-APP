@@ -54,7 +54,9 @@
     "errorAcceptTos": "创建账户前需接受服务条款",
     "errorMismatch": "两次输入的密码不一致",
     "certifyTosPrefix": "我已阅读并接受",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "请等待安全验证完成后再试。",
+    "errorVerificationLoad": "安全验证未能加载。请关闭此页面的内容拦截工具，然后重新加载页面。"
   },
   "reset": {
     "title": "重置密码",

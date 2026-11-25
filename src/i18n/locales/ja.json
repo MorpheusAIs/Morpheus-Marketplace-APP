@@ -54,7 +54,9 @@
     "errorAcceptTos": "アカウントを作成するには利用規約に同意する必要があります",
     "errorMismatch": "パスワードが一致しません",
     "certifyTosPrefix": "利用規約を読み、同意します",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "セキュリティチェックが完了するまで待ってから、もう一度お試しください。",
+    "errorVerificationLoad": "セキュリティチェックを読み込めませんでした。このページのコンテンツブロッカーを無効にして、再読み込みしてください。"
   },
   "reset": {
     "title": "パスワードのリセット",

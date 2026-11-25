@@ -54,7 +54,9 @@
     "errorAcceptTos": "Du musst die Nutzungsbedingungen akzeptieren, um ein Konto zu erstellen",
     "errorMismatch": "Die Passwörter stimmen nicht überein",
     "certifyTosPrefix": "Ich habe die Nutzungsbedingungen gelesen und akzeptiere sie",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Bitte warte, bis die Sicherheitsprüfung abgeschlossen ist, und versuche es dann erneut.",
+    "errorVerificationLoad": "Die Sicherheitsprüfung konnte nicht geladen werden. Deaktiviere Inhaltsblocker für diese Seite und lade sie neu."
   },
   "reset": {
     "title": "Passwort zurücksetzen",

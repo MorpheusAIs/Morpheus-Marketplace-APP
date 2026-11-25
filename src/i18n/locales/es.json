@@ -54,7 +54,9 @@
     "errorAcceptTos": "Debes aceptar los Términos del Servicio para crear una cuenta",
     "errorMismatch": "Las contraseñas no coinciden",
     "certifyTosPrefix": "He leído y acepto los",
-    "certifyTosSuffix": "."
+    "certifyTosSuffix": ".",
+    "errorVerificationPending": "Espera a que termine la comprobación de seguridad y vuelve a intentarlo.",
+    "errorVerificationLoad": "No se pudo cargar la comprobación de seguridad. Desactiva los bloqueadores de contenido en esta página y vuelve a cargarla."
   },
   "reset": {
     "title": "Restablecer contraseña",

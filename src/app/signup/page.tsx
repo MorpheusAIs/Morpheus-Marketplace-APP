@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useCognitoAuth } from "@/lib/auth/CognitoAuthContext";
+import { turnstileSiteKey } from "@/lib/auth/turnstile";
+import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/auth/TurnstileWidget";
 import { useTranslation } from "react-i18next";
 import { LanguageToggle } from "@/components/language-toggle";
 
@@ -31,6 +33,8 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [ageConsent, setAgeConsent] = useState(false);
   const [tosConsent, setTosConsent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -98,9 +102,14 @@ export default function SignUpPage() {
       return;
     }
 
+    if (turnstileSiteKey && !turnstileToken) {
+      setError(t("signup.errorVerificationPending"));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const result = await signUp(email, password);
+      const result = await signUp(email, password, turnstileToken ?? undefined);
       // If confirmation is required, redirect to confirmation page
       if (result?.requiresConfirmation) {
         // Store the age consent so confirm-registration can call verify-age
@@ -114,6 +123,8 @@ export default function SignUpPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account");
+      // The token was spent on this attempt, so the next one needs a new challenge.
+      turnstileRef.current?.reset();
     } finally {
       setIsSubmitting(false);
     }
@@ -269,6 +280,17 @@ export default function SignUpPage() {
                     </span>
                   </label>
                 </Field>
+                {turnstileSiteKey && (
+                  <Field>
+                    <TurnstileWidget
+                      ref={turnstileRef}
+                      siteKey={turnstileSiteKey}
+                      action="signup"
+                      onToken={setTurnstileToken}
+                      onError={() => setError(t("signup.errorVerificationLoad"))}
+                    />
+                  </Field>
+                )}
                 {error && (
                   <p className="text-sm text-red-500">{error}</p>
                 )}
